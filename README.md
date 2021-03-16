@@ -1,3 +1,3 @@
 # slip_velocity
-Slip velocity across elements.
+Adding Fourier component for perturbation analysis
 Added modifications for documentation

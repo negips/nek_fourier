@@ -6,6 +6,60 @@
 !
 !====================================================================== 
 !-----------------------------------------------------------------------
+      subroutine initp_3ds()
+
+      implicit none
+
+      include 'SIZE'
+      include 'INPUT'
+      include 'SOLN'
+
+      include '3DS'
+
+      integer icalld
+      save icalld
+      data icalld /0/
+
+      integer nxyz,ntot1
+      
+
+      if3d_3ds = .true.
+
+      if (.not.if3d_3ds) return
+
+      if (nio.eq.0) then
+        write(6,*) 'Initializing IF3Ds', if3d_3ds
+      endif
+
+
+      if (if3d_3ds.and.npert.ne.2) then
+        write(6,'(A7,1x,I2)') 'NPERT =', npert
+        write(6,*) 'Need both real and imaginary parts'
+        write(6,*) 'Ensure NPERT = 2 for 3D perturbation solve'
+        call exitt
+      endif
+
+      nxyz  = lx1*ly1*lz1
+      ntot1 = nxyz*nelv
+
+      k_3dsp = 1.0            ! wavenumber 
+     
+      call init_pertfld_3ds() 
+
+!     Need to initialize some variables
+!     V3MASK
+      call copy(v3mask,v1mask,ntot1)
+
+!     Velocities can be initialized from useric. 
+
+      if (nio.eq.0) then
+        write(6,*) 'Initializing IF3Ds', if3d_3ds
+      endif
+
+      return
+      end subroutine initp_3ds
+!----------------------------------------------------------------------
+
       subroutine fluidp_3ds (igeom)
 
 !     Driver for perturbation velocity
@@ -18,15 +72,40 @@
       include 'SOLN'
 
       integer igeom
+      integer jp0,jp2
+      integer i,j
 
-      do jp=1,npert
+      jp2 = npert/2
 
-        if (nio.eq.0.and.igeom.eq.2) write(6,1) istep,time,jp
-   1    format(i9,1pe14.7,' Perturbation Solve:',i5)
+      jp = 0
+      do i = 1,jp2
+        jp0 = jp    
+        do j = 1,2
+          jp = jp + j    
+          if (nio.eq.0.and.igeom.eq.2) write(6,1) istep,time,jp
+   1      format(i9,1pe14.7,' Perturbation Solve (Momentum):',i5)
 
-        call perturbv_3ds (igeom)
+          call perturbv_mom_3ds (igeom)
 
-      enddo
+        enddo
+
+        do j=1,2
+          jp = jp0 + j 
+          if (nio.eq.0.and.igeom.eq.2) write(6,2) istep,time,jp
+   2      format(i9,1pe14.7,' Perturbation Solve (Pressure):',i5)
+
+!          call perturbv_prp_3ds ()
+           call incomprp_3ds(igeom) 
+
+        enddo
+
+        do j = 1,2
+          jp = jp0 + j    
+          call velp_update_3ds (igeom)
+
+        enddo
+      enddo ! i=1,jp2
+
 
       jp=0   ! set jp to zero, for baseline flow
 
@@ -34,7 +113,7 @@
       end subroutine fluidp_3ds
 c-----------------------------------------------------------------------
 
-      subroutine perturbv_3ds (igeom)
+      subroutine perturbv_mom_3ds (igeom)
 
       implicit none
 
@@ -98,68 +177,40 @@ c
          call add2(vyp(1,jp),dv2,ntot1)
          call add2(vzp(1,jp),dv3,ntot1)
 
-
-!        prabal. Debugging
-!--------------------------------------------------    
-         call copy(tmp1,vxp(1,jp),ntot1)
-         call copy(tmp2,vyp(1,jp),ntot1)
-         call copy(tmp3,vzp(1,jp),ntot1)
-!--------------------------------------------------    
-
-         call incomprp_3ds (vxp(1,jp),vyp(1,jp),vzp(1,jp),prp(1,jp))
-
       endif
 
       return
-      end subroutine perturbv_3ds
+      end subroutine perturbv_mom_3ds
 !-----------------------------------------------------------------------
 
-      subroutine initp_3ds()
-
-      implicit none
-
-      include 'SIZE'
-      include 'INPUT'
-      include 'SOLN'
-
-      include '3DS'
-
-      integer icalld
-      save icalld
-      data icalld /0/
-
-      integer nxyz,ntot1
-      
-
-      if3d_3ds = .true.
-
-      if (.not.if3d_3ds) return
-
-      if (if3d_3ds.and.npert.ne.2) then
-        write(6,'(A7,1x,I2)') 'NPERT =', npert
-        write(6,*) 'Need both real and imaginary parts'
-        write(6,*) 'Ensure NPERT = 2 for 3D perturbation solve'
-        call exitt
-      endif
-
-      nxyz  = lx1*ly1*lz1
-      ntot1 = nxyz*nelv
-
-      k_3dsp = 1.0            ! wavenumber 
-     
-      call init_pertfld_3ds() 
-
-!     Need to initialize some variables
-!     V3MASK
-      call copy(v3mask,v1mask,ntot1)
-
-!     Velocities can be initialized from useric. 
+!      subroutine perturbv_prp_3ds (igeom)
+!
+!      implicit none
+!
+!!     Solve the convection-diffusion equation for the perturbation field, 
+!!     with projection onto a div-free space.
+!
+!
+!      include 'SIZE'
+!      include 'INPUT'
+!      include 'EIGEN'
+!      include 'SOLN'
+!      include 'TSTEP'
+!      include 'MASS'
+!
+!      include 'TEST'
+!
+!
+!      ifield = 1
+!
+!      call incomprp_3ds ()
+!
+!
+!      return
+!      end subroutine perturbv_prp_3ds
 
 
-      return
-      end subroutine initp_3ds
-!----------------------------------------------------------------------
-
+!-----------------------------------------------------------------------
       subroutine init_pertfld_3ds
 
       implicit none
@@ -206,10 +257,6 @@ c
 
       nxyz = lx1*ly1*lz1
       ntot1 = nxyz*nelv
-
-      if (.not.if3d_3ds) then
-        return
-      endif
 
 !     Build user defined forcing
       call makeufp_3ds
@@ -600,13 +647,13 @@ c
 
       include '3DS'
 
-      real           resv1 (lx1,ly1,lz1,1)
-      real           resv2 (lx1,ly1,lz1,1)
-      real           resv3 (lx1,ly1,lz1,1)
-      real           h1    (lx1,ly1,lz1,1)
-      real           h2    (lx1,ly1,lz1,1)
+      real           resv1 (lx1,ly1,lz1,lelv)
+      real           resv2 (lx1,ly1,lz1,lelv)
+      real           resv3 (lx1,ly1,lz1,lelv)
+      real           h1    (lx1,ly1,lz1,lelv)
+      real           h2    (lx1,ly1,lz1,lelv)
 
-      real w1,w2,w3,prextr
+      real w1,w2,w3
       common /scruz/ w1    (lx1,ly1,lz1,lelv)
      $ ,             w2    (lx1,ly1,lz1,lelv)
      $ ,             w3    (lx1,ly1,lz1,lelv)
@@ -633,20 +680,28 @@ c
 
       if (mod(jp,2).eq.1) then
 
-!       Extrapolate both pressures at the same time    
+!       Need to Extrapolate both pressures at the same time    
         call extrapprp (prextr_3ds(1,1))
-        call extrapprp (prextr_3ds(1,2))
-
         call opgradt (resv1,resv2,resv3,prextr_3ds(1,1))
 
-        call mappr(resv3,prextr_3ds(1,2),w1,w2)            ! w1,w2 used as work variables
+
+        jp = jp + 1
+        call extrapprp (prextr_3ds(1,2))
+        jp = jp - 1
+
+        call map21_all_3ds(resv3,prextr_3ds(1,2))
         const = k_3dsp
         call cmult(resv3,const,ntot1)
         call col2(resv3,bm1,ntot1)
       else
+        call extrapprp (prextr_3ds(1,2))
         call opgradt (resv1,resv2,resv3,prextr_3ds(1,2))
 
-        call mappr(resv3,prextr_3ds(1,1),w1,w2)            ! w1,w2 used as work variables
+        jp = jp - 1
+        call extrapprp (prextr_3ds(1,1))
+        jp = jp + 1
+
+        call map21_all_3ds(resv3,prextr_3ds(1,1))
         const = -k_3dsp
         call cmult(resv3,const,ntot1)
         call col2(resv3,bm1,ntot1)
@@ -722,11 +777,9 @@ c     INTYPE =      integration type
 
 !----------------------------------------------------------------------
 
-      subroutine incomprp_3ds (ux,uy,uz,up)
+      subroutine incomprp_3ds (igeom)
 c
 c     Project U onto the closest incompressible field
-c
-c     Input:  U     := (ux,uy,uz)
 c
 c     Output: updated values of U, iproj, proj; and
 c             up    := pressure correction req'd to impose div U = 0
@@ -734,14 +787,19 @@ c
 c
 c     Dependencies: ifield ==> which "density" (vtrans) is used.
 c
-c
+
+      implicit none
+
       include 'SIZE'
-      include 'TOTAL'
+      include 'SOLN'          ! vxp,vyp,vzp,prp,jp
+      include 'INPUT'         ! npert
+      include 'TSTEP'         ! dt,ifield
       include 'CTIMER'
 
       include '3DS'
 
-c
+      real w1,w2,w3
+      real dv1,dv2,dv3,dp
       common /scrns/ w1    (lx1,ly1,lz1,lelv)
      $ ,             w2    (lx1,ly1,lz1,lelv)
      $ ,             w3    (lx1,ly1,lz1,lelv)
@@ -749,34 +807,54 @@ c
      $ ,             dv2   (lx1,ly1,lz1,lelv)
      $ ,             dv3   (lx1,ly1,lz1,lelv)
      $ ,             dp    (lx2,ly2,lz2,lelv)
+
+      real h1,h2,h2inv
       common /scrvh/ h1    (lx1,ly1,lz1,lelv)
      $ ,             h2    (lx1,ly1,lz1,lelv)
       common /scrhi/ h2inv (lx1,ly1,lz1,lelv)
-      COMMON /SCRCH/ PREXTR(LX2,LY2,LZ2,LELV)
+
+      real dp2
+      common /scrch/ dp2(lx2,ly2,lz2,lelv)
       logical ifprjp
 
-c
+      integer ntot1,ntot2,intype,istart
+
+      real dtbd,const
+
+      integer jpi
+
+      integer igeom
+
+      if (igeom.eq.1) return
+
       if (icalld.eq.0) tpres=0.0
       icalld=icalld+1
       npres=icalld
-c
+
+      jpi = mod(jp,2)
+
       ntot1  = lx1*ly1*lz1*nelv
       ntot2  = lx2*ly2*lz2*nelv
-      intype = 1
       dtbd   = bd(1)/dt
 
       call rzero   (h1,ntot1)
-!      call cadd    (h1,k_3dsp,ntot1)
-c     call copy    (h2,vtrans(1,1,1,1,ifield),ntot1)
+      call copy    (h2,vtrans(1,1,1,1,ifield),ntot1)
       call cmult2  (h2,vtrans(1,1,1,1,ifield),dtbd,ntot1)
       call invers2 (h2inv,h2,ntot1)
 
-      call opdiv   (dp,ux,uy,uz)
-      call chsign  (dp,ntot2)
-      call ortho   (dp)
+      call opdiv   (prcorr_3ds(1,jpi),vxp(1,jp),vyp(1,jp),vzp(1,jp))
+      if (jpi.eq.1) then
+        call map12_all_3ds(dp2,vzp(1,jp+1))
+        const = -k_3dsp
+      else
+        call map12_all_3ds(dp2,vzp(1,jp-1))
+        const =  k_3dsp
+      endif
 
+      call add2s2(prcorr_3ds(1,jpi),dp2,const,ntot2)
 
-C******************************************************************
+      call chsign  (prcorr_3ds(1,jpi),ntot2)
+      call ortho   (prcorr_3ds(1,jpi))
 
 
       ifprjp=.false.    ! project out previous pressure solutions?
@@ -784,32 +862,213 @@ C******************************************************************
       if (istep.ge.istart.and.istart.ne.0) ifprjp=.true.
 
       ! Most likely, the following can be commented out. (pff, 1/6/2010)
-c     if (npert.gt.1.or.ifbase)            ifprjp=.false.
-cpff  if (ifprjp)   call setrhs  (dp,h1,h2,h2inv)
+      if (npert.gt.1.or.ifbase)            ifprjp=.false.
 
-                    call esolver (dp,h1,h2,h2inv,intype)
+      intype = 2              ! Changing integration type here.
+                              ! Need to modify cdabdtp accordingly
+                              ! Also need to modify uzprec
 
-cpff  if (ifprjp)   call gensoln (dp,h1,h2,h2inv)
+      call esolver (prcorr_3ds(1,jpi),h1,h2,h2inv,intype)
 
-cNOTE:  The "cpff" comments added 11/24/17 to avoid old-style projection,
-cNOTE:  which should be replaced with something more updated.
-
-C******************************************************************
-
-      call opgradt (w1 ,w2 ,w3 ,dp)
-      call opbinv  (dv1,dv2,dv3,w1 ,w2 ,w3 ,h2inv)
-      call opadd2  (ux ,uy ,uz ,dv1,dv2,dv3)
-
-      call extrapprp(prextr)
-      call lagpresp
-      call add3(up,prextr,dp,ntot2)
 
       return
       end subroutine incomprp_3ds
-c------------------------------------------------------------------------
+!------------------------------------------------------------------------
+      subroutine velp_update_3ds (igeom)
+
+!     Update Pressure and velocities based on pressure correction
 
 
+      implicit none
 
+      include 'SIZE'
+      include 'SOLN'          ! vxp,vyp,vzp,prp,jp
+      include 'INPUT'         ! npert
+      include 'TSTEP'         ! dt,ifield
+      include 'CTIMER'
+
+      include '3DS'
+
+      real w1,w2,w3
+      real dv1,dv2,dv3,dp
+      common /scrns/ w1    (lx1,ly1,lz1,lelv)
+     $ ,             w2    (lx1,ly1,lz1,lelv)
+     $ ,             w3    (lx1,ly1,lz1,lelv)
+     $ ,             dv1   (lx1,ly1,lz1,lelv)
+     $ ,             dv2   (lx1,ly1,lz1,lelv)
+     $ ,             dv3   (lx1,ly1,lz1,lelv)
+     $ ,             dp    (lx2,ly2,lz2,lelv)
+
+      real h1,h2,h2inv
+      common /scrvh/ h1    (lx1,ly1,lz1,lelv)
+     $ ,             h2    (lx1,ly1,lz1,lelv)
+      common /scrhi/ h2inv (lx1,ly1,lz1,lelv)
+
+      real dp2
+      common /scrch/ dp2(lx2,ly2,lz2,lelv)
+      logical ifprjp
+
+      integer ntot1,ntot2
+
+      real dtbd,const
+
+      integer jpi
+
+      integer igeom
+
+      if (igeom.eq.1) return
+
+
+      jpi = mod(jp,2)
+
+      ntot1  = lx1*ly1*lz1*nelv
+      ntot2  = lx2*ly2*lz2*nelv
+      dtbd   = bd(1)/dt
+
+!     In principle these should still be preserved from the last routine.
+!     But I calculate it again for clarity
+      call rzero   (h1,ntot1)
+      call copy    (h2,vtrans(1,1,1,1,ifield),ntot1)
+      call cmult2  (h2,vtrans(1,1,1,1,ifield),dtbd,ntot1)
+      call invers2 (h2inv,h2,ntot1)
+
+      call opgradt (w1 ,w2 ,w3 ,prcorr_3ds(1,jpi))
+
+      ! Map pressure to velcity mesh
+      if (jpi.eq.1) then
+        call map21_all_3ds(w3,prcorr_3ds(1,jpi+1)) 
+        const = -k_3dsp
+      else
+        call map21_all_3ds(w3,prcorr_3ds(1,jpi-1)) 
+        const = k_3dsp
+      endif
+      
+      call cmult(w3,const,ntot1)
+
+      if3d = .true.
+      call opbinv_3ds(dv1,dv2,dv3,w1 ,w2 ,w3 ,h2inv)
+      if3d = .false.
+      call add2(vx,dv1,ntot1)
+      call add2(vy,dv2,ntot1)
+      if (if3d.or.if3d_3ds) call add2(vz,dv3,ntot1)
+
+      call extrapprp(prextr_3ds(1,jpi))
+      call lagpresp
+      call add3(prp(1,jp),prextr_3ds(1,jpi),prcorr_3ds(1,jpi),ntot2)
+
+      return
+      end subroutine velp_update_3ds
+!------------------------------------------------------------------------
+      subroutine map12_all_3ds(pm2,pm1)
+
+      implicit none
+
+      include 'SIZE'
+
+      real pm1(lx1,ly1,lz1,lelv)
+      real pm2(lx2,ly2,lz2,lelv)
+      integer e
+
+      do e=1,nelv
+         call map12 (pm2(1,1,1,e),pm1(1,1,1,e),e)
+      enddo
+   
+      return
+      end subroutine map12_all_3ds
+!-----------------------------------------------------------------------
+
+      subroutine map21_all_3ds (y,x)
+
+!     Map X from mesh M2 to mesh M1 (Y)
+      
+      implicit none
+
+      INCLUDE 'SIZE'
+
+      real x(lx2,ly2,lz2,lelv)
+      real y(lx1,ly1,lz1,lelv)
+
+      integer e
+
+      do e=1,nelv
+        call map21t(y(1,1,1,e),x(1,1,1,e),e)
+      enddo
+
+      return
+      end subroutine map21_all_3ds
+
+!-----------------------------------------------------------------------
+
+      subroutine opbinv_3ds (out1,out2,out3,inp1,inp2,inp3,h2inv)
+
+!     Compute OUT = (H2*B)-1 * INP   (explicit)
+
+
+      implicit none
+
+      include 'SIZE'
+      include 'INPUT'
+      include 'MASS'
+      include 'SOLN'
+C
+      real out1  (1)
+      real out2  (1)
+      real out3  (1)
+      real inp1  (1)
+      real inp2  (1)
+      real inp3  (1)
+      real h2inv (1)
+
+      real tmp
+      integer i,isbcnt,ntot
+
+      include 'OPCTR'
+C
+#ifdef TIMER
+      if (isclld.eq.0) then
+          isclld=1
+          nrout=nrout+1
+          myrout=nrout
+          rname(myrout) = 'opbinv'
+      endif
+#endif
+C
+      call opmask  (inp1,inp2,inp3)
+!      call opdssum (inp1,inp2,inp3)
+      call dssum(inp1,lx1,ly1,lz1)
+      call dssum(inp2,lx1,ly1,lz1)
+      call dssum(inp3,lx1,ly1,lz1)
+
+C
+      ntot=lx1*ly1*lz1*nelv
+C
+#ifdef TIMER
+      isbcnt = ntot*(1+ldim)
+      dct(myrout) = dct(myrout) + (isbcnt)
+      ncall(myrout) = ncall(myrout) + 1
+      dcount      =      dcount + (isbcnt)
+#endif
+
+      call invcol3 (out1,bm1,h2inv,ntot)  ! this is expensive and should
+      call dssum   (out1,lx1,ly1,lz1)     ! be changed (pff, 3/18/09)
+      if (if3d) then
+         do i=1,ntot
+            tmp = 1./out1(i)
+            out1(i)=inp1(i)*tmp
+            out2(i)=inp2(i)*tmp
+            out3(i)=inp3(i)*tmp
+         enddo
+      else
+         do i=1,ntot
+            tmp = 1./out1(i)
+            out1(i)=inp1(i)*tmp
+            out2(i)=inp2(i)*tmp
+         enddo
+      endif
+
+      return
+      end subroutine opbinv_3ds
+c-----------------------------------------------------------------------
 
 
 
