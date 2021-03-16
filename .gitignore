@@ -24,7 +24,6 @@
 **/*.dat
 **/*.a
 **/.*.swp
-**/makenek
 **/compiler*
 **/out.*
 !Nek5000_3d/doc/*
