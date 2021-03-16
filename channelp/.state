@@ -1,9 +1,0 @@
-NEK_SOURCE_ROOT=/home/prabal/workstation/git_kth/fourier/Nek5000_3d
-FC=mpif77
-FFLAGS=-I./src_inc
-FCPP=-cpp
-FR8=-fdefault-real-8 -fdefault-double-8
-FF77=-std=legacy
-CC=mpicc
-CFLAGS=
-PPLIST= MPI UNDERSCORE GLOBAL_LONG_LONG TIMER

@@ -27,6 +27,7 @@
 **/.*.swp
 **/compiler*
 **/out.*
+# **/.state
 Nek5000_3d/3rd_party/gslib/*
 Nek5000_3d/3rd_party/include/*
 Nek5000_3d/3rd_party/lib/*
