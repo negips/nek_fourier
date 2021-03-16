@@ -276,6 +276,13 @@ C
      $ ,             TB2 (LX1,LY1,LZ1,LELV)
      $ ,             TB3 (LX1,LY1,LZ1,LELV)
 
+!     prabal
+      if (intype.eq.2) then
+        call cdabdtp_3ds(ap,wp,h1,h2,h2inv,intype)
+        return
+      endif
+
+
       call opgradt (ta1,ta2,ta3,wp)
       if ((intype.eq.0).or.(intype.eq.-1)) then
          tolhin=tolhs
@@ -949,6 +956,16 @@ C
             CALL EPREC2      (RPCG,RCG)
 c           CALL COL2        (RPCG,H2M2,NTOT2)
          endif
+!     prabal
+      ELSEIF (INTYPE.EQ.2) THEN
+         if (ifanls) then
+            CALL EPREC2      (RPCG,RCG)
+            DTBD = BD(1)/DT
+            CALL cmult       (RPCG,DTBD,ntot2)
+         else
+            CALL EPREC2      (RPCG,RCG)
+c           CALL COL2        (RPCG,H2M2,NTOT2)
+         endif   
       ELSE
          CALL COPY        (RPCG,RCG,NTOT2)
       ENDIF

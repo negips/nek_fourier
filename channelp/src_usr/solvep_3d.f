@@ -326,7 +326,6 @@ c
 !     Not sure why we multiply by density
 !      call col2(bfzp(1,jp),vtrans(1,1,1,1,ifield),nx1*ny1*nz1*nelv)
 
-
       call col2  (bfxp(1,jp),bm1,ntot1)
       call col2  (bfyp(1,jp),bm1,ntot1)
       call col2  (bfzp(1,jp),bm1,ntot1)
@@ -403,6 +402,34 @@ c
             bfzp(i,jp) = bfzp(i,jp)-tmp*ta3(i)
          enddo
 
+!        Add z convection for all components
+!        Assuming dU/dz, dV/dz, dW/dz = 0 of course
+         if (mod(jp,2).eq.1) then
+            call convect_w_3ds(ta1,vxp(1,jp+1),vz)           
+            call convect_w_3ds(ta2,vyp(1,jp+1),vz)           
+            call convect_w_3ds(ta3,vzp(1,jp+1),vz)           
+
+            do i=1,ntot1
+               tmp = -k_3dsp*bm1(i,1,1,1)*vtrans(i,1,1,1,ifield)
+               bfxp(i,jp) = bfxp(i,jp)-tmp*ta1(i)
+               bfyp(i,jp) = bfyp(i,jp)-tmp*ta2(i)
+               bfzp(i,jp) = bfzp(i,jp)-tmp*ta3(i)
+            enddo
+
+         else
+            call convect_w_3ds(ta1,vxp(1,jp-1),vz)           
+            call convect_w_3ds(ta2,vyp(1,jp-1),vz)           
+            call convect_w_3ds(ta3,vzp(1,jp-1),vz)           
+
+            do i=1,ntot1
+               tmp = k_3dsp*bm1(i,1,1,1)*vtrans(i,1,1,1,ifield)
+               bfxp(i,jp) = bfxp(i,jp)-tmp*ta1(i)
+               bfyp(i,jp) = bfyp(i,jp)-tmp*ta2(i)
+               bfzp(i,jp) = bfzp(i,jp)-tmp*ta3(i)
+            enddo
+
+         endif
+
       else  ! 2D without fourier third component
 
          call opcopy  (tb1,tb2,tb3,vx,vy,vz)                   ! Save velocity
@@ -427,8 +454,6 @@ c
          enddo
 
       endif
-
-!     Add z convection for all components
 
 
       return
@@ -1070,8 +1095,160 @@ C
       end subroutine opbinv_3ds
 c-----------------------------------------------------------------------
 
+      subroutine convect_w_3ds(cku,u,Cz)
+
+!     Compute dealiased form:  J^T Bf *JCz .Ju w/ correct Jacobians
+
+      implicit none
+
+      include 'SIZE'
+      include 'GEOM'
+      include 'INPUT'
+!      include 'TOTAL'
+
+      real cku(1),u(1),cx(1),cy(1),cz(1)
+      logical ifuf,ifcf            ! u and/or c already on fine mesh?
+
+      integer lxy,ltd
+      parameter (lxy=lx1*ly1*lz1,ltd=lxd*lyd*lzd)
+
+      real fx,fy,fz
+      real ur,us,ut
+      real tr,uf,wd2,jacm1d
+      common /scrcv/ fx(ltd),fy(ltd),fz(ltd)
+     $             , ur(ltd),us(ltd),ut(ltd)
+     $             , jacm1d(ltd),tr(ltd)
+     $             , wd2(ltd),uf(ltd)
+
+      integer e,k
+      integer iu,ic,ijc,ick
+
+      integer nxyz1,nxyzc,nxyzd,nxyzu,nxyzj
+
+      real zd,wd
+      common /dealias1/ zd(lxd),wd(lxd)
+
+      integer i,j,l
+
+      nxyz1 = lx1*ly1*lz1
+      nxyzd = lxd*lyd*lzd
+
+      nxyzu = nxyz1
+!      if (ifuf) nxyzu = nxyzd
+
+      nxyzc = nxyz1
+!      if (ifcf) nxyzc = nxyzd
+
+      nxyzj = nxyz1
 
 
+      iu  = 1    ! pointer to scalar field u
+      ic  = 1    ! pointer to vector field C
+      ijc = 1    ! pointer to scalar JACM1
+      ick = 1    ! pointer to scalar cku 
 
+      call zwgl (zd,wd,lxd)  ! zwgl -- NOT zwgll!
+
+      if (if3d) then
+        do k=1,lzd
+        do j=1,lyd
+        do i=1,lxd
+           l = (k-1)*lyd*lxd + (j-1)*lxd + i 
+           wd2(l) = wd(i)*wd(j)*wd(k)
+        enddo
+        enddo
+        enddo
+      else
+        do j=1,lyd
+        do i=1,lxd
+           l = (j-1)*lxd + i 
+           wd2(l) = wd(i)*wd(j)
+        enddo
+        enddo
+
+      endif
+
+
+      do e=1,nelv
+
+!       Interpolate Convecting Field   
+        call intp_rstd(fz,cz(ic),lx1,lxd,if3d,0) ! 0 --> forward
+
+!       Interpolate Convected Field   
+        call intp_rstd(uf,u(iu),lx1,lxd,if3d,0) ! 0 --> forward
+
+!       Interpolate Jacobian (Probably only needs to be done once) 
+        call intp_rstd(jacm1d,jacm1(ijc,1,1,1),lx1,lxd,if3d,0) ! 0 --> forward
+
+        do i=1,nxyzd ! mass matrix included, per DFM (4.8.5)
+           tr(i) = wd2(i)*jacm1d(i)*uf(i)*fz(i)
+        enddo
+        call intp_rstd(cku(ick),tr,lx1,lxd,if3d,1) ! Project back to coarse
+
+        ic  = ic  + nxyzc
+        iu  = iu  + nxyzu
+        ijc = ijc + nxyzj
+        ick = ick + nxyz1
+
+      enddo
+
+      return
+      end subroutine convect_w_3ds
+!-----------------------------------------------------------------------
+      subroutine cdabdtp_3ds(ap,wp,h1,h2,h2inv,intype)
+
+!     INTYPE= 0  Compute the matrix-vector product    DA(-1)DT*p
+!     INTYPE= 1  Compute the matrix-vector product    D(B/DT)(-1)DT*p
+!     INTYPE=-1  Compute the matrix-vector product    D(A+B/DT)(-1)DT*p
+!     INTYPE= 2  Compute the matrix-vector product    D(B/DT)(-1)DT*p
+!                  with fourier in 3rd component 
+
+      implicit none
+
+      include 'SIZE'
+      include '3DS'
+
+!      include 'TOTAL'
+      real           ap    (lx2,ly2,lz2,1)
+      real           wp    (lx2,ly2,lz2,1)
+      real           h1    (lx1,ly1,lz1,1)
+      real           h2    (lx1,ly1,lz1,1)
+      real           h2inv (lx1,ly1,lz1,1)
+
+      real ta1,ta2,ta3,tb1,tb2,tb3
+      common /scrns/ ta1 (lx1,ly1,lz1,lelv)
+     $ ,             ta2 (lx1,ly1,lz1,lelv)
+     $ ,             ta3 (lx1,ly1,lz1,lelv)
+     $ ,             tb1 (lx1,ly1,lz1,lelv)
+     $ ,             tb2 (lx1,ly1,lz1,lelv)
+     $ ,             tb3 (lx1,ly1,lz1,lelv)
+
+      real tmp2(lx2,ly2,lz2,lelv)         ! lazy work. Should use a scratch array
+
+      integer ntot1,ntot2,intype
+
+      real const
+
+      ntot1 = nx1*ny1*nz1*nelv
+      ntot2 = nx2*ny2*nz2*nelv
+
+      call opgradt (ta1,ta2,ta3,wp)
+      call map21_all_3ds(ta3,wp)
+      if (intype.eq.2) then
+         call opbinv_3ds (tb1,tb2,tb3,ta1,ta2,ta3,h2inv)
+      endif
+      const = k_3dsp**2
+      call map12_all_3ds(tmp2,tb3)
+      call cmult  (tmp2,const,ntot2)
+
+      call opdiv  (ap,tb1,tb2,tb3)
+      call add2   (ap,tmp2,ntot2)
+
+      return
+      end subroutine cdabdtp_3ds
+C
+C-----------------------------------------------------------------------
+
+!-----------------------------------------------------------------------
 
 
