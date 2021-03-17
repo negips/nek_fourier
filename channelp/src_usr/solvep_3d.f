@@ -81,11 +81,21 @@
       do i = 1,jp2
         jp0 = jp    
         do j = 1,2
-          jp = jp + j    
+          jp = jp0 + j    
           if (nio.eq.0.and.igeom.eq.2) write(6,1) istep,time,jp
    1      format(i9,1pe14.7,' Perturbation Solve (Momentum):',i5)
 
           call perturbv_mom_3ds (igeom)
+
+!!         prabal  
+!          if (igeom.eq.1)  
+!     $      call outpost(bfxp(1,jp),bfyp(1,jp),bfzp(1,jp),
+!     $                  prp(1,jp),bfzp(1,jp),'bfp')
+
+!!         prabal  
+!          if (igeom.eq.1)  
+!     $      call outpost(vx,vy,vz,pr,vz,'ch1')
+
 
         enddo
 
@@ -97,11 +107,19 @@
 !          call perturbv_prp_3ds ()
            call incomprp_3ds(igeom) 
 
+!!         prabal  
+!          if (igeom.eq.2)  
+!     $      call outpost(vx,vy,vz,pr,vz,'ch2')
+
         enddo
 
         do j = 1,2
           jp = jp0 + j    
           call velp_update_3ds (igeom)
+
+!!         prabal  
+!          if (igeom.eq.2)  
+!     $      call outpost(vx,vy,vz,pr,vz,'ch3')
 
         enddo
       enddo ! i=1,jp2
@@ -261,14 +279,18 @@ c
 !     Build user defined forcing
       call makeufp_3ds
 
+
 !      if3d = .true.
 !      if (filterType.eq.2) call make_hpf
 !     hpf field stored in ta3
 !      call xaddcol3(bfz_3ds,ta3,bm1,ntot1)
 !      if3d = .false. 
+!          call outpost(bfxp(1,jp),bfyp(1,jp),bfzp(1,jp),
+!     $                  prp(1,jp),bfzp(1,jp),'bf1')
 
       call advabp_3ds
 !      if (ifnav.and.(.not.ifchar).and.(ifadj)) call advabp_adjoint_3dsp
+
 
       if (iftran) call makextp_3ds
       call makebdfp_3ds
@@ -506,6 +528,8 @@ c
       subroutine makebdfp_3ds
 
 !     Add contributions to perturbation source from lagged BD terms.
+
+      implicit none
 
       include 'SIZE'
       include 'SOLN'
@@ -856,7 +880,8 @@ c
       icalld=icalld+1
       npres=icalld
 
-      jpi = mod(jp,2)
+      jpi = 1
+      if (mod(jp,2).eq.0) jpi = 2
 
       ntot1  = lx1*ly1*lz1*nelv
       ntot2  = lx2*ly2*lz2*nelv
@@ -868,15 +893,18 @@ c
       call invers2 (h2inv,h2,ntot1)
 
       call opdiv   (prcorr_3ds(1,jpi),vxp(1,jp),vyp(1,jp),vzp(1,jp))
+
       if (jpi.eq.1) then
-        call map12_all_3ds(dp2,vzp(1,jp+1))
+        call map12_all_3ds(dp2,vzp(1,jpi+1))
         const = -k_3dsp
       else
-        call map12_all_3ds(dp2,vzp(1,jp-1))
+        call map12_all_3ds(dp2,vzp(1,jpi-1))
         const =  k_3dsp
       endif
 
-      call add2s2(prcorr_3ds(1,jpi),dp2,const,ntot2)
+      call cmult(dp2,const,ntot2)
+
+!      call add2s2(prcorr_3ds(1,jpi),dp2,const,ntot2)
 
       call chsign  (prcorr_3ds(1,jpi),ntot2)
       call ortho   (prcorr_3ds(1,jpi))
@@ -889,7 +917,7 @@ c
       ! Most likely, the following can be commented out. (pff, 1/6/2010)
       if (npert.gt.1.or.ifbase)            ifprjp=.false.
 
-      intype = 2              ! Changing integration type here.
+      intype =  2             ! Changing integration type here.
                               ! Need to modify cdabdtp accordingly
                               ! Also need to modify uzprec
 
@@ -913,6 +941,8 @@ c
       include 'CTIMER'
 
       include '3DS'
+
+      include 'TEST'
 
       real w1,w2,w3
       real dv1,dv2,dv3,dp
@@ -943,8 +973,8 @@ c
 
       if (igeom.eq.1) return
 
-
-      jpi = mod(jp,2)
+      jpi = 1
+      if (mod(jp,2).eq.0) jpi = 2
 
       ntot1  = lx1*ly1*lz1*nelv
       ntot2  = lx2*ly2*lz2*nelv
@@ -973,9 +1003,15 @@ c
       if3d = .true.
       call opbinv_3ds(dv1,dv2,dv3,w1 ,w2 ,w3 ,h2inv)
       if3d = .false.
-      call add2(vx,dv1,ntot1)
-      call add2(vy,dv2,ntot1)
-      if (if3d.or.if3d_3ds) call add2(vz,dv3,ntot1)
+
+!     prabal
+      call copy(tmp1,dv1,ntot1)
+      call copy(tmp2,dv2,ntot1)
+      call copy(tmp3,dv3,ntot1)
+
+      call add2(vxp(1,jp),dv1,ntot1)
+      call add2(vyp(1,jp),dv2,ntot1)
+      if (if3d.or.if3d_3ds) call add2(vzp(1,jp),dv3,ntot1)
 
       call extrapprp(prextr_3ds(1,jpi))
       call lagpresp
@@ -1057,16 +1093,22 @@ C
           rname(myrout) = 'opbinv'
       endif
 #endif
-C
-      call opmask  (inp1,inp2,inp3)
+
+
+      ntot=lx1*ly1*lz1*nelv
+
+!      call opmask  (inp1,inp2,inp3)
 !      call opdssum (inp1,inp2,inp3)
+      call col2 (inp1,v1mask,ntot)
+      call col2 (inp2,v2mask,ntot)
+      call col2 (inp3,v3mask,ntot)
+
       call dssum(inp1,lx1,ly1,lz1)
       call dssum(inp2,lx1,ly1,lz1)
       call dssum(inp3,lx1,ly1,lz1)
 
-C
-      ntot=lx1*ly1*lz1*nelv
-C
+
+
 #ifdef TIMER
       isbcnt = ntot*(1+ldim)
       dct(myrout) = dct(myrout) + (isbcnt)
@@ -1206,7 +1248,10 @@ c-----------------------------------------------------------------------
       implicit none
 
       include 'SIZE'
+      include 'INPUT'         ! if3d
       include '3DS'
+
+      include 'TEST'
 
 !      include 'TOTAL'
       real           ap    (lx2,ly2,lz2,1)
@@ -1223,7 +1268,7 @@ c-----------------------------------------------------------------------
      $ ,             tb2 (lx1,ly1,lz1,lelv)
      $ ,             tb3 (lx1,ly1,lz1,lelv)
 
-      real tmp2(lx2,ly2,lz2,lelv)         ! lazy work. Should use a scratch array
+      real ttmp2(lx2,ly2,lz2,lelv)         ! lazy work. Should use a scratch array
 
       integer ntot1,ntot2,intype
 
@@ -1232,17 +1277,29 @@ c-----------------------------------------------------------------------
       ntot1 = nx1*ny1*nz1*nelv
       ntot2 = nx2*ny2*nz2*nelv
 
+      const = k_3dsp**2
+
       call opgradt (ta1,ta2,ta3,wp)
       call map21_all_3ds(ta3,wp)
-      if (intype.eq.2) then
-         call opbinv_3ds (tb1,tb2,tb3,ta1,ta2,ta3,h2inv)
-      endif
-      const = k_3dsp**2
-      call map12_all_3ds(tmp2,tb3)
-      call cmult  (tmp2,const,ntot2)
+      call cmult  (ta3,const,ntot1)
+
+      if3d = .true.
+      call opbinv_3ds (tb1,tb2,tb3,ta1,ta2,ta3,h2inv)
+      if3d = .false.
+
+!      call copy(tmp1,ta3,ntot1)
+!      call copy(tmp2,tb3,ntot1)
+
+      call map12_all_3ds(ttmp2,tb3)
+!      call cmult  (tmp2,const,ntot2)
 
       call opdiv  (ap,tb1,tb2,tb3)
       call add2   (ap,tmp2,ntot2)
+
+
+!      call copy(tmp7,ttmp2,ntot2)
+!      write(6,*) 'nx1', nx1,ny1,nz1,nelv,ntot1,const
+!      write(6,*) 'nx2', nx2,ny2,nz2,nelv,ntot2,const
 
       return
       end subroutine cdabdtp_3ds

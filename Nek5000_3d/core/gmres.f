@@ -59,7 +59,7 @@ c
       iconv = 0
       call rzero(x_gmres,ntot2)
 
-      do while(iconv.eq.0.and.iter.lt.1000)
+      do while(iconv.eq.0.and.iter.lt.10000)
 
          if(iter.eq.0) then
                                                         !      -1

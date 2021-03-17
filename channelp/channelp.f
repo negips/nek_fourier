@@ -72,6 +72,7 @@ c-----------------------------------------------------------------------
       include 'TEST'
 
       integer ntot1
+      integer i,j
 
 !      call slp_mark_faces()
 
@@ -85,19 +86,27 @@ c-----------------------------------------------------------------------
       if (istep.eq.0) then
 !        call outpost(vx,vy,vz,pr,t,'   ')
         call initp_3ds
+
+        write(6,*) 'param40', param(40)
+        write(6,*) 'param41', param(41)
+        write(6,*) 'param42', param(42)
+        write(6,*) 'param43', param(43)
+        write(6,*) 'param44', param(44)
+
+        call rzero(zm1,ntot1)
+        call outpost(vx,vy,vz,pr,vz,'ini')
       endif
 
-      write(6,*) 'param40', param(40)
-      write(6,*) 'param41', param(41)
-      write(6,*) 'param42', param(42)
-      write(6,*) 'param43', param(43)
-      write(6,*) 'param44', param(44)
+      if (mod(istep,iostep).eq.0) then
+        i = 1
+        call outpost(vxp(1,1),vyp(1,1),vzp(1,i),
+     $               prp(1,1),vzp(1,1),'ptr')
+        i = 2
+        call outpost(vxp(1,i),vyp(1,i),vzp(1,i),
+     $               prp(1,i),vzp(1,i),'pti')
 
-      do jp=1,2
-        call outpost(vxp(1,jp),vyp(1,jp),vzp(1,jp),
-     $               prp(1,jp),vzp(1,jp),'prt')
-      enddo
-
+        call outpost(vx,vy,vz,pr,vz,'   ')
+      endif
 
 !      call exitt
 
@@ -140,11 +149,12 @@ c-----------------------------------------------------------------------
       if (jp.eq.0) then
         ux = 0.0 + 1.0*y
         uy = 0.
-        uz = 0.0 + 0.5*y
+        uz = 0.0 + 1.0*y
       else
-        ux = (1.0e-1)*rand()
-        uy = (1.0e-1)*rand()
-        uz = (1.0e-1)*rand()
+        ux = -1.0 + (2.0e-0)*rand()
+        uy = -1.0 + (2.0e-0)*rand()
+!        uz = -1.0 + (2.0e-0)*rand()
+        uz = ux
       endif
 
 

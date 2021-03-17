@@ -263,6 +263,7 @@ C     INTYPE=-1  Compute the matrix-vector product    D(A+B/DT)(-1)DT*p
 
       include 'SIZE'
       include 'TOTAL'
+
       REAL           AP    (LX2,LY2,LZ2,1)
       REAL           WP    (LX2,LY2,LZ2,1)
       REAL           H1    (LX1,LY1,LZ1,1)
@@ -279,7 +280,7 @@ C
 !     prabal
       if (intype.eq.2) then
         call cdabdtp_3ds(ap,wp,h1,h2,h2inv,intype)
-        return
+       return
       endif
 
 

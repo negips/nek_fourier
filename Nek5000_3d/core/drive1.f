@@ -166,6 +166,7 @@ c      COMMON /SCRCG/ DUMM10(LX1,LY1,LZ1,LELT,1)
      &     ' Initialization successfully completed ', tinit, ' sec'
       endif
 
+
       return
       end
 c-----------------------------------------------------------------------
