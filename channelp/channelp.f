@@ -106,6 +106,10 @@ c-----------------------------------------------------------------------
      $               prp(1,i),vzp(1,i),'pti')
 
         call outpost(vx,vy,vz,pr,vz,'   ')
+
+        call outpost(tmp1,tmp4,tmp3,
+     $               tmp7,tmp3,'tmp')
+
       endif
 
 !      call exitt

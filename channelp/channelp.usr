@@ -107,8 +107,8 @@ c-----------------------------------------------------------------------
 
         call outpost(vx,vy,vz,pr,vz,'   ')
 
-        call outpost(tmp1,tmp2,tmp3,
-     $               prp(1,1),tmp3,'tmp')
+        call outpost(tmp1,tmp4,tmp3,
+     $               tmp7,tmp3,'tmp')
 
       endif
 

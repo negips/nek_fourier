@@ -938,6 +938,7 @@ c
       include 'SOLN'          ! vxp,vyp,vzp,prp,jp
       include 'INPUT'         ! npert
       include 'TSTEP'         ! dt,ifield
+      include 'MASS'
       include 'CTIMER'
 
       include '3DS'
@@ -991,23 +992,23 @@ c
 
       ! Map pressure to velcity mesh
       if (jpi.eq.1) then
+
+!        call ortho(prcorr_3ds(1,jpi+1))
         call map21_all_3ds(w3,prcorr_3ds(1,jpi+1)) 
         const = -k_3dsp
+
       else
+!        call ortho(prcorr_3ds(1,jpi-1))
         call map21_all_3ds(w3,prcorr_3ds(1,jpi-1)) 
         const = k_3dsp
       endif
-      
+
       call cmult(w3,const,ntot1)
+      call col2(w3,bm1,ntot1)
 
       if3d = .true.
       call opbinv_3ds(dv1,dv2,dv3,w1 ,w2 ,w3 ,h2inv)
       if3d = .false.
-
-!     prabal
-      call copy(tmp1,dv1,ntot1)
-      call copy(tmp2,dv2,ntot1)
-      call copy(tmp3,dv3,ntot1)
 
       call add2(vxp(1,jp),dv1,ntot1)
       call add2(vyp(1,jp),dv2,ntot1)
@@ -1249,16 +1250,17 @@ c-----------------------------------------------------------------------
 
       include 'SIZE'
       include 'INPUT'         ! if3d
+      include 'MASS'
       include '3DS'
 
       include 'TEST'
 
 !      include 'TOTAL'
-      real           ap    (lx2,ly2,lz2,1)
-      real           wp    (lx2,ly2,lz2,1)
-      real           h1    (lx1,ly1,lz1,1)
-      real           h2    (lx1,ly1,lz1,1)
-      real           h2inv (lx1,ly1,lz1,1)
+      real           ap    (lx2,ly2,lz2,lelv)
+      real           wp    (lx2,ly2,lz2,lelv)
+      real           h1    (lx1,ly1,lz1,lelv)
+      real           h2    (lx1,ly1,lz1,lelv)
+      real           h2inv (lx1,ly1,lz1,lelv)
 
       real ta1,ta2,ta3,tb1,tb2,tb3
       common /scrns/ ta1 (lx1,ly1,lz1,lelv)
@@ -1281,6 +1283,7 @@ c-----------------------------------------------------------------------
 
       call opgradt (ta1,ta2,ta3,wp)
       call map21_all_3ds(ta3,wp)
+      call col2(ta3,bm1,ntot1)            ! opgradt includes a mass matrix
       call cmult  (ta3,const,ntot1)
 
       if3d = .true.
