@@ -38,9 +38,11 @@
       nxyz  = lx1*ly1*lz1
       ntot1 = nxyz*nelv
 
+!     Initialize forward/backward ffts
       call init_plans_fou()
-     
-      call init_physfld_fou()
+
+!     Initial field     
+      call init_fld_fou()
 
 !     Need to initialize some variables
 !     V3MASK
@@ -479,7 +481,7 @@ c
 
 
 !-----------------------------------------------------------------------
-      subroutine init_physfld_fou
+      subroutine init_fld_fou
 
 !     Initialize starting field.
 !     Assume its initialized in Physical space
@@ -505,60 +507,65 @@ c
 
       ntot1 = nx1*ny1*nz1*nelv
 
-      nz    = nfmodes+1
+      nz    = nfmodes
 
       do k=1,nz
-        if (k.eq.nz) then
-!         Periodic with first face  
-          call copy(fou_icvx(1,1,1,k),fou_icvz(1,1,1,1),ntot1)
-        else
-          do e=1,nel
-            eg = lglel(e)
-            do j=1,ly1
-              do i=1,lx1
-                call nekasgn (i,j,1,e)
-                z = fou_zm1(k) 
-                call useric  (i,j,k,eg)
-                if (jp.eq.0) then
-                  if (ifield.eq.1) then
-                    fou_icvx(i,j,e,k) = ux
-                    fou_icvy(i,j,e,k) = uy
-                    fou_icvz(i,j,e,k) = uz
-                  elseif (ifield.eq.ifldmhd .and. ifmhd) then
+        do e=1,nel
+          eg = lglel(e)
+          do j=1,ly1
+            do i=1,lx1
+              call nekasgn (i,j,1,e)
+              z = fou_zm1(k) 
+              call useric  (i,j,k,eg)
+              if (jp.eq.0) then
+                if (ifield.eq.1) then
+                  fou_icvx(i,j,e,k) = ux
+                  fou_icvy(i,j,e,k) = uy
+                  fou_icvz(i,j,e,k) = uz
+                elseif (ifield.eq.ifldmhd .and. ifmhd) then
 !!                   prabal. MHD not implemented yet
-!                    bx(i,j,k,e) = ux
-!                    by(i,j,k,e) = uy
-!                    bz(i,j,k,e) = uz
-                  else
+                else
 !                   prabal. Passive scalar not implemented yet   
 !                    t(i,j,k,e,ifield-1) = temp
-                  endif
-                else
-!                 prabal. We'll come to perturbation mode some other time
-
-!                  ijke = i+lx1*((j-1)+ly1*((k-1) + lz1*(e-1)))
-!                  if (ifield.eq.1) then
-!                    vxp(ijke,JP) = ux
-!                    vyp(ijke,JP) = uy
-!                    vzp(ijke,JP) = uz
-!                  else
-!                    tp(ijke,ifield-1,JP) = temp
-!                  endif
                 endif
+              else
+!                 prabal. We'll come to perturbation mode some other time
+              endif
 
-              enddo     ! i
-            enddo       ! j
-          enddo         ! e
-          call dsavg(fou_icvx)
-          call dsavg(fou_icvy)
-          call dsavg(fou_icvz)
-        endif           ! k.eq.nz
-      enddo             ! k
+            enddo     ! i
+          enddo       ! j
+        enddo         ! e
+        call dsavg(fou_icvx)
+        call dsavg(fou_icvy)
+        call dsavg(fou_icvz)
+      enddo           ! k
 
-!     prabal. Perform a fourier transform      
+!     prabal. Perform a fourier transform
+      if (jp.eq.0) then
+        if (ifield.eq.1) then
+
+          call phy_to_fou(fou_rvx,fou_ivx,fou_icvx,fou_datain,
+     $                    fou_fftamp,fou_planf,nz)  
+
+          call phy_to_fou(fou_rvy,fou_ivy,fou_icvy,fou_datain,
+     $                    fou_fftamp,fou_planf,nz)  
+
+          call phy_to_fou(fou_rvz,fou_ivz,fou_icvz,fou_datain,
+     $                    fou_fftamp,fou_planf,nz)  
+
+        elseif (ifield.eq.ifldmhd .and. ifmhd) then
+!!           prabal. MHD not implemented yet
+        else
+!           prabal. Passive scalar not implemented yet   
+!            t(i,j,k,e,ifield-1) = temp
+        endif
+      else
+!         prabal. We'll come to perturbation mode some other time
+      endif
+
 
       return
-      end subroutine init_physfld_fou
+      end subroutine init_fld_fou
 !----------------------------------------------------------------------
       subroutine makefp_3ds
 
@@ -1614,9 +1621,63 @@ c-----------------------------------------------------------------------
 
       return
       end subroutine cdabdtp_3ds
-C
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
+
+      subroutine copy_fou(dataout,datain,nz)
+
+      implicit none
+
+      include 'SIZE'
+
+      real datain(1),dataout(1)
+      integer i,skip,nz
+      
+      skip = lx1*ly1*1*lelv
+
+      do i=1,nz
+        j = (i-1)*skip + 1    
+        dataout(i) = datain(j)
+      enddo
+
+      return
+      end subroutine copy_fou
+!-----------------------------------------------------------------------
+
+      subroutine phy_to_fou(fldout_r,flout_i,fldin,wkr,wkc,plan,nz)
+
+      implicit none
+      
+      include 'SIZE'
+
+      integer e,j,i,k,nz
+
+      real fldin(lx1,ly1,lelv,nz)
+      real fldout_r(lx1,ly1,lelv,nz)
+      real fldout_i(lx1,ly1,lelv,nz)
+      real wkr(nz)
+      complex wkc(nz)
+      integer plan
+
+!     prabal. Perform a fourier transform
+      do e=1,nel
+        do j=1,ly1
+          do i=1,lx1
+            call copy_fou(wkr,fldin(i,j,e,1),nz)    ! copy data to a continuous array
+            call dfftw_execute_dft_r2c(plan,wkr,wkc)
+
+            do k=1,nz
+              fldout_r(i,j,e,k)=real(wkc(k))   
+              fldout_i(i,j,e,k)=aimag(wkc(k))
+            enddo  
+
+          enddo
+        enddo
+      enddo
+
+      return
+      end subroutine phy_to_fou_all
 
 !-----------------------------------------------------------------------
+
 
 
