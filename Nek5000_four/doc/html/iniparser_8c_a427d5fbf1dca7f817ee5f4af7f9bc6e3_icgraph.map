@@ -1,0 +1,12 @@
+<map id="strlwc" name="strlwc">
+<area shape="rect" id="node1" title="Convert a string to lowercase." alt="" coords="375,183,432,209"/>
+<area shape="rect" id="node2" href="$iniparser_8c.html#afa02a2ab6d21e751472f6a330ab7b815" title="Get the string associated to a key." alt="" coords="199,132,327,159"/>
+<area shape="rect" id="node9" href="$iniparser_8c.html#ad526324b54dbfe04d636360883f4f874" title="Set an entry in a dictionary." alt="" coords="215,183,311,209"/>
+<area shape="rect" id="node10" href="$iniparser_8c.html#a2ecced40f104f8d629748bb12c1f6b6b" title="Delete an entry in a dictionary." alt="" coords="207,233,318,260"/>
+<area shape="rect" id="node3" href="$finiparser_8c.html#a01f307219b181cbb452a59d547b74e54" title=" " alt="" coords="5,5,151,32"/>
+<area shape="rect" id="node4" href="$finiparser_8c.html#ad08f4425404638785a73b66059419d71" title=" " alt="" coords="18,56,138,83"/>
+<area shape="rect" id="node5" href="$finiparser_8c.html#aaef85ca18e5713c1fe95602d287523f7" title=" " alt="" coords="11,107,145,133"/>
+<area shape="rect" id="node6" href="$iniparser_8c.html#acd872a1e8c56f23a79ab2f2f7a26a7ac" title="Finds out if a given entry exists in a dictionary." alt="" coords="11,157,145,184"/>
+<area shape="rect" id="node7" href="$iniparser_8c.html#afa30800883e2853074c038467f5fde2b" title="Get the string associated to a key, convert to a boolean." alt="" coords="7,208,149,235"/>
+<area shape="rect" id="node8" href="$iniparser_8c.html#a18d3a09e99a0ac212010edc3f0365379" title="Get the string associated to a key, convert to a double." alt="" coords="11,259,145,285"/>
+</map>

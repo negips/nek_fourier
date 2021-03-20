@@ -1,0 +1,22 @@
+var searchData=
+[
+  ['x_2964',['x',['../structcrs__data.html#a9a49a8fbb306687e3957c1d5f9c6f29c',1,'crs_data']]],
+  ['x_2965',['X',['../structxxt.html#a51cf2b3faf77dca80906a577fa629bd9',1,'xxt']]],
+  ['x_2966',['x',['../structfindpts__el__pt__2.html#a66978e7ae6f368b44cebaeae96d948be',1,'findpts_el_pt_2::x()'],['../structfindpts__el__gedge__2.html#a3f699f93965f61b2c9173b3320290f38',1,'findpts_el_gedge_2::x()'],['../structfindpts__el__gpt__2.html#ac279af36bcccffd368dca2998f775454',1,'findpts_el_gpt_2::x()'],['../structfindpts__el__data__2.html#ab1ec361b74d0d2728565301af71893f6',1,'findpts_el_data_2::x()'],['../structfindpts__el__pt__3.html#ae50ed50528ff1133b78dab17640cbd12',1,'findpts_el_pt_3::x()'],['../structfindpts__el__gface__3.html#add53cd53c60c8f9a4d5d4199a8d6d705',1,'findpts_el_gface_3::x()'],['../structfindpts__el__gedge__3.html#a85475a3c6a3e8bf60a44f6533d4e6058',1,'findpts_el_gedge_3::x()'],['../structfindpts__el__gpt__3.html#a622934458db36fba531af3be68493175',1,'findpts_el_gpt_3::x()'],['../structfindpts__el__data__3.html#aac988592fd538082868c1ed8aa51556e',1,'findpts_el_data_3::x()'],['../structsrc__pt.html#a22f61fa9ea534250343603ed5512a8c2',1,'src_pt::x()'],['../structobbox__2.html#ae40032a2f16c97b598de5ebe2ca1e162',1,'obbox_2::x()'],['../structobbox__3.html#aeaac8d77d7909195c325a13ef591732b',1,'obbox_3::x()'],['../structpt__data.html#af3360e66fc65316317bbfa13f113408b',1,'pt_data::x()']]],
+  ['x8toxm_2967',['x8toxm',['../meshsmoother_8f.html#aa48c53bb4556b1a81cb8b716404f9a77',1,'meshsmoother.f']]],
+  ['x_5fmap_2968',['x_map',['../fem__amg__preco_8h.html#af4d03b8aa1ef93f5aa5bb1a5da7069b1',1,'fem_amg_preco.h']]],
+  ['xaddcol3_2969',['xaddcol3',['../math_8f.html#a5a66d972a88384a4e1211427df641526',1,'math.f']]],
+  ['xerbla_2970',['xerbla',['../xerbla_8f.html#a377ee61015baf8dea7770b3a404b1c07',1,'xerbla.f']]],
+  ['xerbla_2ef_2971',['xerbla.f',['../xerbla_8f.html',1,'']]],
+  ['xm1toxmc_2972',['xm1toxmc',['../meshsmoother_8f.html#ae29221483c794344c304f6d213e9bc23',1,'meshsmoother.f']]],
+  ['xmctoxm1_2973',['xmctoxm1',['../meshsmoother_8f.html#a91ae54dbd00c38653b2a5f27da6a33f7',1,'meshsmoother.f']]],
+  ['xmtox8_2974',['xmtox8',['../meshsmoother_8f.html#abeb47ac89a09712fdc1ccb615be69336',1,'meshsmoother.f']]],
+  ['xn_2975',['xn',['../structxxt.html#aee43f7721bfcaccad4d99e8b5685ac6b',1,'xxt']]],
+  ['xor_2976',['xor',['../comm__mpi_8f.html#aa58338baef9abc506b23bd96e3c54d44',1,'comm_mpi.f']]],
+  ['xp_2977',['Xp',['../structxxt.html#ad12c98342ed17b7d81258cc2f8b86c11',1,'xxt']]],
+  ['xxt_2978',['xxt',['../structxxt.html',1,'']]],
+  ['xyzlin_2979',['xyzlin',['../genxyz_8f.html#a16eca2a8f6bca6167dcfa98ff3eac09c',1,'genxyz.f']]],
+  ['xyzquad_2980',['xyzquad',['../genxyz_8f.html#a7c0d9ad72ade85a885511477626382a9',1,'genxyz.f']]],
+  ['xyzrst_2981',['xyzrst',['../coef_8f.html#a82cf1663c9a821049d0aad836343591a',1,'coef.f']]],
+  ['xyzrstc_2982',['xyzrstc',['../meshsmoother_8f.html#aad5f7993adbb6c754fbc224c4abf638e',1,'meshsmoother.f']]]
+];

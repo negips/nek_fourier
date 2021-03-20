@@ -1,0 +1,28 @@
+var searchData=
+[
+  ['calcz_2ef_3108',['calcz.f',['../calcz_8f.html',1,'']]],
+  ['chelpers_2ec_3109',['chelpers.c',['../chelpers_8c.html',1,'']]],
+  ['coef_2ef_3110',['coef.f',['../coef_8f.html',1,'']]],
+  ['comm_2ec_3111',['comm.c',['../comm_8c.html',1,'']]],
+  ['comm_5fmpi_2ef_3112',['comm_mpi.f',['../comm__mpi_8f.html',1,'']]],
+  ['comm_5ftest_2ec_3113',['comm_test.c',['../comm__test_8c.html',1,'']]],
+  ['conduct_2ef_3114',['conduct.f',['../conduct_8f.html',1,'']]],
+  ['config_2eh_3115',['config.h',['../config_8h.html',1,'']]],
+  ['connect1_2ef_3116',['connect1.f',['../connect1_8f.html',1,'']]],
+  ['connect2_2ef_3117',['connect2.f',['../connect2_8f.html',1,'']]],
+  ['convect_2ef_3118',['convect.f',['../convect_8f.html',1,'']]],
+  ['convect2_2ef_3119',['convect2.f',['../convect2_8f.html',1,'']]],
+  ['crs_2eh_3120',['crs.h',['../crs_8h.html',1,'']]],
+  ['crs_5famg_2ec_3121',['crs_amg.c',['../crs__amg_8c.html',1,'']]],
+  ['crs_5famg_5fio_2eh_3122',['crs_amg_io.h',['../crs__amg__io_8h.html',1,'']]],
+  ['crs_5fhypre_2ec_3123',['crs_hypre.c',['../crs__hypre_8c.html',1,'']]],
+  ['crs_5fhypre_2eh_3124',['crs_hypre.h',['../crs__hypre_8h.html',1,'']]],
+  ['crs_5fxxt_2ec_3125',['crs_xxt.c',['../crs__xxt_8c.html',1,'']]],
+  ['crystal_2ec_3126',['crystal.c',['../crystal_8c.html',1,'']]],
+  ['crystal_5ftest_2ec_3127',['crystal_test.c',['../crystal__test_8c.html',1,'']]],
+  ['cvode_5faux_2eh_3128',['cvode_aux.h',['../cvode__aux_8h.html',1,'']]],
+  ['cvode_5fdriver_2ef_3129',['cvode_driver.f',['../cvode__driver_8f.html',1,'']]],
+  ['cvode_5fjtimes_2eh_3130',['cvode_jtimes.h',['../cvode__jtimes_8h.html',1,'']]],
+  ['cvode_5fpreco_5fdummy_2eh_3131',['cvode_preco_dummy.h',['../cvode__preco__dummy_8h.html',1,'']]],
+  ['name_2eh_3132',['name.h',['../core_2name_8h.html',1,'']]]
+];

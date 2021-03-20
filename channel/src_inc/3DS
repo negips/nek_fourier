@@ -1,9 +1,0 @@
-!     Include file for solve_3d routines
-
-
-      real bfz_3ds(lx1,ly1,lz1,lelv)
-      common /solv_3dsr/ bfz_3ds
-
-      logical if3d_3ds
-      common /solv_3dsl/ if3d_3ds
-

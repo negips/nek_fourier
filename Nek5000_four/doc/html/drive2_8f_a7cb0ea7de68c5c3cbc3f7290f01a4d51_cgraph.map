@@ -1,0 +1,12 @@
+<map id="prinit" name="prinit">
+<area shape="rect" id="node1" title=" " alt="" coords="5,81,56,108"/>
+<area shape="rect" id="node2" href="$comm__mpi_8f.html#a59fcf8a02fe54ab37f61050e3ca6b197" title=" " alt="" coords="413,81,464,108"/>
+<area shape="rect" id="node7" href="$navier6_8f.html#a45317b1def173b8f1db2e5083595d095" title=" " alt="" coords="104,107,193,133"/>
+<area shape="rect" id="node3" href="$math_8f.html#a692155d1d2ec380a9fdb2d81ef221625" title=" " alt="" coords="517,5,571,32"/>
+<area shape="rect" id="node4" href="$math_8f.html#ad7fb480cea001849621405f37167aab1" title=" " alt="" coords="512,56,576,83"/>
+<area shape="rect" id="node5" href="$byte_8c.html#a2da8eeb074dfd3ffbfb3e9a4d301cda4" title=" " alt="" coords="521,107,567,133"/>
+<area shape="rect" id="node6" href="$ic_8f.html#ada3a2c3283a9052e1fe4b7a90375b09b" title=" " alt="" coords="517,157,571,184"/>
+<area shape="rect" id="node8" href="$comm__mpi_8f.html#af06ec29f06aac3f8809e19de2a7e8946" title=" " alt="" coords="263,81,344,108"/>
+<area shape="rect" id="node9" href="$fast3d_8f.html#ae816aca38820baec08dcc7ac8a89275c" title=" " alt="" coords="267,132,339,159"/>
+<area shape="rect" id="node10" href="$fast3d_8f.html#aa55ba5f1f18d52cbc1563322052ac67e" title=" " alt="" coords="241,183,365,209"/>
+</map>

@@ -1,0 +1,12 @@
+<map id="dgetri" name="dgetri">
+<area shape="rect" id="node1" title="DGETRI" alt="" coords="5,132,60,159"/>
+<area shape="rect" id="node2" href="$dgemm_8f.html#aeda3cbd99c8fb834a60a6412878226e1" title=" " alt="" coords="217,5,283,32"/>
+<area shape="rect" id="node3" href="$xerbla_8f.html#a377ee61015baf8dea7770b3a404b1c07" title=" " alt="" coords="331,157,388,184"/>
+<area shape="rect" id="node4" href="$dgemv_8f.html#add421a107a488d524859b4a64c1901a9" title=" " alt="" coords="108,107,169,133"/>
+<area shape="rect" id="node5" href="$dswap_8f.html#a780475990528dce288cf4f7bba36c90f" title=" " alt="" coords="109,157,169,184"/>
+<area shape="rect" id="node6" href="$dtrsm_8f.html#a6a0a7704f4a747562c1bd9487e89795c" title=" " alt="" coords="223,157,277,184"/>
+<area shape="rect" id="node7" href="$dtrtri_8f.html#a97c5ddb103f5f6bc2dc060886aaf2ffc" title="DTRTRI" alt="" coords="115,259,163,285"/>
+<area shape="rect" id="node8" href="$dtrmm_8f.html#af07edfbb2d2077687522652c9e283e1e" title=" " alt="" coords="221,259,279,285"/>
+<area shape="rect" id="node9" href="$dtrti2_8f.html#a6251426a82e7eb6410091403114067f5" title="DTRTI2 computes the inverse of a triangular matrix (unblocked algorithm)." alt="" coords="225,309,275,336"/>
+<area shape="rect" id="node10" href="$dscal_8f.html#a0590f8db475e11dc2c9137bb13887acf" title=" " alt="" coords="333,309,386,336"/>
+</map>

@@ -1,0 +1,10 @@
+<map id="getflops_papi" name="getflops_papi">
+<area shape="rect" id="node1" title=" " alt="" coords="676,56,775,83"/>
+<area shape="rect" id="node2" href="$papi_8f.html#a401adcc008e595bf3caeaf27a675bdb7" title=" " alt="" coords="539,31,625,57"/>
+<area shape="rect" id="node8" href="$papi_8f.html#a03e8f6edabb1a9e537e7bd6f62beff24" title=" " alt="" coords="536,81,628,108"/>
+<area shape="rect" id="node3" href="$drive1_8f.html#a6ad57e0cf728f343e371ef8c9a02cd8a" title=" " alt="" coords="233,5,315,32"/>
+<area shape="rect" id="node5" href="$comm__mpi_8f.html#aecb92a457f6ec83709a380299db794ed" title=" " alt="" coords="363,56,488,83"/>
+<area shape="rect" id="node4" href="$drive_8f.html#a13048bf28dd0734640412d69349e3857" title=" " alt="" coords="5,31,67,57"/>
+<area shape="rect" id="node6" href="$comm__mpi_8f.html#a7c71e890279f4933a841a2d97c7de4bd" title=" " alt="" coords="247,56,301,83"/>
+<area shape="rect" id="node7" href="$drive1_8f.html#a10055f031c0ac540cc534ab2b0363206" title=" " alt="" coords="115,56,185,83"/>
+</map>

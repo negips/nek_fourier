@@ -1,0 +1,12 @@
+<map id="bin_rd1_bc" name="bin_rd1_bc">
+<area shape="rect" id="node1" title=" " alt="" coords="5,208,91,235"/>
+<area shape="rect" id="node2" href="$reader__re2_8f.html#a0389b78855ac1cdc670417a95d7bdf0e" title=" " alt="" coords="139,5,249,32"/>
+<area shape="rect" id="node3" href="$comm__mpi_8f.html#abd95004b45059acdcc13614c52e60eae" title=" " alt="" coords="299,44,356,71"/>
+<area shape="rect" id="node4" href="$reader__re2_8f.html#a189e9cbe1eb8f139fb4274fc08ee13ee" title=" " alt="" coords="155,107,233,133"/>
+<area shape="rect" id="node5" href="$math_8f.html#a26622755cad7162eab6e767526a9445d" title=" " alt="" coords="297,120,357,147"/>
+<area shape="rect" id="node6" href="$comm__mpi_8f.html#a243c9bed2592e7cd159fb36be4fda037" title=" " alt="" coords="167,208,221,235"/>
+<area shape="rect" id="node7" href="$byte_8c.html#a2da8eeb074dfd3ffbfb3e9a4d301cda4" title=" " alt="" coords="304,259,351,285"/>
+<area shape="rect" id="node8" href="$comm__mpi_8f.html#ae6a06eb6f47a6153825afb25e6cc49c7" title=" " alt="" coords="161,309,227,336"/>
+<area shape="rect" id="node9" href="$dprocmap_8f.html#aa8f8117aad966b2c1f877b334d9d407b" title=" " alt="" coords="168,360,220,387"/>
+<area shape="rect" id="node10" href="$comm__mpi_8f.html#a4acb4d8e379294232e9219bec063d8f3" title=" " alt="" coords="155,411,233,437"/>
+</map>

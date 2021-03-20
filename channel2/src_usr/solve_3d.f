@@ -6,121 +6,6 @@
 !
 !====================================================================== 
 !-----------------------------------------------------------------------
-      subroutine plan3_3ds (igeom)
-
-!     Compute pressure and velocity using consistent approximation spaces.     
-!     Operator splitting technique.
-
-      implicit none
-
-      include 'SIZE'
-      include 'INPUT'
-      include 'EIGEN'
-      include 'SOLN'
-      include 'TSTEP'
-
-      include '3DS'
-
-      real resv1,resv2,resv3
-      real dv1,dv2,dv3
-      real h1,h2
-      common /scrns/  resv1 (lx1,ly1,lz1,lelv)
-     $ ,              resv2 (lx1,ly1,lz1,lelv)
-     $ ,              resv3 (lx1,ly1,lz1,lelv)
-     $ ,              dv1   (lx1,ly1,lz1,lelv)
-     $ ,              dv2   (lx1,ly1,lz1,lelv)
-     $ ,              dv3   (lx1,ly1,lz1,lelv)
-      common /scrvh/  h1    (lx1,ly1,lz1,lelv)
-     $ ,              h2    (lx1,ly1,lz1,lelv)
-
-      real ut1(lx1,ly1,lz1,lelt)
-      real ut2(lx1,ly1,lz1,lelt)
-      real ut3(lx1,ly1,lz1,lelt)
-      integer flowtype(lelt)
-      common /testvel1/ ut1,ut2,ut3,flowtype
-
-      real ut4(lx1,ly1,lz1,lelt)
-      real ut5(lx1,ly1,lz1,lelt)
-      real ut6(lx1,ly1,lz1,lelt)
-
-      common /testvel2/ ut4,ut5,ut6
-
-      integer intype
-      integer igeom
-      integer ntot1
-
-
-
-      ntot1 = lx1*ly1*lz1*nelv   
-
-      if (igeom.eq.1) then
-
-!        old geometry
-
-         call makef
-
-         call makef_3ds
-
-      else
-
-!        new geometry, new b.c.
-
-         intype = -1
-         call sethlm  (h1,h2,intype)
-
-!-------------------------------------------------- 
-!!        prabal
-!!        for introducing slip across element faces   
-!!        ut1, ut2, ut3 ---> contains slip velocity arrays   
-!         call opzero  (ut4,ut5,ut6)
-!         call ophx    (ut4,ut5,ut6,ut1,ut2,ut3,h1,h2)       ! Ax
-!         call opsub2  (bfx,bfy,bfz,ut4,ut5,ut6)             ! bfx - Ax
-!-------------------------------------------------- 
-
-         call cresvif_3ds (resv1,resv2,resv3,h1,h2)
-
-!         debugging  
-!         call opcopy(vx,vy,vz,resv1,resv2,resv3)
-!         call copy(vz,resv3,ntot1)      
-!         call outpost(vx,vy,vz,pr,vz,'   ')
-!         call exitt
-
-!         debugging  
-!         call opcopy(vx,vy,vz,bfx,bfy,bfz)
-!         call copy(vz,bfz,ntot1)      
-!         call outpost(vx,vy,vz,pr,vz,'   ')
-!         call exitt
-
-!         call copy(resv1,resv3,ntot1)    
- 
-     
-         if3d = .true. 
-         call ophinv(dv1,dv2,dv3,resv1,resv2,resv3,h1,h2,tolhv,nmxv)
-         if3d = .false.   
-
-
-         call opadd2(vx,vy,vz,dv1,dv2,dv3)
-         call add2(vz,dv3,ntot1) 
-            
-
-!!        prabal
-!         call opadd2(vx,vy,vz,ut1,ut2,ut3)            ! add slip velocity back
-
-!         debugging  
-!         call opcopy(vx,vy,vz,dv1,dv2,dv3)
-!         call copy(vz,dv3,ntot1)      
-!         call outpost(vx,vy,vz,pr,vz,'   ')   
-!         call exitt   
-
-         call incomprn(vx,vy,vz,pr)
-
-      endif
-
-      return
-      end subroutine plan3_3ds
-
-!----------------------------------------------------------------------
-
 
       subroutine init_3ds()
 
@@ -541,6 +426,120 @@ c-----------------------------------------------------------------------
       return
       end subroutine cresvif_3ds
 !-----------------------------------------------------------------------
+      subroutine plan3_3ds (igeom)
+
+!     Compute pressure and velocity using consistent approximation spaces.     
+!     Operator splitting technique.
+
+      implicit none
+
+      include 'SIZE'
+      include 'INPUT'
+      include 'EIGEN'
+      include 'SOLN'
+      include 'TSTEP'
+
+      include '3DS'
+
+      real resv1,resv2,resv3
+      real dv1,dv2,dv3
+      real h1,h2
+      common /scrns/  resv1 (lx1,ly1,lz1,lelv)
+     $ ,              resv2 (lx1,ly1,lz1,lelv)
+     $ ,              resv3 (lx1,ly1,lz1,lelv)
+     $ ,              dv1   (lx1,ly1,lz1,lelv)
+     $ ,              dv2   (lx1,ly1,lz1,lelv)
+     $ ,              dv3   (lx1,ly1,lz1,lelv)
+      common /scrvh/  h1    (lx1,ly1,lz1,lelv)
+     $ ,              h2    (lx1,ly1,lz1,lelv)
+
+      real ut1(lx1,ly1,lz1,lelt)
+      real ut2(lx1,ly1,lz1,lelt)
+      real ut3(lx1,ly1,lz1,lelt)
+      integer flowtype(lelt)
+      common /testvel1/ ut1,ut2,ut3,flowtype
+
+      real ut4(lx1,ly1,lz1,lelt)
+      real ut5(lx1,ly1,lz1,lelt)
+      real ut6(lx1,ly1,lz1,lelt)
+
+      common /testvel2/ ut4,ut5,ut6
+
+      integer intype
+      integer igeom
+      integer ntot1
+
+
+
+      ntot1 = lx1*ly1*lz1*nelv   
+
+      if (igeom.eq.1) then
+
+!        old geometry
+
+         call makef
+
+         call makef_3ds
+
+      else
+
+!        new geometry, new b.c.
+
+         intype = -1
+         call sethlm  (h1,h2,intype)
+
+!-------------------------------------------------- 
+!!        prabal
+!!        for introducing slip across element faces   
+!!        ut1, ut2, ut3 ---> contains slip velocity arrays   
+!         call opzero  (ut4,ut5,ut6)
+!         call ophx    (ut4,ut5,ut6,ut1,ut2,ut3,h1,h2)       ! Ax
+!         call opsub2  (bfx,bfy,bfz,ut4,ut5,ut6)             ! bfx - Ax
+!-------------------------------------------------- 
+
+         call cresvif_3ds (resv1,resv2,resv3,h1,h2)
+
+!         debugging  
+!         call opcopy(vx,vy,vz,resv1,resv2,resv3)
+!         call copy(vz,resv3,ntot1)      
+!         call outpost(vx,vy,vz,pr,vz,'   ')
+!         call exitt
+
+!         debugging  
+!         call opcopy(vx,vy,vz,bfx,bfy,bfz)
+!         call copy(vz,bfz,ntot1)      
+!         call outpost(vx,vy,vz,pr,vz,'   ')
+!         call exitt
+
+!         call copy(resv1,resv3,ntot1)    
+ 
+     
+         if3d = .true. 
+         call ophinv(dv1,dv2,dv3,resv1,resv2,resv3,h1,h2,tolhv,nmxv)
+         if3d = .false.   
+
+
+         call opadd2(vx,vy,vz,dv1,dv2,dv3)
+         call add2(vz,dv3,ntot1) 
+
+!!        prabal
+!         call opadd2(vx,vy,vz,ut1,ut2,ut3)            ! add slip velocity back
+
+!         debugging  
+!         call opcopy(vx,vy,vz,dv1,dv2,dv3)
+!         call copy(vz,dv3,ntot1)      
+!         call outpost(vx,vy,vz,pr,vz,'   ')   
+!         call exitt   
+
+         call incomprn(vx,vy,vz,pr)
+
+      endif
+
+      return
+      end subroutine plan3_3ds
+
+!----------------------------------------------------------------------
+
 
 
 !----------------------------------------------------------------------

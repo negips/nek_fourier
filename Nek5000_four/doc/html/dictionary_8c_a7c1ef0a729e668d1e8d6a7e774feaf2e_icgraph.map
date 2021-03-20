@@ -1,0 +1,12 @@
+<map id="dictionary_hash" name="dictionary_hash">
+<area shape="rect" id="node1" title="Compute the hash key for a string." alt="" coords="540,107,653,133"/>
+<area shape="rect" id="node2" href="$dictionary_8c.html#a8691664a012a1c689bd46b6b4477ea68" title="Get a value from a dictionary." alt="" coords="382,56,485,83"/>
+<area shape="rect" id="node7" href="$dictionary_8c.html#aca582586180a1cd058017e337250848d" title="Set a value in a dictionary." alt="" coords="382,107,485,133"/>
+<area shape="rect" id="node9" href="$dictionary_8c.html#a27f0752948d52ccd2568dae22f5db2bc" title="Delete a key in a dictionary." alt="" coords="375,157,492,184"/>
+<area shape="rect" id="node3" href="$iniparser_8c.html#afa02a2ab6d21e751472f6a330ab7b815" title="Get the string associated to a key." alt="" coords="199,56,327,83"/>
+<area shape="rect" id="node4" href="$finiparser_8c.html#a01f307219b181cbb452a59d547b74e54" title=" " alt="" coords="5,5,151,32"/>
+<area shape="rect" id="node5" href="$finiparser_8c.html#ad08f4425404638785a73b66059419d71" title=" " alt="" coords="18,56,138,83"/>
+<area shape="rect" id="node6" href="$finiparser_8c.html#aaef85ca18e5713c1fe95602d287523f7" title=" " alt="" coords="11,107,145,133"/>
+<area shape="rect" id="node8" href="$iniparser_8c.html#ad526324b54dbfe04d636360883f4f874" title="Set an entry in a dictionary." alt="" coords="215,107,311,133"/>
+<area shape="rect" id="node10" href="$iniparser_8c.html#a2ecced40f104f8d629748bb12c1f6b6b" title="Delete an entry in a dictionary." alt="" coords="207,157,318,184"/>
+</map>

@@ -1,0 +1,12 @@
+<map id="lorentz_force_e" name="lorentz_force_e">
+<area shape="rect" id="node1" title=" " alt="" coords="5,183,116,209"/>
+<area shape="rect" id="node2" href="$connect2_8f.html#a6e862f603b59c81091476a690c5e94ee" title=" " alt="" coords="183,81,237,108"/>
+<area shape="rect" id="node7" href="$navier1_8f.html#a9cf22f4fc159530c6bf3a970b2443ab6" title=" " alt="" coords="177,132,243,159"/>
+<area shape="rect" id="node8" href="$navier1_8f.html#ab739e9434270ea19385f64504a29adf8" title=" " alt="" coords="179,183,241,209"/>
+<area shape="rect" id="node9" href="$induct_8f.html#a3d1ea77fdd5376c43f220345c8c1b20e" title=" " alt="" coords="164,233,256,260"/>
+<area shape="rect" id="node10" href="$navier1_8f.html#a20934009ab8a550857444068a025ba28" title=" " alt="" coords="176,284,244,311"/>
+<area shape="rect" id="node3" href="$math_8f.html#ac231f0566c16504dadd6ba0f16a38bd9" title=" " alt="" coords="304,5,361,32"/>
+<area shape="rect" id="node4" href="$gs__test__gop__blocking_8c.html#ab2e24f9857f6d1ded7e4d556c6bc5e49" title=" " alt="" coords="409,56,452,83"/>
+<area shape="rect" id="node5" href="$connect2_8f.html#a15434c453b53c83ba2cb2a768d35085e" title=" " alt="" coords="307,107,358,133"/>
+<area shape="rect" id="node6" href="$math_8f.html#af44de42b023a4a68cd98ea341204342d" title=" " alt="" coords="307,157,358,184"/>
+</map>

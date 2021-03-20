@@ -1,0 +1,84 @@
+!     Include file for Fourier implementation in the span
+
+
+      integer lfmodes                           ! No of Fourier modes in z/theta
+      parameter (lfmodes=10)
+
+      integer lfmodes_d                         ! No of Dealiased Fourier modes
+      parameter (lfmodes_d=1.5*lfmodes)
+
+
+      integer nfmodes                           ! No of Fourier modes used
+
+
+      real fou_rvx(lx1,ly1,lelv,lfmodes)           ! Real Fourier Coefficients for vx
+      real fou_rvy(lx1,ly1,lelv,lfmodes)           ! Real Fourier Coefficients for vy
+      real fou_rvz(lx1,ly1,lelv,lfmodes)           ! Real Fourier Coefficients for vz
+      real fou_rpr(lx1,ly1,lelv,lfmodes)           ! Real Fourier Coefficients for pr
+
+
+      real fou_ivx(lx1,ly1,lelv,lfmodes)           ! Imaginary Fourier Coefficients for vx
+      real fou_ivy(lx1,ly1,lelv,lfmodes)           ! Imaginary Fourier Coefficients for vy
+      real fou_ivz(lx1,ly1,lelv,lfmodes)           ! Imaginary Fourier Coefficients for vz
+      real fou_ipr(lx1,ly1,lelv,lfmodes)           ! Imaginary Fourier Coefficients for pr
+
+      real fou_icvx(lx1,ly1,lelv,lfmodes)
+      real fou_icvx(lx1,ly1,lelv,lfmodes)
+      real fou_icvx(lx1,ly1,lelv,lfmodes)
+
+      real fou_zm1(lfmodes+1)                      ! spanwise/theta coordinate
+
+      real fou_datain(lfmodes)                     ! Continuously laid data for FFT
+
+      real fou_vxd(lfmodes)                        ! Physical vx on dealiased grid
+      real fou_vyd(lfmodes)                        ! Physical vy on dealiased grid
+      real fou_vzd(lfmodes)                        ! Physical vz on dealiased grid
+
+
+      common /four_solnrv/ fou_rvx,fou_rvy,fou_rvz,
+     $                     fou_ivx,fou_ivy,fou_ivz,
+     $                     fou_icvx,fou_icvy,fou_icvz,
+     $                     fou_zm1,fou_datain 
+
+
+      common /four_rv/ fou_k(lfmodes) 
+                       
+
+      logical iffour
+      common /four_l/ iffou
+
+
+      integer*8 fou_planf                       ! Forward FFT plan (r --> c)
+      integer*8 fou_planb                       ! Backward FFT plan (c --> r)
+      integer*8 fou_planf_d                     ! Forward FFT plan Dealiased (r --> c)
+      integer*8 fou_planb_d                     ! Backward FFT plan Dealiased (c --> r)
+
+      integer nfmodes
+      common /four_i/ nfmodes,
+     $                fou_planf,
+     $                fou_planb, 
+     $                fou_planf_d,
+     $                fou_planb_d, 
+
+
+
+      complex fou_fftamp(lfmodes)               ! Forward FFT Amplitudes
+      real fou_amp_vxd(lfmodes)                 ! Fourier Amp vx on dealiased grid
+      real fou_amp_vyd(lfmodes)                 ! Fourier Amp vy on dealiased grid
+      real fou_amp_vzd(lfmodes)                 ! Fourier Amp vz on dealiased grid
+
+      common /fou_solncv/ fou_fftamp
+
+
+
+
+
+
+
+
+
+
+
+
+
+

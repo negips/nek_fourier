@@ -1,9 +1,19 @@
 !     Include file for solve_3d routines
 
 
-      real bfz_3ds(lx1,ly1,lz1,lelv)
-      common /solv_3dsr/ bfz_3ds
+      real bfz_3ds(lx1,ly1,lz1,lelv)          ! Forcing for z-component. Possibly not needed
+      real prextr_3ds(lx2*ly2*lz2*lelv,2)     ! Need to save two extrapolated pressures
+      real prcorr_3ds(lx2*ly2*lz2*lelv,2)     ! Need to save Pressure correction as well
+
+      common /solv_3dsrv/ bfz_3ds,
+     $                    prextr_3ds,
+     $                    prcorr_3ds
+                       
 
       logical if3d_3ds
       common /solv_3dsl/ if3d_3ds
+
+
+      real k_3dsp
+      common /solv_3dspr/ k_3dsp
 

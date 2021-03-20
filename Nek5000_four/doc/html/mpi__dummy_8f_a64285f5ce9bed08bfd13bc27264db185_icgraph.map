@@ -1,0 +1,12 @@
+<map id="mpi_reduce_double_precision" name="mpi_reduce_double_precision">
+<area shape="rect" id="node1" title=" " alt="" coords="544,81,737,108"/>
+<area shape="rect" id="node2" href="$mpi__dummy_8f.html#acd9229b5fb6a4d16f9917a5b5c2f0909" title=" " alt="" coords="393,56,496,83"/>
+<area shape="rect" id="node10" href="$mpi__dummy_8f.html#a93df54372a338b022f00c54f4527848d" title=" " alt="" coords="400,107,489,133"/>
+<area shape="rect" id="node3" href="$comm__mpi_8f.html#a3f652605d55796462e959d17b5a9612b" title=" " alt="" coords="297,5,340,32"/>
+<area shape="rect" id="node4" href="$comm__mpi_8f.html#af260c1a2fb7cc8a919bbf5d01e83b74c" title=" " alt="" coords="292,56,345,83"/>
+<area shape="rect" id="node9" href="$comm__mpi_8f.html#a2e339eee45a784b56cbc42c452263761" title=" " alt="" coords="295,107,342,133"/>
+<area shape="rect" id="node5" href="$math_8f.html#a929bc29b7ccee08da42a14cb00ccab1f" title=" " alt="" coords="177,31,244,57"/>
+<area shape="rect" id="node6" href="$math_8f.html#a8cd712001d12f5f4a00ef98937109e47" title=" " alt="" coords="177,81,244,108"/>
+<area shape="rect" id="node7" href="$drive2_8f.html#ad7dcf95029f223c6def3ab96e6285330" title=" " alt="" coords="38,56,97,83"/>
+<area shape="rect" id="node8" href="$lb__setqvol_8f.html#aeb2fee7160f5d8a7246d5814ac1ac517" title=" " alt="" coords="5,107,129,133"/>
+</map>
