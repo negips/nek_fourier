@@ -1,6 +1,7 @@
-function DivU(U,dir)
+function Dot(V,U)
 
-# Divergence in cylindrical coordinates
+# Dot product between V and U
+# I assume the placement of unit vectors is handled by the caller
 
   rp1   = (Sym.diff(er,r),0)
   rp2   = (Sym.diff(er,θ),eθ)
@@ -18,20 +19,16 @@ function DivU(U,dir)
   rp13  = (eθ*et,0.0)
 
 
-  if lowercase(dir)=="left" 
-    du    = er*Sym.diff(U,r) + 1/r*eθ*Sym.diff(U,θ) + et*Sym.diff(U,t)
-  else  
-    du    = Sym.diff(U,r)*er + 1/r*Sym.diff(U,θ)*eθ + Sym.diff(U,t)*et
-  end  
+  tmp    = V*U
 
 # Unit vector rotations
-  tmp = du.xreplace(Dict([rp1 rp2 rp3 rp4]))
+#  tmp = du.xreplace(Dict([rp1 rp2 rp3 rp4]))
 
   du  = Sym.expand(tmp)
 #
   tmp2 = du.subs(Dict([rp5 rp6 rp7 rp8 rp9 rp10 rp11 rp12 rp13]))
 
-  divu = tmp2
+  dotvu = tmp2
 
-  return divu
+  return dotvu
 end 

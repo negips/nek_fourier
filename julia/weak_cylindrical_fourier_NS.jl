@@ -16,14 +16,16 @@ include("GradTheta.jl")
 include("GradT.jl")
 include("Grad.jl")
 include("Div.jl")
-
+include("WeakDiv.jl")
+include("Weak2DDiv.jl")
+include("Dot.jl")
 
 Sym = pyimport("sympy")
 
-# Cartesian Coordinates
-x = Sym.Symbol("x")
-y = Sym.Symbol("y")
-z = Sym.Symbol("z")
+# # Cartesian Coordinates
+# x = Sym.Symbol("x")
+# y = Sym.Symbol("y")
+# z = Sym.Symbol("z")
 
 # Cylindrical Coordinates
 t = Sym.Symbol("t")          # x in the cylindrical coordinates
@@ -93,13 +95,25 @@ deθdθ = Sym.diff(eθ,θ)
 #replace(derdθ,-ex*sin(θ) + ey*cos(θ),eθ)
 #replace(deθdθ,-ex*cos(θ) - ey*sin(θ),-er)
 
-# Tangent Vectors in Clindrical coordinates
-Ur = Sym.Function("Ur",commutative=false)(r,θ,t)
-Uθ = Sym.Function("Uθ",commutative=false)(r,θ,t)
-Ut = Sym.Function("Ut",commutative=false)(r,θ,t)
+# Fourier Coefficients in Clindrical coordinates
+Ur = Sym.Function("Ur",commutative=false)(r,t)
+Uθ = Sym.Function("Uθ",commutative=false)(r,t)
+Ut = Sym.Function("Ut",commutative=false)(r,t)
+P  = Sym.Function("P" ,commutative=false)(r,t)
 
-U_right  = Ur*er + Uθ*eθ + Ut*et
-U_left   = er*Ur + eθ*Uθ + et*Ut
+
+k  = Sym.Symbol("k",commutative=true)           # Wavenumber
+j  = sqrt(Complex(-1.0))                        # well you know...
+
+expz  = exp(j*k*θ)
+expzi = exp(-j*k*θ)
+
+# Test Function
+vrt      = Sym.Function("v",commutative=false)(r,θ,t)
+v        = vrt*expzi
+
+U_right  = Ur*expz*er + Uθ*expz*eθ + Ut*expz*et
+U_left   = er*Ur*expz + eθ*Uθ*expz + et*Ut*expz
 
 #gradU = [dUdr.__pyobject__[0] dUdr.__pyobject__[1] dUdr.__pyobject__[2]; 
 #         RinvdUdθ.__pyobject__[0] RinvdUdθ.__pyobject__[1] RinvdUdθ.__pyobject__[2];
@@ -107,31 +121,27 @@ U_left   = er*Ur + eθ*Uθ + et*Ut
 
 #gradU = Sym.simplify(gradU)
 
-gradU  = Grad(U_right,r,θ,t,"left")
+gradU,mgu  = Grad(U_right,r,θ,t,"left")
 
-#gradUM = Sym.simplify(gradUM)
-
-#parsed_expr = Sym.parse_expr(gradU,evaluate=False)
-
-Err   = Sym.diff(Ur,r)
-Eθr   = r/2*Sym.diff(1/r*Uθ,r) + (1/2)*(1/r)*Sym.diff(Ur,θ)
-Etr   = 1/2*Sym.diff(Ur,t) + 1/2*Sym.diff(Ut,r)
-
-Erθ   = copy(Eθr)
-Eθθ   = (1/r)*Sym.diff(Uθ,θ) + 1/r*Ur
-Etθ   = (1/2)*(1/r)*Sym.diff(Ut,θ) + 1/2*Sym.diff(Uθ,t)
-
-Ert   = copy(Etr)
-Eθt   = copy(Etθ)
-Ett   = Sym.diff(Ut,t)
-
-Erj   = (er*Err + eθ*Eθr + et*Etr)*2
-Eθj   = (er*Erθ + eθ*Eθθ + et*Etθ)*2
-Etj   = (er*Ert + eθ*Eθt + et*Ett)*2
-
-divEr = Div(Erj,"left")
-divEθ = Div(Eθj,"left")
-divEt = Div(Etj,"left")
+# Err   = Sym.diff(Ur,r)
+# Eθr   = r/2*Sym.diff(1/r*Uθ,r) + (1/2)*(1/r)*Sym.diff(Ur,θ)
+# Etr   = 1/2*Sym.diff(Ur,t) + 1/2*Sym.diff(Ut,r)
+# 
+# Erθ   = copy(Eθr)
+# Eθθ   = (1/r)*Sym.diff(Uθ,θ) + 1/r*Ur
+# Etθ   = (1/2)*(1/r)*Sym.diff(Ut,θ) + 1/2*Sym.diff(Uθ,t)
+# 
+# Ert   = copy(Etr)
+# Eθt   = copy(Etθ)
+# Ett   = Sym.diff(Ut,t)
+# 
+# Erj   = (er*Err + eθ*Eθr + et*Etr)*2
+# Eθj   = (er*Erθ + eθ*Eθθ + et*Etθ)*2
+# Etj   = (er*Ert + eθ*Eθt + et*Ett)*2
+# 
+# divEr = Div(Erj,"left")
+# divEθ = Div(Eθj,"left")
+# divEt = Div(Etj,"left")
 
 #VecdivEr = Div(Erj*er,"left")
 #VecdivEθ = Div(Eθj*eθ,"left")
@@ -179,32 +189,29 @@ ER    = GRj + GjR
 Eθ    = Gθj + Gjθ
 Et    = Gtj + Gjt
 
-#ERj   = ERj/2
 
-#ERj2  = ReplaceUnitVecDot(ERj)
+#WkdivER = Weak2DDiv(ER*er,v,"left")
+#WkdivEθ = Weak2DDiv(Eθ*eθ,v,"left")
+#WkdivEt = Weak2DDiv(Et*et,v,"left")
 
-divER = Div(ER*er,"left")
-divEθ = Div(Eθ*eθ,"left")
-divEt = Div(Et*et,"left")
+WkdivER = WeakDiv(ER*er,v,"left")
+WkdivEθ = WeakDiv(Eθ*eθ,v,"left")
+WkdivEt = WeakDiv(Et*et,v,"left")
 
-divall = divER + divEθ + divEt
+Wkdivall = WkdivER + WkdivEθ + WkdivEt
 
-divcom = GetComponents(divall)
+divcom = GetComponents(Wkdivall)
 
-#divGR = Div(GjR,"left")
-#divGθ = Div(Gjθ,"left")
-#divGt = Div(Gjt,"left")
-
-
-#divU   = Div(U_left,"left")
-#
-#dRdivU = Sym.diff(divU,r)
-#dθdivU = (1/r)*Sym.diff(divU,θ)
-#dtdivU = Sym.diff(divU,t)
-
-#tmp = divERj.subs(Dict([rp1]))
+conv   = Dot(U_right,gradU)
+convcom = GetComponents(conv)
 
 println("Done")
+
+
+
+
+
+
 
 
 

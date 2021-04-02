@@ -1,4 +1,14 @@
-function GradU(U,r,θ,t)
+function GradVector(U,r,θ,t,xin...)
+
+# Gradient of a Vector  
+
+  dir = "left"
+
+  if isempty(xin)
+    dir = "left"
+  else
+    dir = xin[1]
+  end  
        
   rp1   = (Sym.diff(er,r),0)
   rp2   = (Sym.diff(er,θ),eθ)
@@ -15,9 +25,25 @@ function GradU(U,r,θ,t)
   gu    = Sym.expand(er*Sym.diff(U,r) + eθ*Sym.diff(U,θ)*(1. /r) + et*Sym.diff(U,t))
   tmp   = gu.xreplace(Dict([rp1 rp2 rp3 rp4]))
 
+  gradu = tmp
+
+  if dir=="left"
+    gradur,mgradur = GradR(U,r,θ,t,"left") 
+    graduθ,mgraduθ = GradTheta(U,r,θ,t,"left") 
+    gradut,mgradut = GradT(U,r,θ,t,"left")
+  else
+    gradur,mgradur = GradR(U,r,θ,t,"right") 
+    graduθ,mgraduθ = GradTheta(U,r,θ,t,"right") 
+    gradut,mgradut = GradT(U,r,θ,t,"right")
+  end  
+  
+  mGU = [mgradur[1] mgradur[2] mgradur[3]; 
+         mgraduθ[1] mgraduθ[2] mgraduθ[3]; 
+         mgradut[1] mgradut[2] mgradut[3]]
+
+
 # Gradients
 #  tmp = gu.subs(Dict([rp1 rp2 rp3 rp4 rp5 rp6 rp7 rp8 rp9 rp10]))
-  gradu = tmp
 
 #  etet  = gradu.collect(et*et)
 #  eθet  = gradu.collect(eθ*et)
@@ -35,5 +61,5 @@ function GradU(U,r,θ,t)
 #            eret erer ereθ;
 #            eθet eθer eθeθ]
 
-  return gradu
+  return gradu,mGU
 end 

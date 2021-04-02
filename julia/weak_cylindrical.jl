@@ -8,9 +8,16 @@ println("Derivation for Cylindrical Coordinates")
 using PyCall
 using SymPy
 
-include("GradU.jl")
-include("DivU.jl")
-
+include("ReplaceUnitVecDeriv.jl")
+include("ReplaceUnitVecDot.jl")
+include("GetComponents.jl")
+include("GradR.jl")
+include("GradTheta.jl")
+include("GradT.jl")
+include("Grad.jl")
+include("Div.jl")
+include("WeakDiv.jl")
+include("Weak2DDiv.jl")
 
 Sym = pyimport("sympy")
 
@@ -101,7 +108,7 @@ U_left   = er*Ur + eθ*Uθ + et*Ut
 
 #gradU = Sym.simplify(gradU)
 
-gradU  = GradU(U_right,r,θ,t)
+gradU  = Grad(U_right,r,θ,t)
 
 #gradUM = Sym.simplify(gradUM)
 
@@ -123,37 +130,83 @@ Erj   = (er*Err + eθ*Eθr + et*Etr)*2
 Eθj   = (er*Erθ + eθ*Eθθ + et*Etθ)*2
 Etj   = (er*Ert + eθ*Eθt + et*Ett)*2
 
-divEr = DivU(Erj,"left")
-divEθ = DivU(Eθj,"left")
-divEt = DivU(Etj,"left")
+divEr = Div(Erj,"left")
+divEθ = Div(Eθj,"left")
+divEt = Div(Etj,"left")
+
+#VecdivEr = Div(Erj*er,"left")
+#VecdivEθ = Div(Eθj*eθ,"left")
+#VecdivEt = Div(Etj*et,"left")
+#
+#alldiv   = VecdivEr + VecdivEθ + VecdivEt
+
+# Lets try
+
+gradur,mgradur = GradR(U_right,r,θ,t,"left") 
+graduθ,mgraduθ = GradTheta(U_right,r,θ,t,"left") 
+gradut,mgradut = GradT(U_right,r,θ,t,"left") 
+
+mGU = [mgradur[1] mgradur[2] mgradur[3]; 
+       mgraduθ[1] mgraduθ[2] mgraduθ[3]; 
+       mgradut[1] mgradut[2] mgradut[3]]
+
+#Eij = mGU .+ 0.
+#
+#for i=1:3, j=1:3
+#  global E
+#  Eij[i,j]   = 1/2*(mGU[i,j] + mGU[j,i])
+#end
 #
 #
-#divU  = Sym.simplify(DivU(U_left,"left"))
 
-#divEr1  = divEr.subs(divU,0)
-
-#divE2  = Sym.simplify(divE)
-
-#tmp    = divE.subs(divU,0.)
+# er = Sym.Function("er", commutative=false)()
+# eθ = Sym.Function("eθ", commutative=false)()
+# et = Sym.Function("et", commutative=false)()
 
 
-VecdivEr = DivU(Erj*er,"left")
-VecdivEθ = DivU(Eθj*eθ,"left")
-VecdivEt = DivU(Etj*et,"left")
+GjR   = er*mGU[1,1] + eθ*mGU[2,1] + et*mGU[3,1]
+GRj   = er*mGU[1,1] + eθ*mGU[1,2] + et*mGU[1,3]
 
-alldiv   = VecdivEr + VecdivEθ + VecdivEt
+Gjθ   = er*mGU[1,2] + eθ*mGU[2,2] + et*mGU[3,2]
+Gθj   = er*mGU[2,1] + eθ*mGU[2,2] + et*mGU[2,3]
+
+Gjt   = er*mGU[1,3] + eθ*mGU[2,3] + et*mGU[3,3]
+Gtj   = er*mGU[3,1] + eθ*mGU[3,2] + et*mGU[3,3]
+
+#GRj2  = ReplaceUnitVecDot(GRj)
+
+#ERj   = (er*mGU[1,1] + er*mGU[1,1]) + (eθ*mGU[2,1] + eθ*mGU[1,2]) + (et*mGU[3,1] + et*mGU[1,3])
+ER    = GRj + GjR
+Eθ    = Gθj + Gjθ
+Et    = Gtj + Gjt
+
+#ERj   = ERj/2
+
+#ERj2  = ReplaceUnitVecDot(ERj)
+
+# divER = Div(ER*er,"left")
+# divEθ = Div(Eθ*eθ,"left")
+# divEt = Div(Et*et,"left")
+# 
+# divall = divER + divEθ + divEt
+# 
+# divcom = GetComponents(divall)
+
+v       = Sym.Function("v",commutative=false)(r,θ,t)
+
+#WkdivER = Weak2DDiv(ER*er,v,"left")
+#WkdivEθ = Weak2DDiv(Eθ*eθ,v,"left")
+#WkdivEt = Weak2DDiv(Et*et,v,"left")
+
+WkdivER = WeakDiv(ER*er,v,"left")
+WkdivEθ = WeakDiv(Eθ*eθ,v,"left")
+WkdivEt = WeakDiv(Et*et,v,"left")
 
 
-## Change to commutative Symbols
-#rp1   = (er,erc)
-#rp2   = (eθ,eθc)
-#rp3   = (et,etc)
-#
-#tmp    = Sym.expand(alldiv.xreplace(Dict([rp1 rp2 rp3])))
-#
-#divR   = Sym.collect(tmp,erc)
-#divθ   = Sym.collect(eθc)
-#divt   = Sym.collect(etc)  
+Wkdivall = WkdivER + WkdivEθ + WkdivEt
+
+divcom = GetComponents(Wkdivall)
+
 
 println("Done")
 

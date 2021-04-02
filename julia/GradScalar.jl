@@ -1,4 +1,4 @@
-function GradVector(U,r,θ,t,xin...)
+function GradScalar(S,r,θ,t,xin...)
 
   dir = "left"
 
@@ -20,26 +20,17 @@ function GradVector(U,r,θ,t,xin...)
   rp9   = (er*eθ,0.0)
   rp10  = (eθ*eθ,1.0)
 
-  gu    = Sym.expand(er*Sym.diff(U,r) + eθ*Sym.diff(U,θ)*(1. /r) + et*Sym.diff(U,t))
-  tmp   = gu.xreplace(Dict([rp1 rp2 rp3 rp4]))
-
-  gradu = tmp
-
   if dir=="left"
-    gradur,mgradur = GradR(U,r,θ,t,"left") 
-    graduθ,mgraduθ = GradTheta(U,r,θ,t,"left") 
-    gradut,mgradut = GradT(U,r,θ,t,"left")
+    gradS = Sym.expand(er*Sym.diff(S,r) + eθ*(1. /r)*Sym.diff(S,θ) + et*Sym.diff(S,t))
   else
-    gradur,mgradur = GradR(U,r,θ,t,"right") 
-    graduθ,mgraduθ = GradTheta(U,r,θ,t,"right") 
-    gradut,mgradut = GradT(U,r,θ,t,"right")
+    gradS = Sym.expand(Sym.diff(S,r)*er + Sym.diff(S,θ)*(1. /r)*eθ + Sym.diff(S,t)*et)
   end  
 
-  
-  mGU = [mgradur[1] mgradur[2] mgradur[3]; 
-         mgraduθ[1] mgraduθ[2] mgraduθ[3]; 
-         mgradut[1] mgradut[2] mgradut[3]]
+#  tmp   = gs.xreplace(Dict([rp1 rp2 rp3 rp4]))
 
+#  gradS = tmp
+  mGS   = GetComponents(gradS) 
+ 
 
 # Gradients
 #  tmp = gu.subs(Dict([rp1 rp2 rp3 rp4 rp5 rp6 rp7 rp8 rp9 rp10]))
@@ -60,5 +51,5 @@ function GradVector(U,r,θ,t,xin...)
 #            eret erer ereθ;
 #            eθet eθer eθeθ]
 
-  return gradu,mGU
+  return gradS,mGS
 end 
