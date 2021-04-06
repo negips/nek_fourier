@@ -24,6 +24,7 @@
       
 
       if3d_3ds = .true.
+      ifcyl_3ds = .false.           ! If cylindrical coordinates
 
       if (.not.if3d_3ds) return
 
@@ -79,7 +80,9 @@
 
       jp = 0
       do i = 1,jp2
-        jp0 = jp    
+        jp0 = jp
+
+!       Solve Momentum            
         do j = 1,2
           jp = jp0 + j    
           if (nio.eq.0.and.igeom.eq.2) write(6,1) istep,time,jp
@@ -87,40 +90,21 @@
 
           call perturbv_mom_3ds (igeom)
 
-!!         prabal  
-!          if (igeom.eq.1)  
-!     $      call outpost(bfxp(1,jp),bfyp(1,jp),bfzp(1,jp),
-!     $                  prp(1,jp),bfzp(1,jp),'bfp')
-
-!!         prabal  
-!          if (igeom.eq.1)  
-!     $      call outpost(vx,vy,vz,pr,vz,'ch1')
-
-
         enddo
 
+!       Solve Pressure            
         do j=1,2
           jp = jp0 + j 
           if (nio.eq.0.and.igeom.eq.2) write(6,2) istep,time,jp
    2      format(i9,1pe14.7,' Perturbation Solve (Pressure):',i5)
 
-!          call perturbv_prp_3ds ()
-           call incomprp_3ds(igeom) 
-
-!!         prabal  
-!          if (igeom.eq.2)  
-!     $      call outpost(vx,vy,vz,pr,vz,'ch2')
-
+          call incomprp_3ds(igeom) 
         enddo
 
+!       Pressure/Velocity Correction            
         do j = 1,2
           jp = jp0 + j    
           call velp_update_3ds (igeom)
-
-!!         prabal  
-!          if (igeom.eq.2)  
-!     $      call outpost(vx,vy,vz,pr,vz,'ch3')
-
         enddo
       enddo ! i=1,jp2
 
@@ -201,34 +185,6 @@ c
       end subroutine perturbv_mom_3ds
 !-----------------------------------------------------------------------
 
-!      subroutine perturbv_prp_3ds (igeom)
-!
-!      implicit none
-!
-!!     Solve the convection-diffusion equation for the perturbation field, 
-!!     with projection onto a div-free space.
-!
-!
-!      include 'SIZE'
-!      include 'INPUT'
-!      include 'EIGEN'
-!      include 'SOLN'
-!      include 'TSTEP'
-!      include 'MASS'
-!
-!      include 'TEST'
-!
-!
-!      ifield = 1
-!
-!      call incomprp_3ds ()
-!
-!
-!      return
-!      end subroutine perturbv_prp_3ds
-
-
-!-----------------------------------------------------------------------
       subroutine init_pertfld_3ds
 
       implicit none
@@ -279,16 +235,12 @@ c
 !     Build user defined forcing
       call makeufp_3ds
 
+      if (ifcyl_3ds) then
+        call advabp_cyl_3ds
+      else
+        call advabp_3ds
+      endif
 
-!      if3d = .true.
-!      if (filterType.eq.2) call make_hpf
-!     hpf field stored in ta3
-!      call xaddcol3(bfz_3ds,ta3,bm1,ntot1)
-!      if3d = .false. 
-!          call outpost(bfxp(1,jp),bfyp(1,jp),bfzp(1,jp),
-!     $                  prp(1,jp),bfzp(1,jp),'bf1')
-
-      call advabp_3ds
 !      if (ifnav.and.(.not.ifchar).and.(ifadj)) call advabp_adjoint_3dsp
 
 
@@ -480,8 +432,190 @@ c
 
       return
       end subroutine advabp_3ds
-c--------------------------------------------------------------------
+!--------------------------------------------------------------------
 
+      subroutine advabp_cyl_3ds
+
+!     Eulerian scheme, add convection term to forcing function
+!     at current time step.
+!     Done for Cylindrical coordinates
+!     Coordinate Transformation: y --> R
+!                                x --> x
+!                                z --> theta (Done with Fourier)        
+
+      implicit none
+
+      include 'SIZE'
+      include 'INPUT'
+      include 'SOLN'
+      include 'MASS'
+      include 'TSTEP'
+      include 'GEOM'
+
+      include '3DS'
+
+      real ta1,ta2,ta3
+      real tb1,tb2,tb3
+      common /scrns/ ta1 (lx1*ly1*lz1*lelv)
+     $ ,             ta2 (lx1*ly1*lz1*lelv)
+     $ ,             ta3 (lx1*ly1*lz1*lelv)
+     $ ,             tb1 (lx1*ly1*lz1*lelv)
+     $ ,             tb2 (lx1*ly1*lz1*lelv)
+     $ ,             tb3 (lx1*ly1*lz1*lelv)
+
+      real rinv,rhom
+      common /scrch/ rinv(lx1*ly1*lz1*lelt),
+     $               rhom(lx1*ly1*lz1*lelt)    
+
+      integer i,ntot1
+      real tmp,tmp2
+      integer jpi
+
+
+      jpi = mod(jp,2)
+
+      ntot1 = lx1*ly1*lz1*nelv
+
+      if (if3d.or.if3d_3ds) then
+        call copy  (tb1,vx,ntot1)                   ! Save velocity
+        call copy  (tb2,vy,ntot1)                   ! Save velocity
+        call copy  (tb3,vz,ntot1)                   ! Save velocity
+
+!       U <-- dU
+        call copy  (vx,vxp(1,jp),ntot1)                   ! Save velocity
+        call copy  (vy,vxp(1,jp),ntot1)                   ! Save velocity
+        call copy  (vz,vxp(1,jp),ntot1)                   ! Save velocity
+
+        call convop  (ta1,tb1)                                ! du.grad U
+        call convop  (ta2,tb2)
+        call convop  (ta3,tb3)
+
+!       Restore velocity
+        call copy  (vx,tb1,ntot1)
+        call copy  (vy,tb2,ntot1)
+        call copy  (vz,tb3,ntot1)
+
+        do i=1,ntot1
+          tmp = bm1(i,1,1,1)*vtrans(i,1,1,1,ifield)
+          bfxp(i,jp) = bfxp(i,jp)-tmp*ta1(i)
+          bfyp(i,jp) = bfyp(i,jp)-tmp*ta2(i)
+          bfzp(i,jp) = bfzp(i,jp)-tmp*ta3(i)
+        enddo
+
+        call convop  (ta1,vxp(1,jp))       !  U.grad dU
+        call convop  (ta2,vyp(1,jp))
+        call convop  (ta3,vzp(1,jp))
+
+        do i=1,ntot1
+          tmp = bm1(i,1,1,1)*vtrans(i,1,1,1,ifield)
+          bfxp(i,jp) = bfxp(i,jp)-tmp*ta1(i)
+          bfyp(i,jp) = bfyp(i,jp)-tmp*ta2(i)
+          bfzp(i,jp) = bfzp(i,jp)-tmp*ta3(i)
+        enddo
+
+!       Add additional convection terms
+!       Assuming dU/dz, dV/dz, dW/dz = 0
+
+!       rinv = 1/R            
+        call invers2(rinv,ym1,ntot1)
+
+!       rhom = \rho*BM1        
+        call col3(rhom,bm1,vtrans(1,1,1,1,ifield))
+
+        if (jpi.eq.1) then
+!         Real part
+
+!         x component
+          call convect_w_3ds(ta1,vxp(1,jp+1),vz)  ! U\theta*ux'_i
+
+          do i=1,ntot1
+            tmp = -k_3dsp*rinv(i)*rhom(i)
+            bfxp(i,jp) = bfxp(i,jp)-tmp*ta1(i)
+          enddo
+
+!         R component
+          call convect_w_3ds(ta1,vzp(1,jp),vz)    ! U\theta*u\theta'_r
+          call convect_w_3ds(ta2,vyp(1,jp+1),vz)  ! U\theta*uR'_i 
+          do i=1,ntot1
+            tmp   = -2.*rinv(i)*rhom(i)
+            tmp2  = -k_3dsp*rinv(i)*rhom(i)
+            bfyp(i,jp) = bfyp(i,jp)-tmp*ta1(i)-tmp2*ta2(i)
+          enddo
+
+!         \theta component
+          call convect_w_3ds(ta1,vyp(1,jp),vz)    ! U\theta*uR'_r
+          call convect_w_3ds(ta2,vzp(1,jp),vy)    ! UR*u\theta'_r
+          call convect_w_3ds(ta3,vzp(1,jp+1),vz)  ! U\theta*u\theta'_i
+
+          do i=1,ntot1
+            tmp   =  rinv(i)*rhom(i)
+            tmp2  = -k_3dsp*rinv(i)*rhom(i)
+            bfzp(i,jp) = bfzp(i,jp)-tmp*ta1(i)-tmp*ta2(i)-tmp2*ta3(i)
+          enddo
+          
+        else
+!         Imaginary part
+
+!         x component
+          call convect_w_3ds(ta1,vxp(1,jp-1),vz)  ! U\theta*ux'_r
+
+          do i=1,ntot1
+            tmp = k_3dsp*rinv(i)*rhom(i)
+            bfxp(i,jp) = bfxp(i,jp)-tmp*ta1(i)
+          enddo
+
+!         R component
+          call convect_w_3ds(ta1,vzp(1,jp),vz)    ! U\theta*u\theta'_i
+          call convect_w_3ds(ta2,vyp(1,jp-1),vz)  ! U\theta*uR'_r
+
+          do i=1,ntot1
+            tmp   = -2.*rinv(i)*rhom(i)
+            tmp2  =  k_3dsp*rinv(i)*rhom(i)
+            bfyp(i,jp) = bfyp(i,jp)-tmp*ta1(i)-tmp2*ta2(i)
+          enddo
+
+!         \theta component
+          call convect_w_3ds(ta1,vyp(1,jp),vz)    ! U\theta*uR'_i
+          call convect_w_3ds(ta2,vzp(1,jp),vy)    ! UR*u\theta'_i
+          call convect_w_3ds(ta3,vzp(1,jp-1),vz)  ! U\theta*u\theta'_r
+
+          do i=1,ntot1
+            tmp   =  rinv(i)*rhom(i)
+            tmp2  =  k_3dsp*rinv(i)*rhom(i)
+            bfzp(i,jp) = bfzp(i,jp)-tmp*ta1(i)-tmp*ta2(i)-tmp2*ta3(i)
+          enddo
+
+        endif         ! jpi.eq.1  
+
+      else  ! 2D without Fourier third component
+
+        call opcopy  (tb1,tb2,tb3,vx,vy,vz)                   ! Save velocity
+        call opcopy  (vx,vy,vz,vxp(1,jp),vyp(1,jp),vzp(1,jp)) ! U <-- dU
+        call convop  (ta1,tb1)                                ! du.grad U
+        call convop  (ta2,tb2)
+        call opcopy  (vx,vy,vz,tb1,tb2,tb3)  ! Restore velocity
+
+        do i=1,ntot1
+          tmp = bm1(i,1,1,1)*vtrans(i,1,1,1,ifield)
+          bfxp(i,jp) = bfxp(i,jp)-tmp*ta1(i)
+          bfyp(i,jp) = bfyp(i,jp)-tmp*ta2(i)
+        enddo
+
+        call convop  (ta1,vxp(1,jp))       !  U.grad dU
+        call convop  (ta2,vyp(1,jp))
+
+        do i=1,ntot1
+          tmp = bm1(i,1,1,1)*vtrans(i,1,1,1,ifield)
+          bfxp(i,jp) = bfxp(i,jp)-tmp*ta1(i)
+          bfyp(i,jp) = bfyp(i,jp)-tmp*ta2(i)
+        enddo
+
+      endif       ! if3d .or. if3d_3ds
+
+
+      return
+      end subroutine advabp_cyl_3ds
+!--------------------------------------------------------------------
 
       subroutine makextp_3ds
 
