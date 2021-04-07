@@ -44,7 +44,7 @@ function GradR(U, r,θ,t,xin...)
 #  dudr_vec[1,2] = dudr_eθ
 #  dudr_vec[1,3] = dudr_et
 
-  dudr_vec = [dudr_er dudr_eθ dudr_et]
+  dudr_vec = [dudr_et dudr_er dudr_eθ]
 
   if lowercase(dir)=="left"
     dudr     = er*dudr

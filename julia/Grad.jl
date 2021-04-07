@@ -36,10 +36,13 @@ function GradVector(U,r,θ,t,xin...)
   end  
 
   
-  mGU = [mgradur[1] mgradur[2] mgradur[3]; 
-         mgraduθ[1] mgraduθ[2] mgraduθ[3]; 
-         mgradut[1] mgradut[2] mgradut[3]]
+#  mGU = [mgradur[1] mgradur[2] mgradur[3]; 
+#         mgraduθ[1] mgraduθ[2] mgraduθ[3]; 
+#         mgradut[1] mgradut[2] mgradut[3]]
 
+  mGU = [mgradut[1] mgradut[2] mgradut[3]; 
+         mgradur[1] mgradur[2] mgradur[3]; 
+         mgraduθ[1] mgraduθ[2] mgraduθ[3]]
 
 # Gradients
 #  tmp = gu.subs(Dict([rp1 rp2 rp3 rp4 rp5 rp6 rp7 rp8 rp9 rp10]))

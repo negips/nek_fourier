@@ -171,23 +171,23 @@ gradu,mGu  = GradVector(u_right,r,θ,t,"left")
 mGuT       = mGu.transpose()
 
 # 
-GjR   = er*mGu[1,1] + eθ*mGu[2,1] + et*mGu[3,1]
+Gjt   = er*mGu[1,1] + eθ*mGu[2,1] + et*mGu[3,1]
 #GRj   = er*mGu[1,1] + eθ*mGu[1,2] + et*mGu[1,3]
 
-Gjθ   = er*mGu[1,2] + eθ*mGu[2,2] + et*mGu[3,2]
+GjR   = er*mGu[1,2] + eθ*mGu[2,2] + et*mGu[3,2]
 #Gθj   = er*mGu[2,1] + eθ*mGu[2,2] + et*mGu[2,3]
 
-Gjt   = er*mGu[1,3] + eθ*mGu[2,3] + et*mGu[3,3]
+Gjθ   = er*mGu[1,3] + eθ*mGu[2,3] + et*mGu[3,3]
 #Gtj   = er*mGu[3,1] + eθ*mGu[3,2] + et*mGu[3,3]
 
 # Gradient Transpose
-GTjR   = er*mGuT[1,1] + eθ*mGuT[2,1] + et*mGuT[3,1]
+GTjt   = er*mGuT[1,1] + eθ*mGuT[2,1] + et*mGuT[3,1]
 #GTRj   = er*mGuT[1,1] + eθ*mGuT[1,2] + et*mGuT[1,3]
 
-GTjθ   = er*mGuT[1,2] + eθ*mGuT[2,2] + et*mGuT[3,2]
+GTjR   = er*mGuT[1,2] + eθ*mGuT[2,2] + et*mGuT[3,2]
 #GTθj   = er*mGuT[2,1] + eθ*mGuT[2,2] + et*mGuT[2,3]
 
-GTjt   = er*mGuT[1,3] + eθ*mGuT[2,3] + et*mGuT[3,3]
+GTjθ   = er*mGuT[1,3] + eθ*mGuT[2,3] + et*mGuT[3,3]
 #GTtj   = er*mGuT[3,1] + eθ*mGuT[3,2] + et*mGuT[3,3]
 
 graduT = GTjR*er + GTjθ*eθ + GTjt*et
@@ -198,6 +198,7 @@ graduT = GTjR*er + GTjθ*eθ + GTjt*et
 σ      = 2*ν*ϵ
 
 #ERj   = (er*mGU[1,1] + er*mGU[1,1]) + (eθ*mGU[2,1] + eθ*mGU[1,2]) + (et*mGU[3,1] + et*mGU[1,3])
+Eij   = 1/2*(mGu + mGuT)
 ER    = GjR + GTjR
 Eθ    = Gjθ + GTjθ
 Et    = Gjt + GTjt

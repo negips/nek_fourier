@@ -32,7 +32,7 @@ function GetComponents(U)
 #  dudr_vec[1,2] = dudr_eθ
 #  dudr_vec[1,3] = dudr_et
 
-  U_vec = [U_er; U_eθ; U_et]
+  U_vec = [U_et; U_er; U_eθ]
 
 # Put it in a Matrix
 

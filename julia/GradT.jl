@@ -36,7 +36,7 @@ function GradT(U,r,θ,t,xin...)
   tmp  = dudt.subs(Dict([rp1 rp2 rp3]))
   dudt_et = tmp
 
-  dudt_vec = [dudt_er dudt_eθ dudt_et]
+  dudt_vec = [dudt_et dudt_er dudt_eθ]
 
   if lowercase(dir)=="left"
     dudt     = et*dudt

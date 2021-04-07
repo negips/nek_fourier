@@ -36,7 +36,7 @@ function GradTheta(U,r,θ,t,xin...)
   tmp  = dudθ.subs(Dict([rp1 rp2 rp3]))
   dudθ_et = tmp
 
-  dudθ_vec = (1/r).*[dudθ_er dudθ_eθ dudθ_et]
+  dudθ_vec = (1/r).*[dudθ_et dudθ_er dudθ_eθ]
 
   if lowercase(dir)=="left"
     dudθ     = eθ*(1/r)*dudθ

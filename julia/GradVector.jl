@@ -37,9 +37,9 @@ function GradVector(U,r,θ,t,xin...)
     gradut,mgradut = GradT(U,r,θ,t,"right")
   end  
   
-  mGU = [mgradur[1] mgradur[2] mgradur[3]; 
-         mgraduθ[1] mgraduθ[2] mgraduθ[3]; 
-         mgradut[1] mgradut[2] mgradut[3]]
+  mGU = [mgradut[1] mgradut[2] mgradut[3]; 
+         mgradur[1] mgradur[2] mgradur[3]; 
+         mgraduθ[1] mgraduθ[2] mgraduθ[3]]
 
 
 # Gradients
