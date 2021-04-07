@@ -33,13 +33,14 @@
 
 !     Made a new scratch array here.      
 !     Imaginary Variables
-      real eixt,eirt,eixx,eixr,eirr,eitt
+      real eixt,eirt,eixx,eixr,eirr,eitt,wk3
       common /scrns/   eixt(lx1*ly1*lz1*lelt)      ! Ei_x\theta
      $               , eirt(lx1*ly1*lz1*lelt)      ! Ei_Rt
      $               , eixx(lx1*ly1*lz1*lelt)      ! Ei_xx
      $               , eixr(lx1*ly1*lz1*lelt)      ! Ei_xR
      $               , eirr(lx1*ly1*lz1*lelt)      ! Ei_RR
      $               , eitt(lx1*ly1*lz1*lelt)      ! Ei_\theta\theta
+     $               , wk3(lx1*ly1*lz1*lelt)       ! work
 
 
 !     Gradients of real part of velocities      
@@ -75,6 +76,8 @@
       real rinv(lx1*ly1*lz1*lelv),wk1(lx1*ly1*lz1*lelv)
       real wk2(lx1*ly1*lz1*lelv)
       common /scrsf/ rinv,wk1,wk2
+
+      integer nel,ntot1,matmod
 
 
       ntot1 = lx1*ly1*lz1*nel
@@ -220,99 +223,200 @@
 
 
       return
-      end
+      end subroutine stnrate_cyl
 c-----------------------------------------------------------------------
-      subroutine stress (h1,h2,nel,matmod,ifaxis)
+      subroutine stress_cyl (h1,h2,nel,matmod)
 C
 C     MATMOD.GE.0        Fluid material models
 C     MATMOD.LT.0        Solid material models
 C
 C     CAUTION : Stresses and strainrates share the same scratch commons
-C
+
+      implicit none
+
       include 'SIZE'
-      common /ctmp1/ txx(lx1,ly1,lz1,lelt)
-     $             , txy(lx1,ly1,lz1,lelt)
-     $             , tyy(lx1,ly1,lz1,lelt)
-     $             , tzz(lx1,ly1,lz1,lelt)
-      common /ctmp0/ txz(lx1,ly1,lz1,lelt)
-     $             , tyz(lx1,ly1,lz1,lelt)
+      include '3DS'
+
+!      common /ctmp1/ txx(lx1,ly1,lz1,lelt)
+!     $             , txy(lx1,ly1,lz1,lelt)
+!     $             , tyy(lx1,ly1,lz1,lelt)
+!     $             , tzz(lx1,ly1,lz1,lelt)
+!      common /ctmp0/ txz(lx1,ly1,lz1,lelt)
+!     $             , tyz(lx1,ly1,lz1,lelt)
+ 
+      real t11,t22,t33,hii
       common /scrsf/ t11(lx1,ly1,lz1,lelt)
      $             , t22(lx1,ly1,lz1,lelt)
      $             , t33(lx1,ly1,lz1,lelt)
      $             , hii(lx1,ly1,lz1,lelt)
-C
-      DIMENSION H1(LX1,LY1,LZ1,1),H2(LX1,LY1,LZ1,1)
-      LOGICAL IFAXIS
 
-      NTOT1 = lx1*ly1*lz1*NEL
+
+!     Real Variables      
+      real erxt,errt,erxx,erxr,errr,ertt
+      common /ctmp0/ erxt(lx1*ly1*lz1*lelt)      ! Er_x\theta
+     $             , errt(lx1*ly1*lz1*lelt)      ! Er_Rt
+      common /ctmp1/ erxx(lx1*ly1*lz1*lelt)      ! Er_xx
+     $             , erxr(lx1*ly1*lz1*lelt)      ! Er_xR
+     $             , errr(lx1*ly1*lz1*lelt)      ! Er_RR
+     $             , ertt(lx1*ly1*lz1*lelt)      ! Er_\theta\theta
+
+!     Made a new scratch array here.      
+!     Imaginary Variables
+      real eixt,eirt,eixx,eixr,eirr,eitt,wk3
+      common /scrns/   eixt(lx1*ly1*lz1*lelt)      ! Ei_x\theta
+     $               , eirt(lx1*ly1*lz1*lelt)      ! Ei_Rt
+     $               , eixx(lx1*ly1*lz1*lelt)      ! Ei_xx
+     $               , eixr(lx1*ly1*lz1*lelt)      ! Ei_xR
+     $               , eirr(lx1*ly1*lz1*lelt)      ! Ei_RR
+     $               , eitt(lx1*ly1*lz1*lelt)      ! Ei_\theta\theta
+     $               , wk3(lx1*ly1*lz1*lelt)       ! work
+
+
+      real h1(lx1,ly1,lz1,1),h2(lx1,ly1,lz1,1)
+      integer nel,ntot1,matmod
+      real const
+
+
+      ntot1 = lx1*ly1*lz1*nel
 
       IF (MATMOD.EQ.0) THEN
 
-C        Newtonian fluids
+c        newtonian fluids
 
-         CONST = 2.0
-         CALL CMULT2 (HII,H1,CONST,NTOT1)
-         CALL COL2   (TXX,HII,NTOT1)
-         CALL COL2   (TXY,H1 ,NTOT1)
-         CALL COL2   (TYY,HII,NTOT1)
-         IF (IFAXIS .OR. ldim.EQ.3) CALL COL2 (TZZ,HII,NTOT1)
-         IF (ldim.EQ.3) THEN
-            CALL COL2 (TXZ,H1 ,NTOT1)
-            CALL COL2 (TYZ,H1 ,NTOT1)
-         endif
-C
-      ELSEIF (MATMOD.EQ.-1) THEN
-C
-C        Elastic solids
-C
-         CONST = 2.0
-         CALL ADD3S   (HII,H1,H2,CONST,NTOT1)
-         CALL COPY    (T11,TXX,NTOT1)
-         CALL COPY    (T22,TYY,NTOT1)
-         CALL COL3    (TXX,HII,T11,NTOT1)
-         CALL ADDCOL3 (TXX,H1 ,T22,NTOT1)
-         CALL COL3    (TYY,H1 ,T11,NTOT1)
-         CALL ADDCOL3 (TYY,HII,T22,NTOT1)
-         CALL COL2    (TXY,H2     ,NTOT1)
-         IF (IFAXIS .OR. ldim.EQ.3) THEN
-            CALL COPY (T33,TZZ,NTOT1)
-            CALL COL3    (TZZ,H1 ,T11,NTOT1)
-            CALL ADDCOL3 (TZZ,H1 ,T22,NTOT1)
-            CALL ADDCOL3 (TZZ,HII,T33,NTOT1)
-            CALL ADDCOL3 (TXX,H1 ,T33,NTOT1)
-            CALL ADDCOL3 (TYY,H1 ,T33,NTOT1)
-         endif
-         IF (ldim.EQ.3) THEN
-            CALL COL2 (TXZ,H2     ,NTOT1)
-            CALL COL2 (TYZ,H2     ,NTOT1)
-         endif
-C
+         const = 2.0
+         call cmult2 (hii,h1,const,ntot1)
+
+!        Real Parts         
+         call col2   (erxt,hii,ntot1)
+         call col2   (errt,hii,ntot1)
+         call col2   (erxx,hii,ntot1)
+         call col2   (erxr,hii,ntot1)
+         call col2   (errr,hii,ntot1)
+         call col2   (ertt,hii,ntot1)
+
+!        Imaginary parts            
+         call col2   (eixt,hii,ntot1)
+         call col2   (eirt,hii,ntot1)
+         call col2   (eixx,hii,ntot1)
+         call col2   (eixr,hii,ntot1)
+         call col2   (eirr,hii,ntot1)
+         call col2   (eitt,hii,ntot1)
+
+      elseif (matmod.eq.-1) then
+
+!        Elastic solids
+!        Just removed it.
+!        Somebody will need to implement it carefully        
+
+         if (nid.eq.0)
+     $     write(6,*) 'Elasticity not implemented for 3DS'
+
+         call exitt
+
       endif
-C
+
       return
-      end
-c-----------------------------------------------------------------------
-      subroutine aijuj (au1,au2,au3,nel,ifaxis)
-C
+      end subroutine stress_cyl
+!-----------------------------------------------------------------------
+      subroutine aijuj_cyl (au1r,au2r,au3r,au1i,au2i,au3i,nel)
+
+      implicit none
+
       include 'SIZE'
-      common /ctmp1/ txx(lx1,ly1,lz1,lelt)
-     $             , txy(lx1,ly1,lz1,lelt)
-     $             , tyy(lx1,ly1,lz1,lelt)
-     $             , tzz(lx1,ly1,lz1,lelt)
-      common /ctmp0/ txz(lx1,ly1,lz1,lelt)
-     $             , tyz(lx1,ly1,lz1,lelt)
-C
-      DIMENSION AU1(LX1,LY1,LZ1,1)
-     $        , AU2(LX1,LY1,LZ1,1)
-     $        , AU3(LX1,LY1,LZ1,1)
-      LOGICAL IFAXIS
-C
-      CALL TTXYZ (AU1,TXX,TXY,TXZ,NEL)
-      CALL TTXYZ (AU2,TXY,TYY,TYZ,NEL)
-      IF (IFAXIS)    CALL AXITZZ (AU2,TZZ,NEL)
-      IF (ldim.EQ.3) CALL TTXYZ  (AU3,TXZ,TYZ,TZZ,NEL)
-C
+      include 'MASS'
+      include 'GEOM'
+
+      include '3DS'
+
+!      common /ctmp1/ txx(lx1,ly1,lz1,lelt)
+!     $             , txy(lx1,ly1,lz1,lelt)
+!     $             , tyy(lx1,ly1,lz1,lelt)
+!     $             , tzz(lx1,ly1,lz1,lelt)
+!      common /ctmp0/ txz(lx1,ly1,lz1,lelt)
+!     $             , tyz(lx1,ly1,lz1,lelt)
+
+!     Real Variables      
+      real erxt,errt,erxx,erxr,errr,ertt
+      common /ctmp0/ erxt(lx1*ly1*lz1*lelt)      ! Er_x\theta
+     $             , errt(lx1*ly1*lz1*lelt)      ! Er_Rt
+      common /ctmp1/ erxx(lx1*ly1*lz1*lelt)      ! Er_xx
+     $             , erxr(lx1*ly1*lz1*lelt)      ! Er_xR
+     $             , errr(lx1*ly1*lz1*lelt)      ! Er_RR
+     $             , ertt(lx1*ly1*lz1*lelt)      ! Er_\theta\theta
+
+!     Made a new scratch array here.      
+!     Imaginary Variables
+      real eixt,eirt,eixx,eixr,eirr,eitt,wk3
+      common /scrns/   eixt(lx1*ly1*lz1*lelt)      ! Ei_x\theta
+     $               , eirt(lx1*ly1*lz1*lelt)      ! Ei_Rt
+     $               , eixx(lx1*ly1*lz1*lelt)      ! Ei_xx
+     $               , eixr(lx1*ly1*lz1*lelt)      ! Ei_xR
+     $               , eirr(lx1*ly1*lz1*lelt)      ! Ei_RR
+     $               , eitt(lx1*ly1*lz1*lelt)      ! Ei_\theta\theta
+     $               , wk3(lx1*ly1*lz1*lelt)       ! work
+
+      real rinv(lx1*ly1*lz1*lelv),wk1(lx1*ly1*lz1*lelv)
+      real wk2(lx1*ly1*lz1*lelv),hii(lx1*ly1*lz1*lelv)
+      common /scrsf/ rinv,wk1,wk2,hii
+
+
+      real au1r,au2r,au3r
+      dimension au1r(lx1,ly1,lz1,1)
+     $        , au2r(lx1,ly1,lz1,1)
+     $        , au3r(lx1,ly1,lz1,1)
+
+      real au1i,au2i,au3i
+      dimension au1i(lx1,ly1,lz1,1)
+     $        , au2i(lx1,ly1,lz1,1)
+     $        , au3i(lx1,ly1,lz1,1)
+     
+      integer nel,ntot1
+
+
+      ntot1 = lx1*ly1*lz1*nel
+
+!     rinv = 1/R      
+      call invers2(rinv,ym1,ntot1)
+      call col2c(rinv,bm1,k_3dsp,ntot1)   ! rinv = k*BM1/R
+
+!     Real Variables      
+      call ttxyz(au1r,erxx,erxr,erxt,nel)  ! [erxx*dv/dx + erxr*dv/dr]*BM1
+      call col3(wk1,eixt,rinv,ntot1)       ! eixt*k*BM1/R    
+      call sub2(au1r,wk1,ntot1)
+
+      call ttxyz(au2r,erxr,errr,errt,nel)  ! [erxr*dv/dx + errr*dv/dr]*BM1
+      call col3(wk1,eirt,rinv,ntot1)       ! eirt*k*BM1/R    
+      call sub2(au2r,wk1,ntot1)
+
+      call ttxyz(au3r,erxt,errt,ertt,nel)  ! [erxt*dv/dx + errt*dv/dr]*BM1
+      call col3(wk1,eitt,rinv,ntot1)       ! eitt*k*BM1/R    
+      call sub2(au3r,wk1,ntot1)
+
+!     Imaginary Variables      
+      call ttxyz(au1i,eixx,eixr,eixt,nel)  ! [eixx*dv/dx + eixr*dv/dr]*BM1
+      call col3(wk1,erxt,rinv,ntot1)       ! erxt*k*BM1/R    
+      call add2(au1i,wk1,ntot1)
+
+      call ttxyz(au2i,eixr,eirr,eirt,nel) ! [erxr*dv/dx + errr*dv/dr]*BM1
+      call col3(wk1,errt,rinv,ntot1)      ! errt*k*BM1/R    
+      call add2(au2i,wk1,ntot1)
+
+      call ttxyz(au3i,eixt,eirt,eitt,nel) ! [eixt*dv/dx + eirt*dv/dr]*BM1
+      call col3(wk1,ertt,rinv,ntot1)      ! ertt*k*BM1/R    
+      call add2(au3i,wk1,ntot1)
+
+
+!      if (ifaxis)    call axitzz (au2,tzz,nel)
+!      if (ldim.eq.3) call ttxyz  (au3,txz,tyz,tzz,nel)
+
       return
       end
-c-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
+
+
+
+
+
+
+
 
