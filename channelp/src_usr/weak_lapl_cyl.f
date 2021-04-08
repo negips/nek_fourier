@@ -7,6 +7,23 @@
 !====================================================================== 
 !-----------------------------------------------------------------------
 
+      subroutine axhmsf_cyl(Au1r,Au2r,Au3r,Au1i,Au2i,Au3i,
+     $                      u1r,u2r,u3r,u1i,u2i,u3i,h1,h2)
+
+      implicit none
+
+      real u1r(1),u2r(1),u3r(1),u1i(1),u2i(1),u3i(1)
+      real Au1r(1),Au2r(1),Au3r(1),Au1i(1),Au2i(1),Au3i(1)
+      real h1(1),h2(1)
+
+!     place holder
+
+
+
+      return
+      end subroutine axhmsf_cyl             
+!-----------------------------------------------------------------------
+     
       subroutine stnrate_cyl (u1r,u2r,u3r,u1i,u2i,u3i,nel,matmod)
 
       implicit none
@@ -318,7 +335,7 @@ c        newtonian fluids
       return
       end subroutine stress_cyl
 !-----------------------------------------------------------------------
-      subroutine aijuj_cyl (au1r,au2r,au3r,au1i,au2i,au3i,nel)
+      subroutine div_stress_cyl (au1r,au2r,au3r,au1i,au2i,au3i,nel)
 
       implicit none
 
@@ -410,7 +427,7 @@ c        newtonian fluids
 !      if (ldim.eq.3) call ttxyz  (au3,txz,tyz,tzz,nel)
 
       return
-      end
+      end subroutine div_stress_cyl
 !-----------------------------------------------------------------------
 
 

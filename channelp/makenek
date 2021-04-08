@@ -30,7 +30,7 @@ FFLAGS="-I./src_inc"
 # auxilliary files to compile
 # NOTE: source files have to located in the same directory as makenek
 #       a makefile_usr.inc has to be provided containing the build rules 
-USR="slp.o solve_3d.o solvep_3d.o weak_lapl_cyl.o"
+USR="slp.o solve_3d.o solvep_3d.o weak_lapl_cyl.o solver_3d.o"
 
 # MPI (default 1) 
 #MPI=0
