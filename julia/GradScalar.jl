@@ -1,4 +1,4 @@
-function GradScalar(S,r,θ,t,xin...)
+function GradScalar(S,r,θ,t,er,eθ,et,xin...)
 
   dir = "left"
 

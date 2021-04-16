@@ -598,7 +598,263 @@ c        if ( .not.ifprint )  goto 9999
       end subroutine opadds3
 !-----------------------------------------------------------------------
 
+      subroutine qmask_cyl (r1,r2,r3,r1mask,r2mask,r3mask,nel)
 
+      implicit none
+
+      INCLUDE 'SIZE'
+      INCLUDE 'GEOM'
+      INCLUDE 'TSTEP'
+
+      real s1,s2,s3
+      common /ctmp1/ s1(lx1,ly1,lz1,lelt)
+     $             , s2(lx1,ly1,lz1,lelt)
+     $             , s3(lx1,ly1,lz1,lelt)
+C
+      real      r1(lx1,ly1,lz1,1)
+     $        , r2(lx1,ly1,lz1,1)
+     $        , r3(lx1,ly1,lz1,1)
+     $        , r1mask(lx1,ly1,lz1,1)
+     $        , r2mask(lx1,ly1,lz1,1)
+     $        , r3mask(lx1,ly1,lz1,1)
+
+      integer nel,ntot1
+
+      ntot1 = lx1*ly1*lz1*nel
+c
+c     (0) collocate volume mask
+c
+      call copy  (s1,r1,ntot1)
+      call copy  (s2,r2,ntot1)
+      call col2  (r1,r1mask,ntot1)
+      call col2  (r2,r2mask,ntot1)
+      if (ldim.eq.3) then
+         call copy (s3,r3,ntot1)
+         call col2 (r3,r3mask,ntot1)
+      endif
+c
+c     (1) face mask
+c
+      if (iflmsf(ifield)) then
+         if (ldim.eq.2) then
+            call fcmsk2 (r1,r2,s1,s2,r1mask,r2mask,nel)
+         else
+            call fcmsk3 (r1,r2,r3,s1,s2,s3,r1mask,r2mask,r3mask,nel)
+         endif
+      endif
+c
+c     (2) edge mask  (3-d only)
+c
+      if (ldim.eq.3 .and. iflmse(ifield)) 
+     $   call egmask (r1,r2,r3,s1,s2,s3,r1mask,r2mask,r3mask,nel)
+c
+c     (3) corner mask
+c
+      if (iflmsc(ifield)) then
+         if (ldim.eq.2) then
+            call crmsk2 (r1,r2,s1,s2,r1mask,r2mask,nel)
+         else
+            call crmsk3 (r1,r2,r3,s1,s2,s3,r1mask,r2mask,r3mask,nel)
+         endif
+      endif
+
+      return
+      end
+!-----------------------------------------------------------------------
+
+      subroutine fcmsk2_cl (r1,r2,r3,s1,s2,s3,r1mask,r2mask,r3mask,nel)
+
+      implicit none  
+
+      INCLUDE 'SIZE'
+      INCLUDE 'GEOM'
+      INCLUDE 'TSTEP'
+
+
+      real      r1(lx1,ly1,lz1,1)
+     $        , r2(lx1,ly1,lz1,1)
+     $        , r3(lx1,ly1,lz1,1)     
+     $        , s1(lx1,ly1,lz1,1)
+     $        , s2(lx1,ly1,lz1,1)
+     $        , s3(lx1,ly1,lz1,1)     
+     $        , r1mask(lx1,ly1,lz1,1)
+     $        , r2mask(lx1,ly1,lz1,1)
+     $        , r3mask(lx1,ly1,lz1,1)     
+
+      integer nface,iel,ifc,nel
+      integer j1,js1,jf1,jskip1,j2,js2,jf2,jskip2
+      real rnor,rtn1
+
+      nface = 2*ldim
+
+      do 100 iel=1,nel
+      do 100 ifc=1,nface
+         if (.not.ifmsfc(ifc,iel,ifield)) go to 100
+         call facind2 (js1,jf1,jskip1,js2,jf2,jskip2,ifc)
+         do 120 j2=js2,jf2,jskip2
+         do 120 j1=js1,jf1,jskip1
+            rnor = ( s1(j1,j2,1,iel)*vnx(j1,j2,1,iel) +
+     $               s2(j1,j2,1,iel)*vny(j1,j2,1,iel) ) *
+     $               r1mask(j1,j2,1,iel)
+            rtn1 = ( s1(j1,j2,1,iel)*v1x(j1,j2,1,iel) +
+     $               s2(j1,j2,1,iel)*v1y(j1,j2,1,iel) ) *
+     $               r2mask(j1,j2,1,iel)
+            r1(j1,j2,1,iel) = rnor*vnx(j1,j2,1,iel) +
+     $                        rtn1*v1x(j1,j2,1,iel)
+            r2(j1,j2,1,iel) = rnor*vny(j1,j2,1,iel) +
+     $                        rtn1*v1y(j1,j2,1,iel)
+  120       continue
+  100    continue
+c
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine setprec_cyl (dpcm1,helm1,helm2,imsh,isd)
+
+!     Generate diagonal preconditioner for the Helmholtz operator.
+
+      implicit none
+
+      include 'SIZE'
+      include 'WZ'
+      include 'DXYZ'
+      include 'GEOM'
+      include 'INPUT'
+      include 'TSTEP'
+      include 'MASS'
+
+      real            dpcm1 (lx1,ly1,lz1,1)
+      common /fastmd/ ifdfrm(lelt), iffast(lelt), ifh2, ifsolv
+      logical ifdfrm, iffast, ifh2, ifsolv
+      real            helm1(lx1,ly1,lz1,1), helm2(lx1,ly1,lz1,1)
+      real ysm1(ly1)
+
+      integer ie,iq,iz,iy,ix,ntot
+      integer i,j,iel
+      integer nel,imsh,isd
+      real term1,term2
+
+      nel=nelt
+      if (imsh.eq.1) nel=nelv
+
+      ntot = nel*lx1*ly1*lz1
+
+      call rzero(dpcm1,ntot)
+      do 1000 ie=1,nel
+
+        if (ifaxis) call setaxdy ( ifrzer(ie) )
+
+        do 320 iq=1,lx1
+        do 320 iz=1,lz1
+        do 320 iy=1,ly1
+        do 320 ix=1,lx1
+           dpcm1(ix,iy,iz,ie) = dpcm1(ix,iy,iz,ie) + 
+     $                          g1m1(iq,iy,iz,ie) * dxtm1(ix,iq)**2
+  320   continue
+        do 340 iq=1,ly1
+        do 340 iz=1,lz1
+        do 340 iy=1,ly1
+        do 340 ix=1,lx1
+           dpcm1(ix,iy,iz,ie) = dpcm1(ix,iy,iz,ie) + 
+     $                          g2m1(ix,iq,iz,ie) * dytm1(iy,iq)**2
+  340   continue
+        if (ldim.eq.3) then
+           do 360 iq=1,lz1
+           do 360 iz=1,lz1
+           do 360 iy=1,ly1
+           do 360 ix=1,lx1
+              dpcm1(ix,iy,iz,ie) = dpcm1(ix,iy,iz,ie) + 
+     $                             g3m1(ix,iy,iq,ie) * dztm1(iz,iq)**2
+  360      continue
+c
+c          add cross terms if element is deformed.
+c
+           if (ifdfrm(ie)) then
+              do 600 iy=1,ly1,ly1-1
+              do 600 iz=1,lz1,max(1,lz1-1)
+              dpcm1(1,iy,iz,ie) = dpcm1(1,iy,iz,ie)
+     $            + g4m1(1,iy,iz,ie) * dxtm1(1,1)*dytm1(iy,iy)
+     $            + g5m1(1,iy,iz,ie) * dxtm1(1,1)*dztm1(iz,iz)
+              dpcm1(lx1,iy,iz,ie) = dpcm1(lx1,iy,iz,ie)
+     $            + g4m1(lx1,iy,iz,ie) * dxtm1(lx1,lx1)*dytm1(iy,iy)
+     $            + g5m1(lx1,iy,iz,ie) * dxtm1(lx1,lx1)*dztm1(iz,iz)
+  600         continue
+              do 700 ix=1,lx1,lx1-1
+              do 700 iz=1,lz1,max(1,lz1-1)
+                 dpcm1(ix,1,iz,ie) = dpcm1(ix,1,iz,ie)
+     $            + g4m1(ix,1,iz,ie) * dytm1(1,1)*dxtm1(ix,ix)
+     $            + g6m1(ix,1,iz,ie) * dytm1(1,1)*dztm1(iz,iz)
+                 dpcm1(ix,ly1,iz,ie) = dpcm1(ix,ly1,iz,ie)
+     $            + g4m1(ix,ly1,iz,ie) * dytm1(ly1,ly1)*dxtm1(ix,ix)
+     $            + g6m1(ix,ly1,iz,ie) * dytm1(ly1,ly1)*dztm1(iz,iz)
+  700         continue
+              do 800 ix=1,lx1,lx1-1
+              do 800 iy=1,ly1,ly1-1
+                 dpcm1(ix,iy,1,ie) = dpcm1(ix,iy,1,ie)
+     $                + g5m1(ix,iy,1,ie) * dztm1(1,1)*dxtm1(ix,ix)
+     $                + g6m1(ix,iy,1,ie) * dztm1(1,1)*dytm1(iy,iy)
+                 dpcm1(ix,iy,lz1,ie) = dpcm1(ix,iy,lz1,ie)
+     $                + g5m1(ix,iy,lz1,ie) * dztm1(lz1,lz1)*dxtm1(ix,ix)
+     $                + g6m1(ix,iy,lz1,ie) * dztm1(lz1,lz1)*dytm1(iy,iy)
+  800         continue
+           endif
+
+        else  ! 2d
+
+           iz=1
+           if (ifdfrm(ie)) then
+              do 602 iy=1,ly1,ly1-1
+                 dpcm1(1,iy,iz,ie) = dpcm1(1,iy,iz,ie)
+     $                + g4m1(1,iy,iz,ie) * dxtm1(1,1)*dytm1(iy,iy)
+                 dpcm1(lx1,iy,iz,ie) = dpcm1(lx1,iy,iz,ie)
+     $                + g4m1(lx1,iy,iz,ie) * dxtm1(lx1,lx1)*dytm1(iy,iy)
+  602         continue
+              do 702 ix=1,lx1,lx1-1
+                 dpcm1(ix,1,iz,ie) = dpcm1(ix,1,iz,ie)
+     $                + g4m1(ix,1,iz,ie) * dytm1(1,1)*dxtm1(ix,ix)
+                 dpcm1(ix,ly1,iz,ie) = dpcm1(ix,ly1,iz,ie)
+     $                + g4m1(ix,ly1,iz,ie) * dytm1(ly1,ly1)*dxtm1(ix,ix)
+  702         continue
+           endif
+
+        endif
+ 1000 continue
+
+      call col2    (dpcm1,helm1,ntot)
+      call addcol3 (dpcm1,helm2,bm1,ntot)
+
+!     if axisymmetric, add a diagonal term in the radial direction (isd=2)
+
+      if (ifaxis.and.(isd.eq.2)) then
+         do 1200 iel=1,nel
+
+            if (ifrzer(iel)) then
+               call mxm(ym1(1,1,1,iel),lx1,datm1,ly1,ysm1,1)
+            endif
+
+            do 1190 j=1,ly1
+            do 1190 i=1,lx1
+               if (ym1(i,j,1,iel).ne.0.) then
+                  term1 = bm1(i,j,1,iel)/ym1(i,j,1,iel)**2
+                  if (ifrzer(iel)) then
+                     term2 =  wxm1(i)*wam1(1)*dam1(1,j)
+     $                       *jacm1(i,1,1,iel)/ysm1(i)
+                  else
+                     term2 = 0.
+                  endif
+                  dpcm1(i,j,1,iel) = dpcm1(i,j,1,iel)
+     $                             + helm1(i,j,1,iel)*(term1+term2)
+               endif
+ 1190       continue
+ 1200    continue
+      endif
+
+      call dssum (dpcm1,lx1,ly1,lz1)
+      call invcol1 (dpcm1,ntot)
+
+      return
+      end
+!---------------------------------------------------------------------- 
 
 
 

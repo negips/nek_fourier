@@ -1,4 +1,4 @@
-function GradVector(U,r,θ,t,xin...)
+function GradVector(U,r,θ,t,er,eθ,et,xin...)
 
 # Gradient of a Vector  
 
@@ -28,13 +28,13 @@ function GradVector(U,r,θ,t,xin...)
   gradu = tmp
 
   if dir=="left"
-    gradur,mgradur = GradR(U,r,θ,t,"left") 
-    graduθ,mgraduθ = GradTheta(U,r,θ,t,"left") 
-    gradut,mgradut = GradT(U,r,θ,t,"left")
+    gradur,mgradur = GradR(U,r,θ,t,er,eθ,et,"left") 
+    graduθ,mgraduθ = GradTheta(U,r,θ,t,er,eθ,et,"left") 
+    gradut,mgradut = GradT(U,r,θ,t,er,eθ,et,"left")
   else
-    gradur,mgradur = GradR(U,r,θ,t,"right") 
-    graduθ,mgraduθ = GradTheta(U,r,θ,t,"right") 
-    gradut,mgradut = GradT(U,r,θ,t,"right")
+    gradur,mgradur = GradR(U,r,θ,t,er,eθ,et,"right") 
+    graduθ,mgraduθ = GradTheta(U,r,θ,t,er,eθ,et,"right") 
+    gradut,mgradut = GradT(U,r,θ,t,er,eθ,et,"right")
   end  
   
   mGU = [mgradut[1] mgradut[2] mgradut[3]; 

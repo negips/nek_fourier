@@ -1,4 +1,4 @@
-function GradR(U, r,θ,t,xin...)
+function GradR(U, r,θ,t,er,eθ,et,xin...)
 
 # Calculate the result as a tensor
 # if the input is a vector

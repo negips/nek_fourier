@@ -32,8 +32,8 @@ IfFourier = false
 # z = Sym.Symbol("z")
 
 # Cylindrical Coordinates
-t = Sym.Symbol("t")          # x in the cylindrical coordinates
-r = Sym.Symbol("r", positive=true)
+t = Sym.Symbol("X")          # x in the cylindrical coordinates
+r = Sym.Symbol("R", positive=true)
 θ = Sym.Symbol("θ")
 
 #x = t
@@ -77,27 +77,8 @@ r = Sym.Symbol("r", positive=true)
 # Unit Vectors in Clindrical coordinates
 er = Sym.Function("er", commutative=false)(r,θ)
 eθ = Sym.Function("eθ", commutative=false)(r,θ)
-et = Sym.Function("et", commutative=false)()
+et = Sym.Function("ex", commutative=false)()
 
-# # Commutatitive symbols for collection
-# erc = Sym.Function("erc", commutative=true)(r,θ)
-# eθc = Sym.Function("eθc", commutative=true)(r,θ)
-# etc = Sym.Function("etc", commutative=true)()
-
-# # Unit Vectors in Cartesian coordinates
-# ex = Sym.Symbol("ex")
-# ey = Sym.Symbol("ey")
-# ez = Sym.Symbol("ez")
-
-
-# er1 = cos(θ)*ex + sin(θ)*ey
-# eθ1 = -sin(θ)*ex + cos(θ)*ey
-# et1 = ez
-
-# derdθ = Sym.diff(er,θ)
-# deθdθ = Sym.diff(eθ,θ)  
-#replace(derdθ,-ex*sin(θ) + ey*cos(θ),eθ)
-#replace(deθdθ,-ex*cos(θ) - ey*sin(θ),-er)
 
 j  = sqrt(Complex(-1.0))                        # well you know...
 
@@ -106,12 +87,12 @@ j  = sqrt(Complex(-1.0))                        # well you know...
 if IfFourier
   ur_r = Sym.Function("ur\'ᵣ",commutative=false)(r,t)
   uθ_r = Sym.Function("uθ\'ᵣ",commutative=false)(r,t)
-  ut_r = Sym.Function("ut\'ᵣ",commutative=false)(r,t)
+  ut_r = Sym.Function("ux\'ᵣ",commutative=false)(r,t)
   p_r  = Sym.Function("p\'ᵣ" ,commutative=false)(r,t)
 
   ur_i = Sym.Function("ur\'ᵢ",commutative=false)(r,t)
   uθ_i = Sym.Function("uθ\'ᵢ",commutative=false)(r,t)
-  ut_i = Sym.Function("ut\'ᵢ",commutative=false)(r,t)
+  ut_i = Sym.Function("ux\'ᵢ",commutative=false)(r,t)
   p_i  = Sym.Function("p\'ᵢ" ,commutative=false)(r,t)
 
   ur   = ur_r + j*ur_i
@@ -121,23 +102,23 @@ if IfFourier
 else
   ur = Sym.Function("ur\'",commutative=false)(r,θ,t)
   uθ = Sym.Function("uθ\'",commutative=false)(r,θ,t)
-  ut = Sym.Function("ut\'",commutative=false)(r,θ,t)
+  ut = Sym.Function("ux\'",commutative=false)(r,θ,t)
   p  = Sym.Function("p\'" ,commutative=false)(r,θ,t)
 end  
 
 # Base Flow variables
 Ur = Sym.Function("Ur",commutative=false)(r,t)
 Uθ = Sym.Function("Uθ",commutative=false)(r,t)
-Ut = Sym.Function("Ut",commutative=false)(r,t)
+Ut = Sym.Function("Ux",commutative=false)(r,t)
 P  = Sym.Function("P" ,commutative=false)(r,t)
 
 
 # Density
 ρ  = Sym.Symbol("ρ",commutative=true)
 # Dynamic Viscosity
-μ  = Sym.Symbol("μ",commutative=true)
+ν  = Sym.Symbol("ν",commutative=true)
 # Kinematic Viscosity
-ν  = μ/ρ
+μ  = ν*ρ
 
 
 # Wavenumber
@@ -167,27 +148,27 @@ U_right  = Ur*er + Uθ*eθ + Ut*et
 U_left   = er*Ur + eθ*Uθ + et*Ut
 
 
-gradu,mGu  = GradVector(u_right,r,θ,t,"left")
+gradu,mGu  = GradVector(u_right,r,θ,t,er,eθ,et,"left")
 mGuT       = mGu.transpose()
 
 # 
-Gjt   = er*mGu[1,1] + eθ*mGu[2,1] + et*mGu[3,1]
+Gjt   = et*mGu[1,1] + er*mGu[2,1] + eθ*mGu[3,1]
 #GRj   = er*mGu[1,1] + eθ*mGu[1,2] + et*mGu[1,3]
 
-GjR   = er*mGu[1,2] + eθ*mGu[2,2] + et*mGu[3,2]
+GjR   = et*mGu[1,2] + er*mGu[2,2] + eθ*mGu[3,2]
 #Gθj   = er*mGu[2,1] + eθ*mGu[2,2] + et*mGu[2,3]
 
-Gjθ   = er*mGu[1,3] + eθ*mGu[2,3] + et*mGu[3,3]
+Gjθ   = et*mGu[1,3] + er*mGu[2,3] + eθ*mGu[3,3]
 #Gtj   = er*mGu[3,1] + eθ*mGu[3,2] + et*mGu[3,3]
 
 # Gradient Transpose
-GTjt   = er*mGuT[1,1] + eθ*mGuT[2,1] + et*mGuT[3,1]
+GTjt   = et*mGuT[1,1] + er*mGuT[2,1] + eθ*mGuT[3,1]
 #GTRj   = er*mGuT[1,1] + eθ*mGuT[1,2] + et*mGuT[1,3]
 
-GTjR   = er*mGuT[1,2] + eθ*mGuT[2,2] + et*mGuT[3,2]
+GTjR   = et*mGuT[1,2] + er*mGuT[2,2] + eθ*mGuT[3,2]
 #GTθj   = er*mGuT[2,1] + eθ*mGuT[2,2] + et*mGuT[2,3]
 
-GTjθ   = er*mGuT[1,3] + eθ*mGuT[2,3] + et*mGuT[3,3]
+GTjθ   = et*mGuT[1,3] + er*mGuT[2,3] + eθ*mGuT[3,3]
 #GTtj   = er*mGuT[3,1] + eθ*mGuT[3,2] + et*mGuT[3,3]
 
 graduT = GTjR*er + GTjθ*eθ + GTjt*et
@@ -224,7 +205,7 @@ divall   = Div(σ,"left")
 
 divcom   = GetComponents(divall)
 
-gradUb,mGUb  = GradVector(U_right,r,θ,t,"left")
+gradUb,mGUb  = GradVector(U_right,r,θ,t,er,eθ,et,"left")
 
 conv1    = Dot(U_right,gradu)
 conv2    = Dot(u_right,gradUb)
@@ -233,7 +214,7 @@ conv     = conv1 + conv2
 
 convcom  = GetComponents(conv)
 
-gradP,mGP = GradScalar(p,r,θ,t,"right")
+gradP,mGP = GradScalar(p,r,θ,t,er,eθ,et,"right")
 
 # This is in the "Stress" formulation
 # Some Divergence terms need to be eliminated
@@ -243,7 +224,7 @@ NS       = convcom .+ (1. /ρ)*mGP .- divcom
 
 # Weak Formulation
 
-gradV,mGV   = GradScalar(v,r,θ,t,"right")
+gradV,mGV   = GradScalar(v,r,θ,t,er,eθ,et,"right")
 
 
 conv1       = Dot(U_right,gradu)

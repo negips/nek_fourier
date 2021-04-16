@@ -1,4 +1,4 @@
-function GradVector(U,r,θ,t,xin...)
+function GradVector(U,r,θ,t,er,eθ,et,xin...)
 
   dir = "left"
 
