@@ -10,27 +10,45 @@
       subroutine axhmsf_cyl(Au1r,Au2r,Au3r,Au1i,Au2i,Au3i,
      $                      u1r,u2r,u3r,u1i,u2i,u3i,h1,h2)
 
-!     Common blocks are used in succession.
+!     Fluid (MATMOD .GE. 0) :  Hij Uj = Aij*Uj + H2*B*Ui 
 
       implicit none
 
       include 'SIZE'
       include 'TSTEP'   ! nelfld
+      include 'MASS'
 
       real u1r(1),u2r(1),u3r(1),u1i(1),u2i(1),u3i(1)
       real Au1r(1),Au2r(1),Au3r(1),Au1i(1),Au2i(1),Au3i(1)
       real h1(1),h2(1)
 
-      integer matmod,nel 
-     
+      integer matmod,nel,ntot1
+
+      logical ifdfrm,iffast,ifh2,ifsolv
+      common /fastmd/ ifdfrm(lelt), iffast(lelt), ifh2, ifsolv
 
       matmod = 0                ! Newtonian Fluids
-      nel   = nelfld(ifield)    ! ifield should be already set
+      nel    = nelfld(ifield)   ! ifield should be already set
 
+      ntot1 = lx1*ly1*lz1*nel
+
+!     Common blocks are used in succession.
+
+!     Aij*Uj      
       call stnrate_cyl(u1r,u2r,u3r,u1i,u2i,u3i,nel,matmod)
       call stress_cyl (h1,h2,nel,matmod)
       call div_stress_cyl(Au1r,Au2r,Au3r,Au1i,Au2i,Au3i,nel)   ! aijuj
 
+!     Add Helmholtz contributions
+!     + H2*B*Ui      
+      call addcol4 (Au1r,bm1,h2,u1r,ntot1)
+      call addcol4 (Au2r,bm1,h2,u2r,ntot1)
+      call addcol4 (Au3r,bm1,h2,u3r,ntot1)
+
+      call addcol4 (Au1i,bm1,h2,u1i,ntot1)
+      call addcol4 (Au2i,bm1,h2,u2i,ntot1)
+      call addcol4 (Au3i,bm1,h2,u3i,ntot1)
+        
 
       return
       end subroutine axhmsf_cyl             
@@ -102,9 +120,10 @@
      $        , u2i(lx1,ly1,lz1,lelv)
      $        , u3i(lx1,ly1,lz1,lelv)
 
+!     Work Arrays. Discarded after this subroutine
       real rinv(lx1*ly1*lz1*lelv),wk1(lx1*ly1*lz1*lelv)
       real wk2(lx1*ly1*lz1*lelv)
-      common /scrsf/ rinv,wk1,wk2
+      common /scrsf2/ rinv,wk1,wk2        ! UXYZ already uses scrsf
 
       integer nel,ntot1,matmod
 
@@ -280,7 +299,7 @@ C     CAUTION : Stresses and strainrates share the same scratch commons
 !     $             , tyz(lx1,ly1,lz1,lelt)
  
       real t11,t22,t33,hii
-      common /scrsf/ t11(lx1,ly1,lz1,lelt)
+      common /scrsf2/ t11(lx1,ly1,lz1,lelt)
      $             , t22(lx1,ly1,lz1,lelt)
      $             , t33(lx1,ly1,lz1,lelt)
      $             , hii(lx1,ly1,lz1,lelt)
@@ -394,7 +413,7 @@ c        newtonian fluids
 
       real rinv(lx1*ly1*lz1*lelv),wk1(lx1*ly1*lz1*lelv)
       real wk2(lx1*ly1*lz1*lelv),hii(lx1*ly1*lz1*lelv)
-      common /scrsf/ rinv,wk1,wk2,hii
+      common /scrsf2/ rinv,wk1,wk2,hii
 
 
       real Au1r,Au2r,Au3r

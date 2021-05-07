@@ -14,7 +14,7 @@ minNumProcesses = 1
 stopAt   = numsteps
 numSteps = 1
 
-dt = 0.01
+dt = 0.001
 timeStepper = bdf3
 extrapolation = standard
 variableDt = no
@@ -50,7 +50,7 @@ residualProj = yes
 [VELOCITY]
 residualTol = 1e-8 
 density = 1
-viscosity = -10
+viscosity = -1
 residualProj = no
 
 #[TEMPERATURE]

@@ -365,8 +365,8 @@ c
 !!       prabal            
 !        ntot1 = lx1*ly1*lz1*lelv
 !        ntot2 = lx2*ly2*lz2*lelv
-        call copy3(tmp1,tmp2,tmp3,resv1r,resv2r,resv3r,ntot1)
-        call copy3(tmp4,tmp5,tmp6,resv1i,resv2i,resv3i,ntot1)
+!        call copy3(tmp1,tmp2,tmp3,resv1r,resv2r,resv3r,ntot1)
+!        call copy3(tmp4,tmp5,tmp6,resv1i,resv2i,resv3i,ntot1)
 !        call copy3(tmp1,tmp2,tmp3,bfxp(1,jpr),bfyp(1,jpr),bfzp(1,jpr),
 !     $             ntot1)
 !        call copy3(tmp4,tmp5,tmp6,bfxp(1,jpi),bfyp(1,jpi),bfzp(1,jpi),
@@ -1242,6 +1242,12 @@ c
       call sub2(resv1i,w1i,ntot1)
       call sub2(resv2i,w2i,ntot1)
       call sub2(resv3i,w3i,ntot1)
+
+!!     prabal            
+!      call copy3(tmp1,tmp2,tmp3,w1r,w2r,w3r,ntot1)
+!      call copy3(tmp4,tmp5,tmp6,w1i,w2i,w3i,ntot1)
+
+      
 
       return
       end subroutine cresvipp_cyl

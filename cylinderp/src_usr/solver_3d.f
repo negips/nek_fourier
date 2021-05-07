@@ -108,8 +108,9 @@ c--------------------------------------------------------------------
       real h1(1),h2(1)
       character name*4
 
-      integer iproj,nel,vol,n,maxit,matmod
+      integer iproj,nel,n,maxit,matmod
       real tol
+      real vol
 
 #ifdef TIMER
       nhmhz = nhmhz + 1
@@ -148,6 +149,7 @@ c--------------------------------------------------------------------
 
 !         call cggosf  (u1,u2,u3,r1,r2,r3,h1,h2,rmult,binvm1
 !     $                ,vol,tol,maxit,matmod)
+
          call cggosf_cyl(ur1,ur2,ur3,ui1,ui2,ui3,
      $                   rr1,rr2,rr3,ri1,ri2,ri3,h1,h2,
      $                   rmult,binvm1,vol,tol,maxit,matmod)
@@ -192,6 +194,13 @@ c--------------------------------------------------------------------
 
       include '3DS'           ! k_3dsp
 
+      include 'TEST'
+
+!     r?r,r?i           - Residuals
+!     p?r,p?i           - Search directions
+!     Ap?r, Ap?i        - A*p
+!     qq?               - Diagonal Preconditioner      
+
       real dpc,p1r,p2r,p3r
       common /screv/  dpc(lx1*ly1*lz1*lelt)
      $     ,          p1r (lx1*ly1*lz1*lelt)
@@ -208,31 +217,31 @@ c--------------------------------------------------------------------
      $     ,          qq2(lx1*ly1*lz1*lelt)
      $     ,          qq3(lx1*ly1*lz1*lelt)
 
-      real pp1r,pp2r,pp3r,wa
-      common /scrmg/  pp1r(lx1*ly1*lz1*lelt)
-     $     ,          pp2r(lx1*ly1*lz1*lelt)
-     $     ,          pp3r(lx1*ly1*lz1*lelt)
+      real Ap1r,Ap2r,Ap3r,wa
+      common /scrmg/  Ap1r(lx1*ly1*lz1*lelt)
+     $     ,          Ap2r(lx1*ly1*lz1*lelt)
+     $     ,          Ap3r(lx1*ly1*lz1*lelt)
      $     ,          wa (lx1*ly1*lz1*lelt)
 
-      real p1i,p2i,p3i,pp1i,pp2i,pp3i
+      real p1i,p2i,p3i,Ap1i,Ap2i,Ap3i
       common /scruz/ p1i(lx1*ly1*lz1*lelt),
      $               p2i(lx1*ly1*lz1*lelt),
      $               p3i(lx1*ly1*lz1*lelt),
-     $               pp1i(lx1*ly1*lz1*lelt)
-      common /scrvh/ pp2i(lx1*ly1*lz1*lelt),
-     $               pp3i(lx1*ly1*lz1*lelt)
+     $               Ap1i(lx1*ly1*lz1*lelt)
+      common /scrvh/ Ap2i(lx1*ly1*lz1*lelt),
+     $               Ap3i(lx1*ly1*lz1*lelt)
 
 
 
-      real ap1r(1),ap2r(1),ap3r(1)
-      real ap1i(1),ap2i(1),ap3i(1)
+!      real Ap1r(1),Ap2r(1),Ap3r(1)
+!      real Ap1i(1),Ap2i(1),Ap3i(1)
 !     Why do we do this equivalence?
-      equivalence (ap1r,pp1r),(ap2r,pp2r),(ap3r,pp3r)
-      equivalence (ap1i,pp1i),(ap2i,pp2i),(ap3i,pp3i)
+!      equivalence (Ap1r,pp1r),(Ap2r,pp2r),(Ap3r,pp3r)
+!      equivalence (Ap1i,pp1i),(Ap2i,pp2i),(Ap3i,pp3i)
 
+      logical ifdfrm, iffast, ifh2, ifsolv, ifprint
       common /fastmd/ ifdfrm(lelt), iffast(lelt), ifh2, ifsolv
       common /cprint/ ifprint
-      logical ifdfrm, iffast, ifh2, ifsolv, ifprint
 
       real u1r(1),u2r(1),u3r(1),u1i(1),u2i(1),u3i(1),
      $     r1r(1),r2r(1),r3r(1),r1i(1),r2i(1),r3i(1),
@@ -266,10 +275,14 @@ c--------------------------------------------------------------------
      $               , wk4(lx1*ly1*lz1*lelt) 
 
 
+      logical ifjacobi        ! Apply Jacobi preconditioner?
 
+      integer n1,n2
 
 !     No Fast Diagonalization Method            
       iffdm  = .false.
+!     Jacobi preconditioner            
+      ifjacobi = .true.
 !     No Coarse grid
       ifcrsl = .false.
 
@@ -281,13 +294,15 @@ c--------------------------------------------------------------------
 
       tol  = tin
 
-c     overrule input tolerance
+!     overrule input tolerance
       if (restol(ifield).ne.0) tol=restol(ifield)
       if (ifcrsl) call set_up_h1_crs_strs(h1,h2,ifield,matmod)
 
       if ( .not.ifsolv ) then           !     Set logical flags
+         ifaxis = .true.
          call setfast (h1,h2,imesh)
          ifsolv = .true.
+         ifaxis = .false.
       endif
 
 !     call opdot (wa,r1r,r2r,r3r,r1r,r2r,r3r,n)
@@ -322,17 +337,20 @@ c        if ( .not.ifprint )  goto 9999
 !         call fdm_h1a (pp3,r3,dpc,nel,ktype(1,1,3),wa)
 !         call rmask   (pp1,pp2,pp3,nel)
 !         call opdssum (pp1,pp2,pp3)
-      else
+      elseif (ifjacobi) then
 !        Apply Diagonal preconditioners                     
-!        Real           
-         call col3 (pp1r,qq1,r1r,n)
-         call col3 (pp2r,qq2,r2r,n)
-         call col3 (pp3r,qq3,r3r,n)
+!        Real
+         call col3 (Ap1r,qq1,r1r,n)
+         call col3 (Ap2r,qq2,r2r,n)
+         call col3 (Ap3r,qq3,r3r,n)
 
 !        Imaginary         
-         call col3 (pp1i,qq1,r1i,n)
-         call col3 (pp2i,qq2,r2i,n)
-         call col3 (pp3i,qq3,r3i,n)
+         call col3 (Ap1i,qq1,r1i,n)
+         call col3 (Ap2i,qq2,r2i,n)
+         call col3 (Ap3i,qq3,r3i,n)
+      else
+         call copy3(Ap1r,Ap2r,Ap3r,r1r,r2r,r3r,n) 
+         call copy3(Ap1i,Ap2i,Ap3i,r1i,r2i,r3i,n) 
       endif
 
       if (ifcrsl) then
@@ -343,12 +361,12 @@ c        if ( .not.ifprint )  goto 9999
          call rzero3(p1i,p2i,p3i,n)
       endif
 
-      call add2_3(p1r,p2r,p3r,pp1r,pp2r,pp3r,n)
-      call add2_3(p1i,p2i,p3i,pp1i,pp2i,pp3i,n)
+      call add2_3(p1r,p2r,p3r,Ap1r,Ap2r,Ap3r,n)
+      call add2_3(p1i,p2i,p3i,Ap1i,Ap2i,Ap3i,n)
 
-!      rpp1 = (D*r)*rmult*r
-      call opglsc2_wt_comp(rpp1r,rpp1i,p1r,p2r,p3r,p1i,p2i,p3i,
-     $                        r1r,r2r,r3r,r1i,r2i,r3i,rmult,n)
+!      rpp1 = r*rmult*(D*r)
+      call opglsc2_wt_comp(rpp1r,rpp1i,r1r,r2r,r3r,r1i,r2i,r3i,
+     $                     Ap1r,Ap2r,Ap3r,Ap1i,Ap2i,Ap3i,rmult,n)
 
 !     Imaginary part must be zero.
 !     Otherwise the Diagonal is not purely real, which means 
@@ -357,12 +375,32 @@ c        if ( .not.ifprint )  goto 9999
 !     Setting it zero so we don't accumulate round off errors
       rpp1i = 0.      
 
-      maxit=200
+!!     prabal            
+!      n1 = lx1*ly1*lz1*lelv
+!      n2 = lx2*ly2*lz2*lelv
+!      call copy3(tmp1,tmp2,tmp3,r1r,r2r,r3r,n1)
+!      call copy3(tmp4,tmp5,tmp6,r1i,r2i,r3i,n1)
+
+
+      maxit=100
       do 1000 iter=1,maxit
          call axhmsf_cyl(Ap1r,Ap2r,Ap3r,Ap1i,Ap2i,Ap3i,
      $                      p1r,p2r,p3r,p1i,p2i,p3i,h1,h2)
 
-!        prabal. Need to change rmask         
+!!       prabal            
+!         n1 = lx1*ly1*lz1*lelv
+!         n2 = lx2*ly2*lz2*lelv
+!         call copy3(tmp1,tmp2,tmp3,Ap1r,Ap2r,Ap3r,n1)
+!         call copy3(tmp4,tmp5,tmp6,Ap1i,Ap2i,Ap3i,n1)
+
+
+!        call col3(Ap1r,p1r,bm1,n)
+!        call col3(Ap2r,p2r,bm1,n)
+!        call col3(Ap3r,p3r,bm1,n)
+!        call col3(Ap1i,p1i,bm1,n)
+!        call col3(Ap2i,p2i,bm1,n)
+!        call col3(Ap3i,p3i,bm1,n)
+
 !         call rmask(ap1r,ap2r,ap3r,nel)
 !         call rmask(ap1i,ap2i,ap3i,nel)
          call col2_3(Ap1r,Ap2r,Ap3r,v1mask,v2mask,v3mask,n)
@@ -377,8 +415,8 @@ c        if ( .not.ifprint )  goto 9999
 
 !        \alpha = (rn-1*rn-1)/(pn-1*Apn-1) 
          tmpval = (pApr*pApr + pApi*pApi)
-         alphar = (rpp1r*pApr + rpp1i*pApi)/tmpval
-         alphai = (rpp1i*pApr - rpp1r*pApi)/tmpval
+         alphar = (rpp1r*pApr/tmpval + rpp1i*pApi/tmpval)
+         alphai = (rpp1i*pApr/tmpval - rpp1r*pApi/tmpval)
 
 !        Update Soln: u = u + \alpha*p
 !        ur = ur + \alphar*pr - \alphai*pi
@@ -388,6 +426,7 @@ c        if ( .not.ifprint )  goto 9999
 !        ui = ui + \alphar*pi + \alphai*pr
          call opadds_3(u1i,u2i,u3i,p1i,p2i,p3i,alphar,n,2)
          call opadds_3(u1i,u2i,u3i,p1r,p2r,p3r,alphai,n,2)
+
 
 !        Update Residual: r = r - \alpha*p 
 !        rr = rr - \alphar*Apr + \alphai*Api
@@ -415,22 +454,25 @@ c        if ( .not.ifprint )  goto 9999
          endif
 
          if (iffdm) then
-!            call fdm_h1a (pp1,r1,dpc,nel,ktype(1,1,1),wa)
-!            call fdm_h1a (pp2,r2,dpc,nel,ktype(1,1,2),wa)
-!            call fdm_h1a (pp3,r3,dpc,nel,ktype(1,1,3),wa)
-!            call rmask   (pp1,pp2,pp3,nel)
-!            call opdssum (pp1,pp2,pp3)
-         else
-!           Apply Diagonal preconditioners                     
-!           Real           
-            call col3 (pp1r,qq1,r1r,n)
-            call col3 (pp2r,qq2,r2r,n)
-            call col3 (pp3r,qq3,r3r,n)
+!           call fdm_h1a (pp1,r1,dpc,nel,ktype(1,1,1),wa)
+!           call fdm_h1a (pp2,r2,dpc,nel,ktype(1,1,2),wa)
+!           call fdm_h1a (pp3,r3,dpc,nel,ktype(1,1,3),wa)
+!           call rmask   (pp1,pp2,pp3,nel)
+!           call opdssum (pp1,pp2,pp3)
+         elseif (ifjacobi) then
+!          Apply Diagonal preconditioners                     
+!          Real           
+           call col3 (Ap1r,qq1,r1r,n)
+           call col3 (Ap2r,qq2,r2r,n)
+           call col3 (Ap3r,qq3,r3r,n)
 
-!           Imaginary         
-            call col3 (pp1i,qq1,r1i,n)
-            call col3 (pp2i,qq2,r2i,n)
-            call col3 (pp3i,qq3,r3i,n)
+!          Imaginary         
+           call col3 (Ap1i,qq1,r1i,n)
+           call col3 (Ap2i,qq2,r2i,n)
+           call col3 (Ap3i,qq3,r3i,n)
+         else
+           call copy3(Ap1r,Ap2r,Ap3r,r1r,r2r,r3r,n) 
+           call copy3(Ap1i,Ap2i,Ap3i,r1i,r2i,r3i,n) 
          endif
 
          if (ifcrsl) then
@@ -444,9 +486,9 @@ c        if ( .not.ifprint )  goto 9999
          rpp2i = rpp1i
 
 !        New Residual         
-!        rpp1 = (D*r)*rmult*r
-         call opglsc2_wt_comp(rpp1r,rpp1i,p1r,p2r,p3r,p1i,p2i,p3i,
-     $                        r1r,r2r,r3r,r1i,r2i,r3i,rmult,n)
+!        rpp1 = r*rmult*(D*r)
+         call opglsc2_wt_comp(rpp1r,rpp1i,r1r,r2r,r3r,r1i,r2i,r3i,
+     $                        Ap1r,Ap2r,Ap3r,Ap1i,Ap2i,Ap3i,rmult,n)
 
 !        Again, imaginary part must be zero.
 !        Otherwise the Diagonal is not purely real, which means 
@@ -456,8 +498,8 @@ c        if ( .not.ifprint )  goto 9999
 
          tmpval = (rpp2r*rpp2r + rpp2i*rpp2i)
 
-         betar = (rpp1r*rpp2r + rpp1i*rpp2i)/tmpval
-         betai = (rpp1i*rpp2r - rpp1r*rpp2i)/tmpval
+         betar = rpp1r*rpp2r/tmpval + rpp1i*rpp2i/tmpval
+         betai = rpp1i*rpp2r/tmpval - rpp1r*rpp2i/tmpval
 
 !        Again, betai must also be exactly zero.
 !        Setting it to zero
@@ -465,16 +507,26 @@ c        if ( .not.ifprint )  goto 9999
 
          call copy3(wk1r,wk2r,wk3r,p1r,p2r,p3r,n)
          call copy3(wk1i,wk2i,wk3i,p1i,p2i,p3i,n)
-         
-!        pr = ppr + \betar*pr - \betai*pi
-         call copy3(p1r,p2r,p3r,pp1r,pp2r,pp3r,n)
+
+!        pr = D*rr + \betar*pr - \betai*pi
+         call copy3(p1r,p2r,p3r,Ap1r,Ap2r,Ap3r,n)
          call opadds_3(p1r,p2r,p3r,wk1r,wk2r,wk3r,betar,n,2)   
 !         call opadds_3(p1r,p2r,p3r,wk1i,wk2i,wk3i,-betai,n,2)   
 
-!        pi = ppi + \betar*pi + \betai*pr
-         call copy3(p1i,p2i,p3i,pp1i,pp2i,pp3i,n)
+!        pi = D*ri + \betar*pi + \betai*pr
+         call copy3(p1i,p2i,p3i,Ap1i,Ap2i,Ap3i,n)
          call opadds_3(p1i,p2i,p3i,wk1i,wk2i,wk3i,betar,n,2)   
 !         call opadds_3(p1i,p2i,p3i,wk1r,wk2r,wk3r,betai,n,2)
+
+!       prabal            
+         n1 = lx1*ly1*lz1*lelv
+         n2 = lx2*ly2*lz2*lelv
+         call copy3(tmp1,tmp2,tmp3,p1r,p2r,p3r,n1)
+         call copy3(tmp4,tmp5,tmp6,p1i,p2i,p3i,n1)
+
+         write(6,*) 'Beta:', betar,rbnorm
+
+
 
  1000 continue
       if (matmod.ge.0.and.nio.eq.0) write (6,3001) 
@@ -727,7 +779,7 @@ c
       end
 !-----------------------------------------------------------------------
 
-      subroutine fcmsk2_cl (r1,r2,r3,s1,s2,s3,r1mask,r2mask,r3mask,nel)
+      subroutine fcmsk2_cyl (r1,r2,r3,s1,s2,s3,r1mask,r2mask,r3mask,nel)
 
       implicit none  
 
