@@ -111,19 +111,14 @@ c-----------------------------------------------------------------------
         call outpost(vx,vy,vz,pr,vz,'ini')
       endif
 
-      if (mod(istep,iostep).eq.0) then
+!      if (mod(istep,iostep).eq.0) then
+      if (istep.le.1) then
         i = 1
         call outpost(vxp(1,1),vyp(1,1),vzp(1,i),
      $               prp(1,1),vzp(1,1),'ptr')
         i = 2
         call outpost(vxp(1,i),vyp(1,i),vzp(1,i),
      $               prp(1,i),vzp(1,i),'pti')
-
-!        call outpost(vx,vy,vz,pr,vz,'   ')
-
-!        call outpost(tmp1,tmp4,tmp3,
-!     $               tmp7,tmp3,'tmp')
-
       endif
 
       if (istep.eq.1) then
@@ -145,16 +140,9 @@ c-----------------------------------------------------------------------
       include 'TOTAL'
       include 'NEKUSE'
 
-      if (y.lt.0) then
-         ux = 0.0
-         uz = 0.0
-      else
-         ux = 0.0
-         uz = 0.0
-      endif   
-
-      uy = 0.
-!      uz = 0.
+      ux = 0.0
+      uy = 0.0
+      uz = 0.0
 
       return
       end

@@ -379,6 +379,8 @@ c
      $                  resv1r,resv2r,resv3r,resv1i,resv2i,resv3i,
      $                  h1,h2,tolhv,nmxv)
 
+
+
 !       Update real         
         call add2_3(vxp(1,jpr),vyp(1,jpr),vzp(1,jpr),
      $              dv1r,dv2r,dv3r,ntot1)
@@ -387,7 +389,11 @@ c
         call add2_3(vxp(1,jpi),vyp(1,jpi),vzp(1,jpi),
      $              dv1i,dv2i,dv3i,ntot1)
 
-        
+!!       prabal
+!        ntot1 = lx1*ly1*lz1*lelv
+!        call copy3(tmp1,tmp2,tmp3,dv1r,vzp(1,jpr),dv3r,ntot1)
+!        call copy3(tmp4,tmp5,tmp6,dv1i,vzp(1,jpi),dv3i,ntot1)
+       
 
       endif
 
@@ -1130,7 +1136,7 @@ c
       implicit none
 
       include 'SIZE'
-      include 'INPUT'
+      include 'INPUT'   ! if3d
       include 'SOLN'    ! v?mask
       include 'MASS'    ! bm1
 
@@ -1167,7 +1173,6 @@ c
       real const
 
       integer jpr,jpi           ! jp for real and imaginary parts
-
       
 
       jpr = jp
@@ -1184,10 +1189,15 @@ c
 
       if3d = .true.
 !     Real part      
-      call bcdirvc (vxp(1,jpr),vyp(1,jpr),vzp(1,jpr),
+      call bcdirvc_cyl(vxp(1,jpr),vyp(1,jpr),vzp(1,jpr),
      $              v1mask,v2mask,v3mask)
+!     prabal testing
+!     Real part      
+!      call bcdirvc (vzp(1,jpr),w2r,w3r,
+!     $              v1mask,v2mask,v3mask)
+
 !     Imaginary part
-      call bcdirvc (vxp(1,jpi),vyp(1,jpi),vzp(1,jpi),
+      call bcdirvc_cyl(vxp(1,jpi),vyp(1,jpi),vzp(1,jpi),
      $              v1mask,v2mask,v3mask)
       if3d = .false.
 
@@ -1793,8 +1803,164 @@ c-----------------------------------------------------------------------
 
       return
       end subroutine cdabdtp_3ds
+
+!-----------------------------------------------------------------------
+      subroutine bcdirvc_cyl(v1,v2,v3,mask1,mask2,mask3)
+
+c     apply dirichlet boundary conditions to surface of vector (v1,v2,v3).
+c     use ifield as a guide to which boundary conditions are to be applied.
+
+      implicit none
+
+      INCLUDE 'SIZE'
+      INCLUDE 'TSTEP'
+      INCLUDE 'INPUT'
+      INCLUDE 'GEOM'
+      INCLUDE 'SOLN'
+      INCLUDE 'TOPOL'
+      INCLUDE 'CTIMER'
+
+      real tmp1,tmp2,tmp3
+      common /scruz/ tmp1(lx1,ly1,lz1,lelv)
+     $             , tmp2(lx1,ly1,lz1,lelv)
+     $             , tmp3(lx1,ly1,lz1,lelv)
+
+      real tmq1,tmq2,tmq3      
+      common /scrmg/ tmq1(lx1,ly1,lz1,lelv)
+     $             , tmq2(lx1,ly1,lz1,lelv)
+     $             , tmq3(lx1,ly1,lz1,lelv)
+c
+      real v1(lx1,ly1,lz1,lelv),v2(lx1,ly1,lz1,lelv)
+     $    ,v3(lx1,ly1,lz1,lelv)
+      real mask1(lx1,ly1,lz1,lelv),mask2(lx1,ly1,lz1,lelv)
+     $    ,mask3(lx1,ly1,lz1,lelv)
+c
+      common  /nekcb/ cb
+      character cb*3
+      character*1 cb1(3)
+      equivalence (cb1,cb)
+c
+      logical ifonbc
+
+      integer nfaces,nxyz,nel,ntot,ie,iface,isweep
+      real bc1,bc2,bc3
+c
+      ifonbc = .false.
+c
+      if (icalld.eq.0) then
+         tusbc=0.0
+         nusbc=0
+         icalld=icalld+1
+      endif
+      nusbc=nusbc+1
+      etime1=dnekclock()
+
+      nfaces=2*ldim
+      nxyz  =lx1*ly1*lz1
+      nel   =nelfld(ifield)
+      ntot  =nxyz*nel
+
+      call rzero(tmp1,ntot)
+      call rzero(tmp2,ntot)
+      call rzero(tmp3,ntot)
+
+!     Velocity boundary conditions
+
+      do 2100 isweep=1,2
+         do 2000 ie=1,nel
+         do 2000 iface=1,nfaces
+            cb  = cbc(iface,ie,ifield)
+            bc1 = bc(1,iface,ie,ifield)
+            bc2 = bc(2,iface,ie,ifield)
+            bc3 = bc(3,iface,ie,ifield)
+
+            if (cb.eq.'V  ' .or. cb.eq.'VL ') then
+!               prabal. WS, WSL not supported yet
+!     $          cb.eq.'WS ' .or. cb.eq.'WSL') then
+               call facev (tmp1,ie,iface,bc1,lx1,ly1,lz1)
+               call facev (tmp2,ie,iface,bc2,lx1,ly1,lz1)
+               call facev (tmp3,ie,iface,bc3,lx1,ly1,lz1)
+
+!              False for V, VL  
+!               if ( ifqinp(iface,ie) )
+!     $         call globrot (tmp1(1,1,1,ie),tmp2(1,1,1,ie),
+!     $                       tmp3(1,1,1,ie),ie,iface)
+            endif
+
+            if (cb.eq.'v  ' .or. cb.eq.'vl ' .or.
+     $          cb.eq.'mv ' .or. cb.eq.'mvn' ) then
+!               prabal. Below conditions not supported yet.
+!     $          cb.eq.'ws ' .or. cb.eq.'wsl' .or.
+!     $          cb1(1).eq.'d'.or.cb1(2).eq.'d'.or.cb1(3).eq.'d') then
+
+                call faceiv (cb,tmp1(1,1,1,ie),tmp2(1,1,1,ie),
+     $                       tmp3(1,1,1,ie),ie,iface,lx1,ly1,lz1)
+
+                if ( ifqinp(iface,ie) )
+     $          call globrot (tmp1(1,1,1,ie),tmp2(1,1,1,ie),
+     $                        tmp3(1,1,1,ie),ie,iface)
+            endif
+
+            IF (CB.EQ.'ON ' .OR. CB.EQ.'on ') then   ! 5/21/01 pff
+                ifonbc =.true.
+                call faceiv ('v  ',tmp1(1,1,1,ie),tmp2(1,1,1,ie),
+     $                       tmp3(1,1,1,ie),ie,iface,lx1,ly1,lz1)
+            ENDIF
+
+ 2000    CONTINUE
+         do 2010 ie=1,nel
+         do 2010 iface=1,nfaces
+            if (cbc(iface,ie,ifield).eq.'W  ') then
+               call facev (tmp1,ie,iface,0.0,lx1,ly1,lz1)
+               call facev (tmp2,ie,iface,0.0,lx1,ly1,lz1)
+               if (if3d) call facev (tmp3,ie,iface,0.0,lx1,ly1,lz1)
+            endif
+ 2010    continue
 C
-C-----------------------------------------------------------------------
+C        Take care of Neumann-Dirichlet shared edges...
+C
+         if (isweep.eq.1) then
+!            call opdsop(tmp1,tmp2,tmp3,'MXA')
+           call dsop(tmp1,'MXA',lx1,ly1,lz1)
+           call dsop(tmp2,'MXA',lx1,ly1,lz1)
+           call dsop(tmp3,'MXA',lx1,ly1,lz1)
+         else
+!            call opdsop(tmp1,tmp2,tmp3,'MNA')
+           call dsop(tmp1,'MNA',lx1,ly1,lz1)
+           call dsop(tmp2,'MNA',lx1,ly1,lz1)
+           call dsop(tmp3,'MNA',lx1,ly1,lz1)
+         endif
+ 2100 CONTINUE
+c
+c     copy temporary array to velocity arrays.
+c
+      if ( .not.ifstrs ) then
+         call col2(v1,mask1,ntot)
+         call col2(v2,mask2,ntot)
+         if (if3d) call col2(v3,mask3,ntot)
+         if (ifonbc) then
+            call antimsk1(tmp1,mask1,ntot)
+            call antimsk1(tmp2,mask2,ntot)
+            if (if3d) call antimsk1(tmp3,mask3,ntot)
+         endif
+      else
+!         call rmask (v1,v2,v3,nelv)
+!        rmask needs to be figured out properly           
+         call col2_3(v1,v2,v3,v1mask,v2mask,v3mask,ntot)
+      endif
+
+      call add2_3(v1,v2,v3,tmp1,tmp2,tmp3,ntot)      
+!      call add2(v1,tmp1,ntot)
+!      call add2(v2,tmp2,ntot)
+!      call add2(v3,tmp3,ntot)
+
+!      if (ifneknekc) call fix_surface_flux
+
+      tusbc=tusbc+(dnekclock()-etime1)
+
+      return
+      end subroutine bcdirvc_cyl
+c-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
 

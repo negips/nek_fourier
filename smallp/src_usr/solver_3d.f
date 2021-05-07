@@ -266,7 +266,7 @@ c--------------------------------------------------------------------
 !     Since the entries are not required after the weak laplacian
 !     has been evaluated      
       real wk1r,wk2r,wk3r,wk1i,wk2i,wk3i,wk4
-      common /scrns11/   wk1r(lx1*ly1*lz1*lelt)
+      common /scrns/   wk1r(lx1*ly1*lz1*lelt)
      $               , wk2r(lx1*ly1*lz1*lelt)
      $               , wk3r(lx1*ly1*lz1*lelt)
      $               , wk1i(lx1*ly1*lz1*lelt)
@@ -274,12 +274,12 @@ c--------------------------------------------------------------------
      $               , wk3i(lx1*ly1*lz1*lelt)
      $               , wk4(lx1*ly1*lz1*lelt) 
 
-      integer lkryl
-      parameter (lkryl = 10)
-      real krylr(lx1*ly1*lz1*lelv,3,lkryl)
-      real kryli(lx1*ly1*lz1*lelv,3,lkryl)
-      real orthor(lkryl,lkryl),orthoi(lkryl,lkryl)
-      complex*16 orthoc(lkryl,lkryl)
+!      integer lkryl
+!      parameter (lkryl = 5)
+!      real krylr(lx1*ly1*lz1*lelv,3,lkryl)
+!      real kryli(lx1*ly1*lz1*lelv,3,lkryl)
+!      real orthor(lkryl,lkryl),orthoi(lkryl,lkryl)
+!      complex*16 orthoc(lkryl,lkryl)
 
       logical ifjacobi        ! Apply Jacobi preconditioner?
 
@@ -287,7 +287,7 @@ c--------------------------------------------------------------------
 
 !     No Fast Diagonalization Method            
       iffdm  = .false.
-!     Jacobi preconditioner            
+!     Jacobi preconditioner 
       ifjacobi = .true.
 !     No Coarse grid
       ifcrsl = .false.
@@ -332,9 +332,15 @@ c        if ( .not.ifprint )  goto 9999
 !     prabal. Not sure why preconditioners were added together for
 !     different components.        
 !     Evaluate diagional pre-conidtioner for fluid solve
-      call setprec_cyl (qq1,h1,h2,k_3dsp,imesh,1)
-      call setprec_cyl (qq2,h1,h2,k_3dsp,imesh,2)
-      call setprec_cyl (qq3,h1,h2,k_3dsp,imesh,3)
+      if (ifjacobi) then
+        call setprec_cyl (qq1,h1,h2,k_3dsp,imesh,1)
+        call setprec_cyl (qq2,h1,h2,k_3dsp,imesh,2)
+        call setprec_cyl (qq3,h1,h2,k_3dsp,imesh,3)
+      else
+        call rone(qq1,n)
+        call rone(qq2,n)
+        call rone(qq3,n)
+      endif  
 
       if (iffdm) then
 !         call set_fdm_prec_h1b(dpc,h1,h2,nel)
@@ -387,16 +393,24 @@ c        if ( .not.ifprint )  goto 9999
 !      call copy3(tmp1,tmp2,tmp3,r1r,r2r,r3r,n1)
 !      call copy3(tmp4,tmp5,tmp6,r1i,r2i,r3i,n1)
 
-!     prabal
-      call copy3(krylr(1,1,1),krylr(1,2,1),krylr(1,3,1)
-     $          ,r1r,r2r,r3r,n)
-      call copy3(kryli(1,1,1),kryli(1,2,1),kryli(1,3,1)
-     $          ,r1i,r2i,r3i,n)
+!!     prabal
+!      call copy3(krylr(1,1,1),krylr(1,2,1),krylr(1,3,1)
+!     $          ,r1r,r2r,r3r,n)
+!      call copy3(kryli(1,1,1),kryli(1,2,1),kryli(1,3,1)
+!     $          ,r1i,r2i,r3i,n)
 
-      maxit=lkryl-1
+      maxit=200
       do 1000 iter=1,maxit
          call axhmsf_cyl(Ap1r,Ap2r,Ap3r,Ap1i,Ap2i,Ap3i,
      $                      p1r,p2r,p3r,p1i,p2i,p3i,h1,h2)
+
+
+!!     prabal
+!      call copy3(krylr(1,1,iter),krylr(1,2,iter),krylr(1,3,iter)
+!     $          ,Ap1r,AP2r,Ap3r,n)
+!      call copy3(kryli(1,1,iter),kryli(1,2,iter),kryli(1,3,iter)
+!     $          ,Ap1i,Ap2i,Ap3i,n)
+
 
 !!       prabal            
 !         n1 = lx1*ly1*lz1*lelv
@@ -546,11 +560,11 @@ c        if ( .not.ifprint )  goto 9999
 !         call copy3(tmp1,tmp2,tmp3,p1r,p2r,p3r,n1)
 !         call copy3(tmp4,tmp5,tmp6,p1i,p2i,p3i,n1)
 
-!     prabal
-      call copy3(krylr(1,1,iter+1),krylr(1,2,iter+1),krylr(1,3,iter+1)
-     $          ,r1r,r2r,r3r,n)
-      call copy3(kryli(1,1,iter+1),kryli(1,2,iter+1),kryli(1,3,iter+1)
-     $          ,r1i,r2i,r3i,n)
+!!     prabal
+!      call copy3(krylr(1,1,iter+1),krylr(1,2,iter+1),krylr(1,3,iter+1)
+!     $          ,r1r,r2r,r3r,n)
+!      call copy3(kryli(1,1,iter+1),kryli(1,2,iter+1),kryli(1,3,iter+1)
+!     $          ,r1i,r2i,r3i,n)
 
 
 
@@ -571,26 +585,34 @@ c        if ( .not.ifprint )  goto 9999
  3001 format(i11,'  Helmh3 fluid unconverged! ',I6,1p3E13.4)
  3011 format(i11,'  Helmh3 mesh unconverged! ',I6,1p3E13.4)
 
-!     prabal
-!     Check Orthogonality
-      do i=1,lkryl
-      do j=1,lkryl
-        call opglsc2_wt_comp(rpp1r,rpp1i,
-     $       krylr(1,1,j),krylr(1,2,j),krylr(1,3,j),
-     $       kryli(1,1,j),kryli(1,2,j),kryli(1,3,j),
-     $       krylr(1,1,i),krylr(1,2,i),krylr(1,3,i),
-     $       kryli(1,1,i),kryli(1,2,i),kryli(1,3,i),
-     $       rmult,n)
-        orthor(i,j) = rpp1r
-        orthoi(i,j) = rpp1i
-        orthoc(i,j) = cmplx(rpp1r,rpp1i)
-      enddo
-      enddo  
-    
-      do i=1,lkryl
-        write(6,'(6(SS,E9.2E1,SP,E9.2E1,"i",2x))'), 
-     $      (real(orthoc(i,j)),aimag(orthoc(i,j)),j=1,lkryl)
-      enddo  
+!!     prabal
+!!     Check Orthogonality
+!      do i=1,lkryl
+!      do j=1,lkryl
+!        call opglsc2_wt_comp(rpp1r,rpp1i,
+!     $       krylr(1,1,j),krylr(1,2,j),krylr(1,3,j),
+!     $       kryli(1,1,j),kryli(1,2,j),kryli(1,3,j),
+!     $       krylr(1,1,i),krylr(1,2,i),krylr(1,3,i),
+!     $       kryli(1,1,i),kryli(1,2,i),kryli(1,3,i),
+!     $       rmult,n)
+!        orthor(i,j) = rpp1r
+!        orthoi(i,j) = rpp1i
+!        orthoc(i,j) = cmplx(rpp1r,rpp1i)
+!      enddo
+!      enddo  
+!
+!      do i=1,lkryl
+!        write(6,'(6(SS,E9.2E1,SP,E9.2E1,"i",2x))'), 
+!     $      (real(orthoc(i,j)),aimag(orthoc(i,j)),j=1,lkryl)
+!      enddo  
+!
+!
+!      do i=1,lkryl
+!        call outpost(krylr(1,1,i),krylr(1,2,i),krylr(1,3,i),
+!     $               wk4,krylr(1,3,i),'klr')
+!        call outpost(kryli(1,1,i),kryli(1,2,i),kryli(1,3,i),
+!     $               wk4,kryli(1,3,i),'kli')
+!      enddo  
 
 
       return
@@ -764,118 +786,6 @@ c        if ( .not.ifprint )  goto 9999
       return
       end subroutine col2_3
 !-----------------------------------------------------------------------
-
-      subroutine qmask_cyl (r1,r2,r3,r1mask,r2mask,r3mask,nel)
-
-      implicit none
-
-      INCLUDE 'SIZE'
-      INCLUDE 'GEOM'
-      INCLUDE 'TSTEP'
-
-      real s1,s2,s3
-      common /ctmp1/ s1(lx1,ly1,lz1,lelt)
-     $             , s2(lx1,ly1,lz1,lelt)
-     $             , s3(lx1,ly1,lz1,lelt)
-C
-      real      r1(lx1,ly1,lz1,1)
-     $        , r2(lx1,ly1,lz1,1)
-     $        , r3(lx1,ly1,lz1,1)
-     $        , r1mask(lx1,ly1,lz1,1)
-     $        , r2mask(lx1,ly1,lz1,1)
-     $        , r3mask(lx1,ly1,lz1,1)
-
-      integer nel,ntot1
-
-      ntot1 = lx1*ly1*lz1*nel
-c
-c     (0) collocate volume mask
-c
-      call copy  (s1,r1,ntot1)
-      call copy  (s2,r2,ntot1)
-      call col2  (r1,r1mask,ntot1)
-      call col2  (r2,r2mask,ntot1)
-      if (ldim.eq.3) then
-         call copy (s3,r3,ntot1)
-         call col2 (r3,r3mask,ntot1)
-      endif
-c
-c     (1) face mask
-c
-      if (iflmsf(ifield)) then
-         if (ldim.eq.2) then
-            call fcmsk2 (r1,r2,s1,s2,r1mask,r2mask,nel)
-         else
-            call fcmsk3 (r1,r2,r3,s1,s2,s3,r1mask,r2mask,r3mask,nel)
-         endif
-      endif
-c
-c     (2) edge mask  (3-d only)
-c
-      if (ldim.eq.3 .and. iflmse(ifield)) 
-     $   call egmask (r1,r2,r3,s1,s2,s3,r1mask,r2mask,r3mask,nel)
-c
-c     (3) corner mask
-c
-      if (iflmsc(ifield)) then
-         if (ldim.eq.2) then
-            call crmsk2 (r1,r2,s1,s2,r1mask,r2mask,nel)
-         else
-            call crmsk3 (r1,r2,r3,s1,s2,s3,r1mask,r2mask,r3mask,nel)
-         endif
-      endif
-
-      return
-      end
-!-----------------------------------------------------------------------
-
-      subroutine fcmsk2_cyl (r1,r2,r3,s1,s2,s3,r1mask,r2mask,r3mask,nel)
-
-      implicit none  
-
-      INCLUDE 'SIZE'
-      INCLUDE 'GEOM'
-      INCLUDE 'TSTEP'
-
-
-      real      r1(lx1,ly1,lz1,1)
-     $        , r2(lx1,ly1,lz1,1)
-     $        , r3(lx1,ly1,lz1,1)     
-     $        , s1(lx1,ly1,lz1,1)
-     $        , s2(lx1,ly1,lz1,1)
-     $        , s3(lx1,ly1,lz1,1)     
-     $        , r1mask(lx1,ly1,lz1,1)
-     $        , r2mask(lx1,ly1,lz1,1)
-     $        , r3mask(lx1,ly1,lz1,1)     
-
-      integer nface,iel,ifc,nel
-      integer j1,js1,jf1,jskip1,j2,js2,jf2,jskip2
-      real rnor,rtn1
-
-      nface = 2*ldim
-
-      do 100 iel=1,nel
-      do 100 ifc=1,nface
-         if (.not.ifmsfc(ifc,iel,ifield)) go to 100
-         call facind2 (js1,jf1,jskip1,js2,jf2,jskip2,ifc)
-         do 120 j2=js2,jf2,jskip2
-         do 120 j1=js1,jf1,jskip1
-            rnor = ( s1(j1,j2,1,iel)*vnx(j1,j2,1,iel) +
-     $               s2(j1,j2,1,iel)*vny(j1,j2,1,iel) ) *
-     $               r1mask(j1,j2,1,iel)
-            rtn1 = ( s1(j1,j2,1,iel)*v1x(j1,j2,1,iel) +
-     $               s2(j1,j2,1,iel)*v1y(j1,j2,1,iel) ) *
-     $               r2mask(j1,j2,1,iel)
-            r1(j1,j2,1,iel) = rnor*vnx(j1,j2,1,iel) +
-     $                        rtn1*v1x(j1,j2,1,iel)
-            r2(j1,j2,1,iel) = rnor*vny(j1,j2,1,iel) +
-     $                        rtn1*v1y(j1,j2,1,iel)
-  120       continue
-  100    continue
-c
-      return
-      end
-c-----------------------------------------------------------------------
       subroutine setprec_cyl (dpcm1,helm1,helm2,k_3ds,imsh,isd)
 
 !     Generate diagonal preconditioner for the Helmholtz operator.
