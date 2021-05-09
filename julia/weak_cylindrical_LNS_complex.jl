@@ -24,7 +24,7 @@ include("Dot.jl")
 Sym = pyimport("sympy")
 
 
-IfFourier = false
+IfFourier = true
 
 # # Cartesian Coordinates
 # x = Sym.Symbol("x")
@@ -214,7 +214,7 @@ conv     = conv1 + conv2
 
 convcom  = GetComponents(conv)
 
-gradP,mGP = GradScalar(p,r,θ,t,er,eθ,et,"right")
+gradP,mGP = GradScalar(p,r,θ,t,er,eθ,et,"left")
 
 # This is in the "Stress" formulation
 # Some Divergence terms need to be eliminated
@@ -236,10 +236,17 @@ Wkconvcom   = GetComponents(Wkconv)
 WkgradP     = -p*gradV
 WkgradPcom  = -p.*mGV
 
-WkLapl      = Dot(-gradV,σ)
+WkLapl      = -Dot(gradV,σ)
 WkLaplcom   = GetComponents(WkLapl)
 
+# Brought everything to the LHS
+# Sign convention follows accordingly
 WkNS        = Wkconvcom .+ (1. /ρ)*WkgradPcom .- WkLaplcom 
+
+
+# Pressure Poisson (weak form)
+divu        = Div(u_right,"right")
+WkPrPoisson = -Dot(gradV,gradP) # + Boundary terms
 
 println("Done")
 

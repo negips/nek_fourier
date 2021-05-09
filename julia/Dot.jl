@@ -1,7 +1,12 @@
+"""
+    Dot(V::SymPy.Sym, U::SymPy.Sym)
+
+    Dot product between V and U
+    The placement of unit vectors is assumed to be handled by the user
+"""
 function Dot(V,U)
 
-# Dot product between V and U
-# I assume the placement of unit vectors is handled by the caller
+# Apparently there should be no space between """ and the function definition
 
   rp1   = (Sym.diff(er,r),0)
   rp2   = (Sym.diff(er,θ),eθ)
