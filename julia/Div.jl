@@ -1,4 +1,11 @@
-function Div(U,dir)
+"""
+    Div(U::SymPy.Sym,dir::String)
+
+    Divergence of U in Cylindrical Coordinates
+    dir defines on which side the unit vectors are placed.
+    dir = left/right  
+"""
+function Div(U::SymPy.Sym,dir::String)
 
 # Divergence in cylindrical coordinates
 
@@ -20,8 +27,10 @@ function Div(U,dir)
 
   if lowercase(dir)=="left" 
     du    = er*Sym.diff(U,r) + 1/r*eθ*Sym.diff(U,θ) + et*Sym.diff(U,t)
-  else  
+  elseif lowercase(dir)=="right"  
     du    = Sym.diff(U,r)*er + 1/r*Sym.diff(U,θ)*eθ + Sym.diff(U,t)*et
+  else
+    println("Unknown Placement of unit vectors in Div.jl, dir=$dir")
   end  
 
 # Unit vector rotations
