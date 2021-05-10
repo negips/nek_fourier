@@ -283,7 +283,6 @@ C
        return
       endif
 
-
       call opgradt (ta1,ta2,ta3,wp)
       if ((intype.eq.0).or.(intype.eq.-1)) then
          tolhin=tolhs

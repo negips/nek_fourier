@@ -95,23 +95,21 @@
           if (nio.eq.0.and.igeom.eq.2) write(6,1) istep,time,jp
    1      format(i9,1pe14.7,' Perturbation Solve (Momentum):',i5)
 
-          call perturbv_mom_3ds (igeom)
+          call perturbv_mom_3ds(igeom)
 
         enddo
 
 !       Solve Pressure            
-        do j=0,1
-          jp = jp0 + j 
-          if (nio.eq.0.and.igeom.eq.2) write(6,2) istep,time,jp
-   2      format(i9,1pe14.7,' Perturbation Solve (Pressure):',i5)
+        jp = jp0 + j 
+        if (nio.eq.0.and.igeom.eq.2) write(6,2) istep,time,jp
+   2    format(i9,1pe14.7,' Perturbation Solve (Pressure):',i5)
 
-          call incomprp_3ds(igeom) 
-        enddo
+        call incomprp_3ds(igeom) 
 
 !       Pressure/Velocity Correction            
-        do j = 0,1
+        do j = 1,npert,2
           jp = jp0 + j    
-          call velp_update_3ds (igeom)
+          call velpr_update_3ds(igeom)
         enddo
       enddo ! i=1,jp2
 
@@ -165,30 +163,19 @@
 !       Solve momentum equations        
         if (igeom.gt.1) then
           jp = jp0+1
-          if (nio.eq.0.and.igeom.eq.2) write(6,2) istep,time,jp
-   2      format(i9,1pe14.7,
-     $    ' Cylindrical Perturbation Solve (Momentum):',i5)
-
           call solvemom_cyl(igeom)
         endif
 
-!       prabal        
-!       The pressure bit is yet to be implemented
+!       Solve Pressure
+        if (igeom.gt.1) then
+          jp = jp0+1 
+          call incomprp_cyl(igeom) 
 
-!!       Solve Pressure            
-!        do j=0,1
-!          jp = jp0 + j 
-!          if (nio.eq.0.and.igeom.eq.2) write(6,3) istep,time,jp
-!   3      format(i9,1pe14.7,' Perturbation Solve (Pressure):',i5)
-!
-!          call incomprp_3ds(igeom) 
-!        enddo
-!
-!!       Pressure/Velocity Correction            
-!        do j = 0,1
-!          jp = jp0 + j    
-!          call velp_update_3ds (igeom)
-!        enddo
+!         Pressure/Velocity Correction            
+          jp = jp0+1
+          call velpr_update_3ds(igeom)
+        endif     ! ifgeom
+
       enddo ! i=1,npert,2
 
 
@@ -353,6 +340,10 @@ c
           call exitt
         endif          
 
+        if (nio.eq.0.and.igeom.eq.2) write(6,2) istep,time,jp
+   2    format(i9,1pe14.7,
+     $  ' Cylindrical Perturbation Solve (Momentum):',i5)
+
         ifield = 1
 
         ntot1 = lx1*ly1*lz1*nelv
@@ -362,38 +353,20 @@ c
         call cresvipp_cyl(resv1r,resv2r,resv3r,
      $                    resv1i,resv2i,resv3i,h1,h2)
 
-!!       prabal            
-!        ntot1 = lx1*ly1*lz1*lelv
-!        ntot2 = lx2*ly2*lz2*lelv
-!        call copy3(tmp1,tmp2,tmp3,resv1r,resv2r,resv3r,ntot1)
-!        call copy3(tmp4,tmp5,tmp6,resv1i,resv2i,resv3i,ntot1)
-!        call copy3(tmp1,tmp2,tmp3,bfxp(1,jpr),bfyp(1,jpr),bfzp(1,jpr),
-!     $             ntot1)
-!        call copy3(tmp4,tmp5,tmp6,bfxp(1,jpi),bfyp(1,jpi),bfzp(1,jpi),
-!     $             ntot1)
-
-!        call copy(tmp7,prp(1,jpr),ntot2)
-!        call copy(tmp8,prp(1,jpi),ntot2)
-
+!       Solve        
         call ophinv_cyl(dv1r,dv2r,dv3r,dv1i,dv2i,dv3i,
      $                  resv1r,resv2r,resv3r,resv1i,resv2i,resv3i,
      $                  h1,h2,tolhv,nmxv)
 
 
-
-!       Update real         
+!       Update Velocity (real)
         call add2_3(vxp(1,jpr),vyp(1,jpr),vzp(1,jpr),
      $              dv1r,dv2r,dv3r,ntot1)
 
-!       Update imaginary         
+!       Update Velocity (imaginary)
         call add2_3(vxp(1,jpi),vyp(1,jpi),vzp(1,jpi),
      $              dv1i,dv2i,dv3i,ntot1)
 
-!!       prabal
-!        ntot1 = lx1*ly1*lz1*lelv
-!        call copy3(tmp1,tmp2,tmp3,dv1r,vzp(1,jpr),dv3r,ntot1)
-!        call copy3(tmp4,tmp5,tmp6,dv1i,vzp(1,jpi),dv3i,ntot1)
-       
 
       endif
 
@@ -1325,7 +1298,6 @@ c     INTYPE =      integration type
       end subroutine sethlm_3dsp
 
 !----------------------------------------------------------------------
-
       subroutine incomprp_3ds (igeom)
 c
 c     Project U onto the closest incompressible field
@@ -1427,7 +1399,141 @@ c
       return
       end subroutine incomprp_3ds
 !------------------------------------------------------------------------
-      subroutine velp_update_3ds (igeom)
+
+      subroutine incomprp_cyl (igeom)
+c
+c     Project U onto the closest incompressible field
+c
+c     Output: updated values of U, iproj, proj; and
+c             up    := pressure correction req'd to impose div U = 0
+c
+c
+c     Dependencies: ifield ==> which "density" (vtrans) is used.
+c
+
+      implicit none
+
+      include 'SIZE'
+      include 'SOLN'          ! vxp,vyp,vzp,prp,jp
+      include 'INPUT'         ! npert
+      include 'TSTEP'         ! dt,ifield
+      include 'CTIMER'
+      include 'GEOM'          ! YM1,YM2
+
+      include '3DS'
+
+!      real w1r,w2r,w3r
+!      real dv1r,dv2r,dv3r,dpr
+!      common /scrns1/ w1r  (lx1,ly1,lz1,lelv)
+!     $ ,              w2r  (lx1,ly1,lz1,lelv)
+!     $ ,              w3r  (lx1,ly1,lz1,lelv)
+!     $ ,              dv1r (lx1,ly1,lz1,lelv)
+!     $ ,              dv2r (lx1,ly1,lz1,lelv)
+!     $ ,              dv3r (lx1,ly1,lz1,lelv)
+!     $ ,              dpr  (lx2,ly2,lz2,lelv)
+!
+!      real w1i,w2i,w3i
+!      real dv1i,dv2i,dv3i,dpi
+!      common /scrns2/ w1i  (lx1,ly1,lz1,lelv)
+!     $ ,              w2i  (lx1,ly1,lz1,lelv)
+!     $ ,              w3i  (lx1,ly1,lz1,lelv)
+!     $ ,              dv1i (lx1,ly1,lz1,lelv)
+!     $ ,              dv2i (lx1,ly1,lz1,lelv)
+!     $ ,              dv3i (lx1,ly1,lz1,lelv)
+!     $ ,              dpi  (lx2,ly2,lz2,lelv)
+
+
+      real h1,h2,h2inv
+      common /scrvh/ h1    (lx1,ly1,lz1,lelv)
+     $ ,             h2    (lx1,ly1,lz1,lelv)
+      common /scrhi/ h2inv (lx1,ly1,lz1,lelv)
+
+      real dp2
+      common /scrch/ dp2(lx2,ly2,lz2,lelv)
+      logical ifprjp
+
+      integer ntot1,ntot2,intype,istart
+
+      real dtbd,const
+
+      integer jpr,jpi
+
+      integer igeom
+
+      if (igeom.eq.1) return
+
+      if (icalld.eq.0) tpres=0.0
+      icalld=icalld+1
+      npres=icalld
+
+      jpr = jp
+      jpi = jp+1
+
+      ntot1  = lx1*ly1*lz1*nelv
+      ntot2  = lx2*ly2*lz2*nelv
+      dtbd   = bd(1)/dt
+
+      call rzero   (h1,ntot1)
+      call copy    (h2,vtrans(1,1,1,1,ifield),ntot1)
+      call cmult2  (h2,vtrans(1,1,1,1,ifield),dtbd,ntot1)
+      call invers2 (h2inv,h2,ntot1)
+
+!     Real part
+!     du_x/dx + du_r/dR      
+      call opdiv(prcorr_3ds(1,1),vxp(1,jpr),vyp(1,jpr),vzp(1,jpr))
+!     u_r/R
+      call map12_all_3ds(dp2,vxp(1,jpr))
+      call col2(dp2,ym2,ntot2)
+      call add2(prcorr_3ds(1,1),dp2,ntot2)
+!     -(k/R)*u_\theta (imag)
+      call map12_all_3ds(dp2,vzp(1,jpi))
+      call col2(dp2,ym2,ntot2)
+      const = -k_3dsp
+      call cmult(dp2,const,ntot2)
+      call add2(prcorr_3ds(1,1),dp2,ntot2)
+      call chsign(prcorr_3ds(1,1),ntot2)
+      call ortho (prcorr_3ds(1,1))
+
+!     Imaginary part      
+      call opdiv(prcorr_3ds(1,2),vxp(1,jpi),vyp(1,jpi),vzp(1,jpi))
+!     u_r/R
+      call map12_all_3ds(dp2,vxp(1,jpi))
+      call col2(dp2,ym2,ntot2)
+      call add2(prcorr_3ds(1,2),dp2,ntot2)
+!     (k/R)*u_\theta (real)
+      call map12_all_3ds(dp2,vzp(1,jpr))
+      call col2(dp2,ym2,ntot2)
+      const = k_3dsp
+      call cmult(dp2,const,ntot2)
+      call add2(prcorr_3ds(1,2),dp2,ntot2)
+      call chsign(prcorr_3ds(1,2),ntot2)
+      call ortho (prcorr_3ds(1,2))
+
+
+      ifprjp=.false.    ! project out previous pressure solutions?
+      istart=param(95)  
+      if (istep.ge.istart.and.istart.ne.0) ifprjp=.true.
+
+      ! Most likely, the following can be commented out. (pff, 1/6/2010)
+      if (npert.gt.1.or.ifbase)            ifprjp=.false.
+
+      intype =  2             ! Changing integration type here.
+                              ! Need to modify cdabdtp accordingly
+                              ! Also need to modify uzprec
+
+      if (nio.eq.0.and.igeom.eq.2) write(6,3) istep,time,jpr
+      call esolver (prcorr_3ds(1,1),h1,h2,h2inv,intype)
+
+      if (nio.eq.0.and.igeom.eq.2) write(6,3) istep,time,jpi
+      call esolver (prcorr_3ds(1,2),h1,h2,h2inv,intype)
+
+
+   3  format(i9,1pe14.7,' Perturbation Solve (Pressure):',i5)
+
+      return
+      end subroutine incomprp_cyl
+!------------------------------------------------------------------------
+      subroutine velpr_update_3ds (igeom)
 
 !     Update Pressure and velocities based on pressure correction
 
@@ -1440,6 +1546,7 @@ c
       include 'TSTEP'         ! dt,ifield
       include 'MASS'
       include 'CTIMER'
+      include 'GEOM'          ! YM1
 
       include '3DS'
 
@@ -1468,14 +1575,14 @@ c
 
       real dtbd,const
 
-      integer jpi
+      integer jpr,jpi
 
       integer igeom
 
       if (igeom.eq.1) return
 
-      jpi = 1
-      if (mod(jp,2).eq.0) jpi = 2
+      jpr = jp
+      jpi = jp + 1
 
       ntot1  = lx1*ly1*lz1*nelv
       ntot2  = lx2*ly2*lz2*nelv
@@ -1488,38 +1595,56 @@ c
       call cmult2  (h2,vtrans(1,1,1,1,ifield),dtbd,ntot1)
       call invers2 (h2inv,h2,ntot1)
 
-      call opgradt (w1 ,w2 ,w3 ,prcorr_3ds(1,jpi))
-
-      ! Map pressure to velcity mesh
-      if (jpi.eq.1) then
-
-!        call ortho(prcorr_3ds(1,jpi+1))
-        call map21_all_3ds(w3,prcorr_3ds(1,jpi+1)) 
-        const = -k_3dsp
-
-      else
-!        call ortho(prcorr_3ds(1,jpi-1))
-        call map21_all_3ds(w3,prcorr_3ds(1,jpi-1)) 
-        const = k_3dsp
-      endif
-
+!     Real part      
+      call opgradt (w1 ,w2 ,w3 ,prcorr_3ds(1,1))
+      call map21_all_3ds(w3,prcorr_3ds(1,2)) 
+      const = k_3dsp
       call cmult(w3,const,ntot1)
       call col2(w3,bm1,ntot1)
 
       if3d = .true.
       call opbinv_3ds(dv1,dv2,dv3,w1 ,w2 ,w3 ,h2inv)
       if3d = .false.
+      if (ifcyl_3ds) then
+        call invcol2(w3,ym1,ntot1)
+      endif  
 
-      call add2(vxp(1,jp),dv1,ntot1)
-      call add2(vyp(1,jp),dv2,ntot1)
-      if (if3d.or.if3d_3ds) call add2(vzp(1,jp),dv3,ntot1)
+      call add2(vxp(1,jpr),dv1,ntot1)
+      call add2(vyp(1,jpr),dv2,ntot1)
+      call add2(vzp(1,jpr),dv3,ntot1)
 
-      call extrapprp(prextr_3ds(1,jpi))
+
+!     Imaginary Part
+      call opgradt (w1 ,w2 ,w3 ,prcorr_3ds(1,2))
+      call map21_all_3ds(w3,prcorr_3ds(1,1)) 
+      const = -k_3dsp
+      call cmult(w3,const,ntot1)
+      call col2(w3,bm1,ntot1)
+
+      if3d = .true.
+      call opbinv_3ds(dv1,dv2,dv3,w1 ,w2 ,w3 ,h2inv)
+      if3d = .false.
+      if (ifcyl_3ds) then
+        call invcol2(w3,ym1,ntot1)
+      endif  
+
+      call add2(vxp(1,jpi),dv1,ntot1)
+      call add2(vyp(1,jpi),dv2,ntot1)
+      call add2(vzp(1,jpi),dv3,ntot1)
+
+
+!!    Update Pressure
+!      call extrapprp(prextr_3ds(1,jpi))
+      jp = jpr
       call lagpresp
-      call add3(prp(1,jp),prextr_3ds(1,jpi),prcorr_3ds(1,jpi),ntot2)
+      call add3(prp(1,jpr),prextr_3ds(1,1),prcorr_3ds(1,1),ntot2)
 
+      jp = jpi
+      call lagpresp
+      call add3(prp(1,jpi),prextr_3ds(1,2),prcorr_3ds(1,2),ntot2)
+     
       return
-      end subroutine velp_update_3ds
+      end subroutine velpr_update_3ds
 !------------------------------------------------------------------------
       subroutine map12_all_3ds(pm2,pm1)
 
@@ -1600,13 +1725,17 @@ C
 
 !      call opmask  (inp1,inp2,inp3)
 !      call opdssum (inp1,inp2,inp3)
-      call col2 (inp1,v1mask,ntot)
-      call col2 (inp2,v2mask,ntot)
-      call col2 (inp3,v3mask,ntot)
+!      call col2 (inp1,v1mask,ntot)
+!      call col2 (inp2,v2mask,ntot)
+!      call col2 (inp3,v3mask,ntot)
+!      call dssum(inp1,lx1,ly1,lz1)
+!      call dssum(inp2,lx1,ly1,lz1)
+!      call dssum(inp3,lx1,ly1,lz1)
 
-      call dssum(inp1,lx1,ly1,lz1)
-      call dssum(inp2,lx1,ly1,lz1)
-      call dssum(inp3,lx1,ly1,lz1)
+!     mask      
+      call col2_3(inp1,inp2,inp3,v1mask,v2mask,v3mask,ntot)
+!     dssum
+      call dssum3(inp1,inp2,inp3)
 
 
 
@@ -1752,6 +1881,7 @@ c-----------------------------------------------------------------------
       include 'INPUT'         ! if3d
       include 'MASS'
       include '3DS'
+      include 'GEOM'          ! YM2
 
       include 'TEST'
 
@@ -1779,27 +1909,33 @@ c-----------------------------------------------------------------------
       ntot1 = nx1*ny1*nz1*nelv
       ntot2 = nx2*ny2*nz2*nelv
 
-      const = k_3dsp**2
-
+!!     (D^T)P
+!     (dp/dx + dp/dy)*BM1
       call opgradt (ta1,ta2,ta3,wp)
+
+!     dv/dz*dp/dz = (k²)v*BM1*p
       call map21_all_3ds(ta3,wp)
       call col2(ta3,bm1,ntot1)            ! opgradt includes a mass matrix
+      const = k_3dsp**2
       call cmult  (ta3,const,ntot1)
 
+!!     (B^-1)*(D^T)P
+!     Also does this for the third component      
       if3d = .true.
       call opbinv_3ds (tb1,tb2,tb3,ta1,ta2,ta3,h2inv)
       if3d = .false.
-
+      
+!     Map third component to pressure grid      
       call map12_all_3ds(ttmp2,tb3)
-!      call cmult  (ttmp2,const,ntot2)
+!     Multiply by 1/R² if cylindrical coordinate      
+      if (ifcyl_3ds) then
+        call invcol2(ttmp2,ym2,ntot2)     ! 1/R
+        call invcol2(ttmp2,ym2,ntot2)     ! 1/R²
+      endif  
 
+!!     D*(B^-1)*(D^T)P
       call opdiv  (ap,tb1,tb2,tb3)
-!      call add2   (ap,ttmp2,ntot2)
-
-
-!      call copy(tmp7,ttmp2,ntot2)
-!      write(6,*) 'nx1', nx1,ny1,nz1,nelv,ntot1,const
-!      write(6,*) 'nx2', nx2,ny2,nz2,nelv,ntot2,const
+      call add2   (ap,ttmp2,ntot2)
 
       return
       end subroutine cdabdtp_3ds

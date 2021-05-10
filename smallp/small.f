@@ -112,7 +112,7 @@ c-----------------------------------------------------------------------
       endif
 
 !      if (mod(istep,iostep).eq.0) then
-      if (istep.le.1) then
+      if (istep.le.10) then
         i = 1
         call outpost(vxp(1,1),vyp(1,1),vzp(1,i),
      $               prp(1,1),vzp(1,1),'ptr')
@@ -121,7 +121,7 @@ c-----------------------------------------------------------------------
      $               prp(1,i),vzp(1,i),'pti')
       endif
 
-      if (istep.eq.1) then
+      if (istep.eq.10) then
         call outpost(tmp1,tmp2,tmp3,
      $               tmp7,tmp3,'tmp')
         call outpost(tmp4,tmp5,tmp6,
