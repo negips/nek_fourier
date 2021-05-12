@@ -76,6 +76,7 @@ c-----------------------------------------------------------------------
 
 !      call slp_mark_faces()
 
+      ifaxis = .false.
       ifto = .true.
 
       ntot1 = lx1*ly1*lz1*nelv
@@ -114,19 +115,20 @@ c-----------------------------------------------------------------------
 !      if (mod(istep,iostep).eq.0) then
       if (istep.le.10) then
         i = 1
-        call outpost(vxp(1,1),vyp(1,1),vzp(1,i),
-     $               prp(1,1),vzp(1,1),'ptr')
+        call outpost(vxp(1,i),vyp(1,i),vzp(1,i),
+     $               prp(1,i),vzp(1,i),'ptr')
         i = 2
         call outpost(vxp(1,i),vyp(1,i),vzp(1,i),
      $               prp(1,i),vzp(1,i),'pti')
       endif
 
-      if (istep.eq.10) then
+      if (istep.eq.1) then
         call outpost(tmp1,tmp2,tmp3,
      $               tmp7,tmp3,'tmp')
         call outpost(tmp4,tmp5,tmp6,
      $               tmp8,tmp6,'tmp')
-       
+        call outpost(tmp4,tmp5,tmp6,
+     $               tmp9,tmp6,'tmp')
       endif  
 
 
@@ -167,7 +169,7 @@ c-----------------------------------------------------------------------
         uz = 0.0 + 1.0*y
       else
         ux = -1.0 + (2.0e-0)*sin(x)*sin(jp*x+0.)
-        uy = -1.0 + (2.0e-0)*sin(y)*sin(jp*y+0.)
+        uy = 0.0 + (2.0e-1)*sin(y)*sin(jp*y+0.)
 !        uz = -1.0 + (2.0e-0)*rand()
         uz = ux*sin(jp+0.)
       endif
@@ -177,8 +179,15 @@ c-----------------------------------------------------------------------
       end
 c-----------------------------------------------------------------------
       subroutine usrdat   ! This routine to modify element vertices
+
+      implicit none  
+  
       include 'SIZE'      ! _before_ mesh is generated, which 
       include 'TOTAL'     ! guarantees GLL mapping of mesh.
+
+      integer n,i,j
+
+!      ifaxis = .true.   ! just for initialization
 
       n = nelv * 2**ldim
 !      xmin = glmin(xc,n)

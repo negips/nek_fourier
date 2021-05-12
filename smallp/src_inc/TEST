@@ -11,8 +11,9 @@
 
       real tmp7(lx2,ly2,lz2,lelt)
       real tmp8(lx2,ly2,lz2,lelt)
+      real tmp9(lx2,ly2,lz2,lelt)
 
       common /testtmp1/ tmp1,tmp2,tmp3
       common /testtmp2/ tmp4,tmp5,tmp6
-      common /testtmpp/ tmp7,tmp8
+      common /testtmpp/ tmp7,tmp8,tmp9
 

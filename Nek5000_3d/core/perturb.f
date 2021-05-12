@@ -897,7 +897,6 @@ c     call copy    (h2,vtrans(1,1,1,1,ifield),ntot1)
       call chsign  (dp,ntot2)
       call ortho   (dp)
 
-
 C******************************************************************
 
 
