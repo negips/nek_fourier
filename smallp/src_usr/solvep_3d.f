@@ -13,6 +13,8 @@
       include 'SIZE'
       include 'INPUT'
       include 'SOLN'
+      include 'MASS'
+      include 'GEOM'
 
       include '3DS'
 
@@ -20,7 +22,7 @@
       save icalld
       data icalld /0/
 
-      integer nxyz,ntot1
+      integer nxyz,ntot1,ntot2
       
 
       if3d_3ds = .true.
@@ -42,8 +44,9 @@
 
       nxyz  = lx1*ly1*lz1
       ntot1 = nxyz*nelv
+      ntot2 = lx2*ly2*lz2*nelv
 
-      k_3dsp = 0.0            ! wavenumber 
+      k_3dsp = 1.0            ! wavenumber 
      
       call init_pertfld_3ds() 
 
@@ -52,6 +55,13 @@
       call copy(v3mask,v1mask,ntot1)
 
 !     Velocities can be initialized from useric. 
+
+
+!     prabal
+      if (ifcyl_3ds.and.ifaxis) then
+        ifaxis = .false.
+!        call invcol2(bm2,ym2,ntot2)
+      endif  
 
       if (nio.eq.0) then
         write(6,*) 'Initializing IF3Ds', if3d_3ds
@@ -104,7 +114,7 @@
         if (nio.eq.0.and.igeom.eq.2) write(6,2) istep,time,jp
    2    format(i9,1pe14.7,' Perturbation Solve (Pressure):',i5)
 
-!        call incomprp_3ds(igeom) 
+        call incomprp_3ds(igeom) 
       
 !       Pressure/Velocity Correction            
         do j = 1,npert,2
@@ -170,6 +180,7 @@
 
 !       Solve Pressure
         if (igeom.gt.1) then
+          
           jp = jp0+1 
           call incomprp_cyl(igeom) 
 
@@ -1121,6 +1132,7 @@ c
       include 'INPUT'   ! if3d
       include 'SOLN'    ! v?mask
       include 'MASS'    ! bm1
+      include 'GEOM'    ! ym1 == R
 
       include '3DS'
 
@@ -1198,10 +1210,12 @@ c
       call opgradt (resv1r,resv2r,resv3r,prextr_3ds(1,1))
 
 !     Map to velocity grid
-      call map21_all_3ds(resv3r,prextr_3ds(1,2))
+      call copy(prcorr_3ds(1,1),prextr_3ds(1,2),ntot2) ! used as work array
+      call col2(prcorr_3ds(1,1),bm2,ntot2)
+      call invcol2(prcorr_3ds(1,1),ym2,ntot2)
       const = k_3dsp
-      call cmult(resv3r,const,ntot1)
-      call col2(resv3r,bm1,ntot1)
+      call cmult(prcorr_3ds(1,1),const,ntot2)
+      call map21_all_3ds(resv3r,prcorr_3ds(1,1))
 
       call add2(resv1r,bfxp(1,jpr),ntot1)
       call add2(resv2r,bfyp(1,jpr),ntot1)
@@ -1211,10 +1225,12 @@ c
       call opgradt (resv1i,resv2i,resv3i,prextr_3ds(1,2))
 
 !     Map to velocity grid
-      call map21_all_3ds(resv3i,prextr_3ds(1,1))
+      call copy(prcorr_3ds(1,2),prextr_3ds(1,1),ntot2) ! used as work array
+      call col2(prcorr_3ds(1,2),bm2,ntot2)
+      call invcol2(prcorr_3ds(1,2),ym2,ntot2)
       const = -k_3dsp
-      call cmult(resv3i,const,ntot1)
-      call col2(resv3i,bm1,ntot1)
+      call cmult(prcorr_3ds(1,2),const,ntot2)
+      call map21_all_3ds(resv3i,prcorr_3ds(1,2))
 
       call add2(resv1i,bfxp(1,jpi),ntot1)
       call add2(resv2i,bfyp(1,jpi),ntot1)
@@ -1434,15 +1450,15 @@ c
 
       include 'TEST'
 
-!      real w1r,w2r,w3r
-!      real dv1r,dv2r,dv3r,dpr
-!      common /scrns1/ w1r  (lx1,ly1,lz1,lelv)
-!     $ ,              w2r  (lx1,ly1,lz1,lelv)
-!     $ ,              w3r  (lx1,ly1,lz1,lelv)
-!     $ ,              dv1r (lx1,ly1,lz1,lelv)
-!     $ ,              dv2r (lx1,ly1,lz1,lelv)
-!     $ ,              dv3r (lx1,ly1,lz1,lelv)
-!     $ ,              dpr  (lx2,ly2,lz2,lelv)
+      real w1r,w2r,w3r
+      real dv1r,dv2r,dv3r,bm2r
+      common /scrns1/ w1r  (lx1,ly1,lz1,lelv)
+     $ ,              w2r  (lx1,ly1,lz1,lelv)
+     $ ,              w3r  (lx1,ly1,lz1,lelv)
+     $ ,              dv1r (lx1,ly1,lz1,lelv)
+     $ ,              dv2r (lx1,ly1,lz1,lelv)
+     $ ,              dv3r (lx1,ly1,lz1,lelv)
+     $ ,              bm2r (lx2,ly2,lz2,lelv)  ! BM2/R
 !
 !      real w1i,w2i,w3i
 !      real dv1i,dv2i,dv3i,dpi
@@ -1486,6 +1502,20 @@ c
       bddt   = bd(1)/dt
       bddti  = dt/bd(1)
 
+!     ifaxis multiplies bm2 with ym2.
+!     Not sure why.
+!     Needs to be removed here
+!      call invcol3(bm2r,bm2,ym2,ntot2)    ! bm2r = bm2/R
+      call copy(bm2r,bm2,ntot2)
+!     bm2r is now equal to bm2r = w3m2*jacm2
+
+!      call copy(tmp7,bm2,ntot2)      
+!      call copy(bm2,bm2r,ntot2)
+
+!     prabal
+      call copy(tmp7,bm2,ntot2)      
+      call copy(tmp8,bm2r,ntot2)      
+
       call rzero (h1,ntot1)
 !      call copy  (h2,vtrans(1,1,1,1,ifield),ntot1)
       call cmult2(h2,vtrans(1,1,1,1,ifield),bddt,ntot1)
@@ -1511,8 +1541,8 @@ c
       call ortho (prcorr_3ds(1,1))
 
 !     prabal
-      ntot2 = lx2*ly2*lz2*nelv
-      call copy(tmp7,prcorr_3ds(1,1),ntot2)      
+!      ntot2 = lx2*ly2*lz2*nelv
+!      call copy(tmp7,prcorr_3ds(1,1),ntot2)      
 
 !     Imaginary part      
       call opdiv(prcorr_3ds(1,2),vxp(1,jpi),vyp(1,jpi),vzp(1,jpi))
@@ -1549,10 +1579,10 @@ c
       call esolver (prcorr_3ds(1,2),h1,h2,h2inv,intype)
 
 
-!     prabal
-      ntot2 = lx2*ly2*lz2*nelv
-      call copy(tmp7,prcorr_3ds(1,1),ntot2)
-      call copy(tmp8,prcorr_3ds(1,2),ntot2)
+!!     prabal
+!      ntot2 = lx2*ly2*lz2*nelv
+!      call copy(tmp7,prcorr_3ds(1,1),ntot2)
+!      call copy(tmp8,prcorr_3ds(1,2),ntot2)
 
 !     prabal      
 !      call cdabdtp_3ds(tmp9,tmp8,h1,h2,h2inv,intype)
@@ -1560,6 +1590,8 @@ c
 !      call cabdtp_3ds(tmp8,tmp4,tmp5,tmp6,h1,h2,h2inv,intype)
 
    3  format(i9,1pe14.7,' Perturbation Solve (Pressure):',i5)
+
+
 
       return
       end subroutine incomprp_cyl
@@ -1640,35 +1672,41 @@ c
 !!    Update Velocities
 !     Real part 
       call opgradt (w1 ,w2 ,w3 ,prcorr_3ds(1,1))
-      call map21_all_3ds(w3,prcorr_3ds(1,2))    ! (imag) 
+      call copy(dp2,prcorr_3ds(1,2),ntot2)    ! (imag) 
       const = k_3dsp
-      call cmult(w3,const,ntot1)
-      call col2(w3,bm1,ntot1)
+      call cmult(dp2,const,ntot2)
+      call col2(dp2,bm2,ntot2)
+      if (ifcyl_3ds) then
+        call invcol2(dp2,ym2,ntot2)
+      endif  
+      call map21_all_3ds(w3,dp2)
 
       if3d = .true.
       call opbinv_3ds(dv1,dv2,dv3,w1,w2,w3,h2inv)
       if3d = .false.
-      if (ifcyl_3ds) then
-        call invcol2(dv3,ym1,ntot1)
-      endif  
 
       call add2(vxp(1,jpr),dv1,ntot1)
       call add2(vyp(1,jpr),dv2,ntot1)
       call add2(vzp(1,jpr),dv3,ntot1)
 
+!!     prabal
+!      call copy3(tmp1,tmp2,tmp3,dv1,dv2,dv3,ntot1)      
+!      call copy3(tmp1,tmp2,tmp3,w1,w2,w3,ntot1)      
+
 !     Imaginary Part
       call opgradt (w1 ,w2 ,w3 ,prcorr_3ds(1,2))
-      call map21_all_3ds(w3,prcorr_3ds(1,1))    ! (real)
+      call copy(dp2,prcorr_3ds(1,1),ntot2)    ! (real)
       const = -k_3dsp
-      call cmult(w3,const,ntot1)
-      call col2(w3,bm1,ntot1)
+      call cmult(dp2,const,ntot2)
+      call col2(dp2,bm2,ntot2)
+      if (ifcyl_3ds) then
+        call invcol2(dp2,ym2,ntot2)
+      endif  
+      call map21_all_3ds(w3,dp2)
 
       if3d = .true.
       call opbinv_3ds(dv1,dv2,dv3,w1 ,w2 ,w3 ,h2inv)
       if3d = .false.
-      if (ifcyl_3ds) then
-        call invcol2(dv3,ym1,ntot1)
-      endif  
 
       call add2(vxp(1,jpi),dv1,ntot1)
       call add2(vyp(1,jpi),dv2,ntot1)
@@ -1679,6 +1717,10 @@ c
 !      ntot2 = lx2*ly2*lz2*lelv
 !      call copy3(tmp4,tmp5,tmp6,w1,w2,w3,ntot1)
 !      call copy(tmp8,prcorr_3ds(1,2),ntot2)
+
+!!     prabal
+!      call copy3(tmp4,tmp5,tmp6,dv1,dv2,dv3,ntot1)      
+!      call copy3(tmp4,tmp5,tmp6,dv1,dv2,dv3,ntot1)      
 
 
 
@@ -1919,7 +1961,7 @@ c-----------------------------------------------------------------------
 
       include 'SIZE'
       include 'INPUT'         ! if3d
-      include 'MASS'
+      include 'MASS'          ! bm1/bm2/ym1/ym2
       include '3DS'
       include 'GEOM'          ! YM2
 
@@ -1942,6 +1984,10 @@ c-----------------------------------------------------------------------
 
       real ttmp2(lx2,ly2,lz2,lelv)         ! lazy work. Should use a scratch array
 
+      real bm2r
+      common /scrch/ bm2r(lx2,ly2,lz2,lelv)
+
+
       integer ntot1,ntot2,intype
 
       real const
@@ -1949,18 +1995,27 @@ c-----------------------------------------------------------------------
       ntot1 = nx1*ny1*nz1*nelv
       ntot2 = nx2*ny2*nz2*nelv
 
+!     ifaxis multiplies bm2 with ym2.
+!     Not sure why.
+!     Needs to be removed here
+!      call invcol3(bm2r,bm2,ym2,ntot2)
+      call copy(bm2r,bm2,ntot2)
+
 !!     (D^T)P
 !     (dp/dx; dp/dR)*BM1
       call opgradt (ta1,ta2,ta3,wp)
 
-!     dv/dtheta*dp/dtheta = (k²)v*BM1*p
-      call map21_all_3ds(ta3,wp)
-      call col2(ta3,bm1,ntot1)            ! opgradt includes a mass matrix
-      const = k_3dsp*k_3dsp
-      call cmult  (ta3,const,ntot1)
+!     pdq/dtheta = k*q*BM2*p
+      call col3(ttmp2,wp,bm2,ntot2)       ! opgradt includes a mass matrix
+      const = k_3dsp
+      call cmult  (ttmp2,const,ntot2)
+      if (ifcyl_3ds) then
+        call invcol2(ttmp2,ym2,ntot2)     ! 1/R*pdv/dtheta
+      endif        
+      call map21_all_3ds(ta3,ttmp2)       ! Interpolate to M1 grid
 
 !!    ((B*beta/dt)^-1)*(D^T)P
-      if3d = .true.  ! Also do this for the third component      
+      if3d = .true.  ! Also do this for the third component 
       call opbinv_3ds (tb1,tb2,tb3,ta1,ta2,ta3,h2inv)
       if3d = .false.
 
@@ -1970,20 +2025,17 @@ c-----------------------------------------------------------------------
      
 !     Map third component to pressure grid      
       call map12_all_3ds(ttmp2,tb3)
-!     Multiply by 1/R² if cylindrical coordinate      
+!     Multiply by 1/R if cylindrical coordinate      
       if (ifcyl_3ds) then
         call invcol2(ttmp2,ym2,ntot2)     ! 1/R
-        call invcol2(ttmp2,ym2,ntot2)     ! 1/R²
-      endif  
+      endif
       call Xaddcol3(ap,ttmp2,bm2,ntot2)
 
 !     1/R*(dp/dR)
       if (ifcyl_3ds) then
         call map12_all_3ds(ttmp2,tb2)
         call invcol2(ttmp2,ym2,ntot2)
-        call col2(ttmp2,bm2,ntot2)
-!        call Xaddcol3(ap,ttmp2,bm2,ntot2)
-        call add2(ap,ttmp2,ntot2)
+        call Xaddcol3(ap,ttmp2,bm2,ntot2)
       endif        
 
       return

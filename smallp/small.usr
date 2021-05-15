@@ -69,6 +69,8 @@ c-----------------------------------------------------------------------
       include 'TSTEP'
 !      include 'TOTAL'
 
+      include '3DS'
+
       include 'TEST'
 
       integer ntot1,ntot2
@@ -76,7 +78,7 @@ c-----------------------------------------------------------------------
 
 !      call slp_mark_faces()
 
-      ifaxis = .false.
+!      ifaxis = .false.
       ifto = .true.
 
       ntot1 = lx1*ly1*lz1*nelv
@@ -88,6 +90,10 @@ c-----------------------------------------------------------------------
       if (istep.eq.0) then
 !        call outpost(vx,vy,vz,pr,t,'   ')
         call initp_3ds
+
+        if (.not.if3d_3ds.and.npert.gt.1) then
+          call init_pertfld_3ds()
+        endif  
 
 !       prabal. Temporarily initializing pressure
         do i=1,ntot1
@@ -112,8 +118,8 @@ c-----------------------------------------------------------------------
         call outpost(vx,vy,vz,pr,vz,'ini')
       endif
 
-!      if (mod(istep,iostep).eq.0) then
-      if (istep.le.10) then
+      if (mod(istep,iostep).eq.0) then
+!      if (istep.le.10) then
         i = 1
         call outpost(vxp(1,i),vyp(1,i),vzp(1,i),
      $               prp(1,i),vzp(1,i),'ptr')
