@@ -43,7 +43,7 @@
       nxyz  = lx1*ly1*lz1
       ntot1 = nxyz*nelv
 
-      k_3dsp = 0.0            ! wavenumber 
+      k_3dsp = 1.0            ! wavenumber 
      
       call init_pertfld_3ds() 
 
@@ -167,6 +167,8 @@
           jp = jp0+1
           call solvemom_cyl(igeom)
         endif
+
+        return
 
 !       Solve Pressure
         if (igeom.gt.1) then

@@ -112,8 +112,8 @@ c-----------------------------------------------------------------------
         call outpost(vx,vy,vz,pr,vz,'ini')
       endif
 
-!      if (mod(istep,iostep).eq.0) then
-      if (istep.le.10) then
+      if (mod(istep,iostep).eq.0) then
+!      if (istep.le.10) then
         i = 1
         call outpost(vxp(1,i),vyp(1,i),vzp(1,i),
      $               prp(1,i),vzp(1,i),'ptr')
