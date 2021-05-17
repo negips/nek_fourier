@@ -35,11 +35,6 @@
       ntot1 = lx1*ly1*lz1*nel
 
 
-!!       prabal            
-!         call copy3(tmp1,tmp2,tmp3,u1r,u2r,u3r,ntot1)
-!         call copy3(tmp4,tmp5,tmp6,u1i,u2i,u3i,ntot1)
-
-
 !     Common blocks are used in succession.
 
 !     Aij*Uj      
@@ -57,10 +52,6 @@
       call addcol4 (Au2i,bm1,h2,u2i,ntot1)
       call addcol4 (Au3i,bm1,h2,u3i,ntot1)
         
-!!       prabal            
-!         call copy3(tmp1,tmp2,tmp3,Au1r,Au2r,Au3r,ntot1)
-!         call copy3(tmp4,tmp5,tmp6,Au1i,Au2i,Au3i,ntot1)
-
       return
       end subroutine axhmsf_cyl             
 !-----------------------------------------------------------------------
@@ -148,28 +139,9 @@
       call rzero3(ur1x,ur2x,ur3x,ntot1) 
       call rzero3(ur1r,ur2r,ur3r,ntot1) 
 
-!      call rzero (ur1x,ntot1)
-!      call rzero (ur1r,ntot1)
-!
-!      call rzero (ur2x,ntot1)
-!      call rzero (ur2r,ntot1)
-!
-!      call rzero (ur3x,ntot1)
-!      call rzero (ur3r,ntot1)
-
-
 !     Zero Imaginary parts      
       call rzero3(ui1x,ui2x,ui3x,ntot1) 
       call rzero3(ui1r,ui2r,ui3r,ntot1) 
-
-!      call rzero (ui1x,ntot1)
-!      call rzero (ui1r,ntot1)
-!
-!      call rzero (ui2x,ntot1)
-!      call rzero (ui2r,ntot1)
-!
-!      call rzero (ui3x,ntot1)
-!      call rzero (ui3r,ntot1)
 
 !     Zero Real parts  
       call rzero3 (erxx,errr,ertt,ntot1)
@@ -259,8 +231,10 @@
 !!    Er_\thetaR
 !     (Real)      
       call copy(errt,ur3r,ntot1)           ! du3/dr
-      call col3(wk1,u3r,rinv,ntot1)        ! u3/R
-      call sub2(errt,wk1,ntot1)            ! du3/dr - u3/R
+      if (ifcyl_3ds) then
+        call col3(wk1,u3r,rinv,ntot1)      ! u3/R
+        call sub2(errt,wk1,ntot1)          ! du3/dr - u3/R
+      endif        
       call col3(wk2,u2i,rinv,ntot1)        ! u2(im)/R
       call add2s2(errt,wk2,-k_3dsp,ntot1)  ! du3/dr - u3/R - k/R*u2(im)
       call cmult(errt,0.5,ntot1)           ! 0.5*[du3/dr - u3/R - k/R*u2(im)]
@@ -268,8 +242,10 @@
 !!    Ei_\thetaR
 !     (Imaginary)      
       call copy(eirt,ui3r,ntot1)           ! du3(im)/dr
-      call col3(wk1,u3i,rinv,ntot1)        ! u3(im)/R
-      call sub2(eirt,wk1,ntot1)            ! du3(im)/dr - u3(im)/R
+      if (ifcyl_3ds) then
+        call col3(wk1,u3i,rinv,ntot1)      ! u3(im)/R
+        call sub2(eirt,wk1,ntot1)          ! du3(im)/dr - u3(im)/R
+      endif        
       call col3(wk2,u2r,rinv,ntot1)        ! u2/R
       call add2s2(eirt,wk2,k_3dsp,ntot1)   ! du3(im)/dr - u3(im)/R + k/R*u2
       call cmult(eirt,0.5,ntot1)           ! 0.5*[du3(im)/dr - u3(im)/R + k/R*u2]
@@ -279,13 +255,17 @@
 !     (Real)      
       call col3(ertt,u3i,rinv,ntot1)       ! u3(im)/R      
       call cmult(ertt,-k_3dsp,ntot1)       ! -k/R*u3(im)
-      call xaddcol3(ertt,u2r,rinv,ntot1)   ! -k/R*u3(im) + u2/R
+      if (ifcyl_3ds) then
+        call xaddcol3(ertt,u2r,rinv,ntot1) ! -k/R*u3(im) + u2/R
+      endif  
 
 !!    Ei_\theta\theta
 !     (Imaginary)      
       call col3(eitt,u3r,rinv,ntot1)       ! u3/R      
       call cmult(eitt,k_3dsp,ntot1)        ! k/R*u3
-      call xaddcol3(eitt,u2i,rinv,ntot1)   ! k/R*u3 + u2(im)/R
+      if (ifcyl_3ds) then
+        call xaddcol3(eitt,u2i,rinv,ntot1) ! k/R*u3 + u2(im)/R
+      endif  
 
       return
       end subroutine stnrate_cyl
@@ -454,10 +434,23 @@ c        newtonian fluids
       call ttxyz(Au2r,erxr,errr,errt,nel)  ! [erxr*dv/dx + errr*dv/dr]*BM1
       call col3(wk1,eirt,rinv,ntot1)       ! eirt*k*BM1/R    
       call sub2(Au2r,wk1,ntot1)
+!     Additional terms from vector gradient of test functions
+      if (ifcyl_3ds) then
+        call invcol2(wk1,ym1,ntot1)
+        call col2c(wk1,bm1,-1.0,ntot1)       ! -BM1*v/R
+        call Xaddcol3(Au2r,errt,wk1,ntot1)   ! -BM1*v/R*[errt]
+      endif        
 
       call ttxyz(Au3r,erxt,errt,ertt,nel)  ! [erxt*dv/dx + errt*dv/dr]*BM1
       call col3(wk1,eitt,rinv,ntot1)       ! eitt*k*BM1/R    
       call sub2(Au3r,wk1,ntot1)
+!     Additional terms from vector gradient of test functions
+      if (ifcyl_3ds) then
+        call invcol2(wk1,ym1,ntot1)
+        call col2(wk1,bm1,ntot1)             ! BM1*v/R
+        call Xaddcol3(Au3r,ertt,wk1,ntot1)   ! BM1*v/R*[ertt]
+      endif        
+
 
 !     Imaginary Variables      
       call ttxyz(Au1i,eixx,eixr,eixt,nel)  ! [eixx*dv/dx + eixr*dv/dr]*BM1
@@ -467,10 +460,22 @@ c        newtonian fluids
       call ttxyz(Au2i,eixr,eirr,eirt,nel) ! [erxr*dv/dx + errr*dv/dr]*BM1
       call col3(wk1,errt,rinv,ntot1)      ! errt*k*BM1/R    
       call add2(Au2i,wk1,ntot1)
+!     Additional terms from vector gradient of test functions
+      if (ifcyl_3ds) then
+        call invcol2(wk1,ym1,ntot1)
+        call col2c(wk1,bm1,-1.0,ntot1)       ! -BM1*v/R
+        call Xaddcol3(Au2i,eirt,wk1,ntot1)   ! -BM1*v/R*[eirt]
+      endif        
 
       call ttxyz(Au3i,eixt,eirt,eitt,nel) ! [eixt*dv/dx + eirt*dv/dr]*BM1
       call col3(wk1,ertt,rinv,ntot1)      ! ertt*k*BM1/R    
       call add2(Au3i,wk1,ntot1)
+!     Additional terms from vector gradient of test functions
+      if (ifcyl_3ds) then
+        call invcol2(wk1,ym1,ntot1)
+        call col2(wk1,bm1,ntot1)             ! BM1*v/R
+        call Xaddcol3(Au3i,eitt,wk1,ntot1)   ! BM1*v/R*[eitt]
+      endif        
 
 
 !!       prabal            

@@ -7,7 +7,7 @@ set -a
 # source path 
 #NEK_SOURCE_ROOT="$HOME/Nek5000" 
 
-NEK_SOURCE_ROOT="$HOME/workstation/git_kth/fourier/Nek5000_3d" 
+NEK_SOURCE_ROOT="$HOME/workstation/git_kth/fourier_old/Nek5000_3d" 
 
 # Fortran/C compiler
 FC="mpif90"
