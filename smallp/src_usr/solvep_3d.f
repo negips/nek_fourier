@@ -43,7 +43,7 @@
       nxyz  = lx1*ly1*lz1
       ntot1 = nxyz*nelv
 
-      k_3dsp = 0.0            ! wavenumber 
+      k_3dsp = 1.0            ! wavenumber 
      
       call init_pertfld_3ds() 
 
@@ -162,8 +162,6 @@
           call solvemom_cyl(igeom)
         endif
 
-        return
-
 !       Solve Pressure
         if (igeom.gt.1) then
           
@@ -173,6 +171,8 @@
 !         Pressure/Velocity Correction            
           jp = jp0+1
           call velpr_update_3ds(igeom)
+
+!          call rzero(prp(1,jp0+2),lx2*ly2*lz2*nelv)
 
         endif     ! ifgeom
 
@@ -428,7 +428,7 @@ c
 
 !     Build user defined forcing
       call makeufp_3ds
-
+      if (filterType.eq.2) call make_hpf
       if (ifcyl_3ds) then
         call advabp_cyl_3ds
       else
@@ -1176,7 +1176,8 @@ c
 !      call bcneutr
 
 !     Real part              
-!     Need to Extrapolate both pressures at the same time    
+!     Need to Extrapolate both pressures at the same time
+      jp = jpr 
       call extrapprp (prextr_3ds(1,1))
       jp = jpi
       call extrapprp (prextr_3ds(1,2))
@@ -1210,9 +1211,9 @@ c
 
 !     Note: theta gradient goes to imaginary part      
       call opgradt_3ds(resv1r,resv2r,resv3i,prextr_3ds(1,1))
-      call chsign(resv3i,ntot1)     ! i*i = -1
 !     Note: theta gradient goes to real part 
       call opgradt_3ds(resv1i,resv2i,resv3r,prextr_3ds(1,2))
+      call chsign(resv3r,ntot1)     ! i*i = -1
 
 !     Real      
       call add2_3(resv1r,resv2r,resv3r,
@@ -1546,14 +1547,6 @@ c
 !      call ortho (prcorr_3ds(1,2))
 
 
-!!     Imaginary part      
-!     Note, we take real part of vzp
-      call cmult2(dummy,vzp(1,jpr),1.0,ntot1)
-      call opdiv(prcorr_3ds(1,2),vxp(1,jpi),vyp(1,jpi),dummy)
-      call chsign(prcorr_3ds(1,2),ntot2)
-      call ortho (prcorr_3ds(1,2))
-    
-
       ifprjp=.false.    ! project out previous pressure solutions?
       istart=param(95)  
       if (istep.ge.istart.and.istart.ne.0) ifprjp=.true.
@@ -1568,14 +1561,23 @@ c
       if (nio.eq.0.and.igeom.eq.2) write(6,3) istep,time,jpr
       call esolver (prcorr_3ds(1,1),h1,h2,h2inv,intype)
 
+
+!!     Imaginary part      
+!     Note, we take real part of vzp
+      call cmult2(dummy,vzp(1,jpr),1.0,ntot1)
+      call opdiv_3ds(prcorr_3ds(1,2),vxp(1,jpi),vyp(1,jpi),dummy)
+      call chsign(prcorr_3ds(1,2),ntot2)
+      call ortho (prcorr_3ds(1,2))
+
+     
       if (nio.eq.0.and.igeom.eq.2) write(6,3) istep,time,jpi
       call esolver (prcorr_3ds(1,2),h1,h2,h2inv,intype)
 
 
-!     prabal
-      ntot2 = lx2*ly2*lz2*nelv
-      call copy(tmp7,prcorr_3ds(1,1),ntot2)
-      call copy(tmp8,prcorr_3ds(1,2),ntot2)
+!!     prabal
+!      ntot2 = lx2*ly2*lz2*nelv
+!      call copy(tmp7,prcorr_3ds(1,1),ntot2)
+!      call copy(tmp8,prcorr_3ds(1,2),ntot2)
 
 !     prabal      
 !      call cdabdtp_3ds(tmp9,tmp8,h1,h2,h2inv,intype)
@@ -1659,6 +1661,8 @@ c
       call lagpresp
       call add3(prp(1,jpi),prextr_3ds(1,2),prcorr_3ds(1,2),ntot2)
 
+      jp = jpr
+
 !!    Update Velocities
 !     Real part 
 !      call opgradt (w1 ,w2 ,w3 ,prcorr_3ds(1,1))
@@ -1682,7 +1686,6 @@ c
 !        call invcol2(ttmp2,ym2,ntot2)
 !        call Xaddcol3(ap,ttmp2,bm2,ntot2)
 !      endif        
-
 
       call opgradt_3ds(w1,w2,w3,prcorr_3ds(1,1))
 
@@ -1721,9 +1724,6 @@ c
       if3d = .true.
       call opbinv_3ds(dv1,dv2,dv3,w1 ,w2 ,w3 ,h2inv)
       if3d = .false.
-!      if (ifcyl_3ds) then
-!        call invcol2(dv3,ym1,ntot1)
-!      endif  
 
       call add2(vxp(1,jpi),dv1,ntot1)
       call add2(vyp(1,jpi),dv2,ntot1)
@@ -1732,14 +1732,17 @@ c
                                           ! Note the change from add to
                                           ! sub
 
-!!     prabal            
-!      ntot1 = lx1*ly1*lz1*lelv
-!      ntot2 = lx2*ly2*lz2*lelv
-!      call copy3(tmp4,tmp5,tmp6,w1,w2,w3,ntot1)
-!      call copy(tmp8,prcorr_3ds(1,2),ntot2)
 
+!!     prabal                                          
+!!     Setting constant pressure
+!      if (istep.eq.1) then
+!        call copy(tmp7,prp(1,jpr),ntot2)
+!        call copy(tmp8,prp(1,jpi),ntot2)
+!      else
+!        call copy(prp(1,jpi),tmp8,ntot2)
+!      endif
 
-
+                                          
       return
       end subroutine velpr_update_3ds
 !------------------------------------------------------------------------
@@ -2240,13 +2243,13 @@ c
       call cdtp (outy,inpfld,rym2,sym2,tym2,2)
 
 !     Outz is used as a work array      
-!     BM1*p/R
+!     -BM1*p/R
       if (ifcyl_3ds.and..not.ifaxis) then
         ntot1 = ly1*ly1*lz1*nelv
         call map21_all_3ds(outz,inpfld) 
         call col2(outz,bm1,ntot1)
         call invcol2(outz,ym1,ntot1)
-        call add2(outy,outz,ntot1)
+        call sub2(outy,outz,ntot1)
       endif  
 
 !     In principle the third component comes from the imaginary part
@@ -2288,11 +2291,12 @@ c
 !     2D Divergence 
       call opdiv  (outfld,inx,iny,inz)
 
-!     1/R*B*(dp/dR)
+!     -1/R*B*(dp/dR)
       if (ifcyl_3ds.and..not.ifaxis) then
 !       We calculate this term ourself            
         call map12_all_3ds(dummy,iny)
         call invcol2(dummy,ym2,ntot2)
+        call chsign(dummy,ntot2)
         call Xaddcol3(outfld,dummy,bm2,ntot2)
       endif        
     
