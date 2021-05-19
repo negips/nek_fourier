@@ -43,7 +43,7 @@
       nxyz  = lx1*ly1*lz1
       ntot1 = nxyz*nelv
 
-      k_3dsp = 1.0            ! wavenumber 
+      k_3dsp = 0.0            ! wavenumber 
      
       call init_pertfld_3ds() 
 
@@ -1241,9 +1241,9 @@ c
       call sub2(resv2i,w2i,ntot1)
       call sub2(resv3i,w3i,ntot1)
 
-!     prabal            
-      call copy3(tmp1,tmp2,tmp3,w1r,w2r,w3r,ntot1)
-      call copy3(tmp4,tmp5,tmp6,w1i,w2i,w3i,ntot1)
+!!     prabal            
+!      call copy3(tmp1,tmp2,tmp3,w1r,w2r,w3r,ntot1)
+!      call copy3(tmp4,tmp5,tmp6,w1i,w2i,w3i,ntot1)
 
       
 
@@ -1440,27 +1440,6 @@ c
 
       include 'TEST'
 
-!      real w1r,w2r,w3r
-!      real dv1r,dv2r,dv3r,dpr
-!      common /scrns1/ w1r  (lx1,ly1,lz1,lelv)
-!     $ ,              w2r  (lx1,ly1,lz1,lelv)
-!     $ ,              w3r  (lx1,ly1,lz1,lelv)
-!     $ ,              dv1r (lx1,ly1,lz1,lelv)
-!     $ ,              dv2r (lx1,ly1,lz1,lelv)
-!     $ ,              dv3r (lx1,ly1,lz1,lelv)
-!     $ ,              dpr  (lx2,ly2,lz2,lelv)
-!
-!      real w1i,w2i,w3i
-!      real dv1i,dv2i,dv3i,dpi
-!      common /scrns2/ w1i  (lx1,ly1,lz1,lelv)
-!     $ ,              w2i  (lx1,ly1,lz1,lelv)
-!     $ ,              w3i  (lx1,ly1,lz1,lelv)
-!     $ ,              dv1i (lx1,ly1,lz1,lelv)
-!     $ ,              dv2i (lx1,ly1,lz1,lelv)
-!     $ ,              dv3i (lx1,ly1,lz1,lelv)
-!     $ ,              dpi  (lx2,ly2,lz2,lelv)
-
-
       real h1,h2,h2inv
       common /scrvh/ h1   (lx1,ly1,lz1,lelv)
      $ ,             h2   (lx1,ly1,lz1,lelv)
@@ -1481,6 +1460,17 @@ c
       integer jpr,jpi
 
       integer igeom
+
+      real dnorm
+      real divv,bdivv
+      common /scruz/  divv (lx2,ly2,lz2,lelv)
+     $ ,              bdivv(lx2,ly2,lz2,lelv)
+
+      real wk1(lx1*ly1*lz1*lelv),wk2(lx1*ly1*lz1*lelv)
+      real wk3(lx1*ly1*lz1*lelv)
+      common /scrsf2/ wk1,wk2,wk3        ! UXYZ already uses scrsf
+
+      real glsc2
 
       if (igeom.eq.1) return
 
@@ -1503,49 +1493,32 @@ c
 
 !     Note: OPDIV already contains the mass matrix multiplication
 
-!!     Real part
-!!     (du_x/dx + du_r/dR)*BM2
-!      call opdiv(prcorr_3ds(1,1),vxp(1,jpr),vyp(1,jpr),vzp(1,jpr))
-!!     u_r/R
-!      call map12_all_3ds(dp2,vyp(1,jpr))
-!      call invcol2(dp2,ym2,ntot2)
-!      call Xaddcol3(prcorr_3ds(1,1),dp2,bm2,ntot2)
-!
-!!     -(k/R)*u_\theta (imag)
-!      call map12_all_3ds(dp2,vzp(1,jpi))
-!      call invcol2(dp2,ym2,ntot2)
-!      const = -k_3dsp
-!      call cmult(dp2,const,ntot2)
-!      call Xaddcol3(prcorr_3ds(1,1),dp2,bm2,ntot2)
-!
-!      call chsign(prcorr_3ds(1,1),ntot2)
-!      call ortho (prcorr_3ds(1,1))
-
+!     prabal       
+!      call chkdiv_3ds
 
 !     Note, we take imaginary part of vzp
-      call cmult2(dummy,vzp(1,jpi),-1.0,ntot1)
-      call opdiv_3ds(prcorr_3ds(1,1),vxp(1,jpr),vyp(1,jpr),dummy)
+      call cmult2(wk1,vzp(1,jpi),-1.0,ntot1)
+      call opdiv_3ds(prcorr_3ds(1,1),vxp(1,jpr),vyp(1,jpr),wk1)
       call chsign(prcorr_3ds(1,1),ntot2)
       call ortho (prcorr_3ds(1,1))
 
+!     prabal      
+      call col3 (wk2,prcorr_3ds(1,1),bm2inv,ntot2)
+      dnorm = sqrt(glsc2(wk2,prcorr_3ds(1,1),ntot2)/volvm2) 
+      if (nio.eq.0) write (6,*) istep,' Real: Dnorm', dnorm
+
 
 !!     Imaginary part      
-!      call opdiv(prcorr_3ds(1,2),vxp(1,jpi),vyp(1,jpi),vzp(1,jpi))
-!!     u_r/R
-!      call map12_all_3ds(dp2,vyp(1,jpi))
-!      call invcol2(dp2,ym2,ntot2)
-!      call Xaddcol3(prcorr_3ds(1,2),dp2,bm2,ntot2)
-!
-!!     (k/R)*u_\theta (real)
-!      call map12_all_3ds(dp2,vzp(1,jpr))
-!      call invcol2(dp2,ym2,ntot2)
-!      const = k_3dsp
-!      call cmult(dp2,const,ntot2)
-!      call Xaddcol3(prcorr_3ds(1,2),dp2,bm2,ntot2)
-!
-!      call chsign(prcorr_3ds(1,2),ntot2)
-!      call ortho (prcorr_3ds(1,2))
+!     Note, we take real part of vzp
+      call cmult2(wk1,vzp(1,jpr),1.0,ntot1)
+      call opdiv_3ds(prcorr_3ds(1,2),vxp(1,jpi),vyp(1,jpi),wk1)
+      call chsign(prcorr_3ds(1,2),ntot2)
+      call ortho (prcorr_3ds(1,2))
 
+!     prabal      
+      call col3 (wk2,prcorr_3ds(1,2),bm2inv,ntot2)
+      dnorm = sqrt(glsc2(wk2,prcorr_3ds(1,2),ntot2)/volvm2) 
+      if (nio.eq.0) write (6,*) istep,' Imaginary: Dnorm', dnorm
 
       ifprjp=.false.    ! project out previous pressure solutions?
       istart=param(95)  
@@ -1558,21 +1531,29 @@ c
                               ! Need to modify cdabdtp accordingly
                               ! Also need to modify uzprec
 
+      call copy(tmp7,prcorr_3ds(1,1),ntot2)
+
       if (nio.eq.0.and.igeom.eq.2) write(6,3) istep,time,jpr
       call esolver (prcorr_3ds(1,1),h1,h2,h2inv,intype)
 
+!     prabal      
+      call cdabdtp_3ds(divv,prcorr_3ds(1,1),h1,h2,h2inv,intype)
+      call col3 (bdivv,divv,bm2,ntot2)
+      dnorm = sqrt(glsc2(divv,bdivv,ntot2)/volvm2) 
+      if (nio.eq.0) write (6,*) istep,' Real: Dnorm', dnorm
 
-!!     Imaginary part      
-!     Note, we take real part of vzp
-      call cmult2(dummy,vzp(1,jpr),1.0,ntot1)
-      call opdiv_3ds(prcorr_3ds(1,2),vxp(1,jpi),vyp(1,jpi),dummy)
-      call chsign(prcorr_3ds(1,2),ntot2)
-      call ortho (prcorr_3ds(1,2))
-
-     
+      call copy(tmp8,divv,ntot2)
+      call copy(tmp9,tmp7,ntot2)
+      call sub2(tmp9,tmp8,ntot2)
+   
       if (nio.eq.0.and.igeom.eq.2) write(6,3) istep,time,jpi
       call esolver (prcorr_3ds(1,2),h1,h2,h2inv,intype)
 
+!     prabal      
+      call cdabdtp_3ds(divv,prcorr_3ds(1,2),h1,h2,h2inv,intype)
+      call col3 (bdivv,divv,bm2,ntot2)
+      dnorm = sqrt(glsc2(divv,bdivv,ntot2)/volvm2) 
+      if (nio.eq.0) write (6,*) istep,' Imaginary: Dnorm', dnorm
 
 !!     prabal
 !      ntot2 = lx2*ly2*lz2*nelv
@@ -1663,61 +1644,17 @@ c
 
       jp = jpr
 
-!!    Update Velocities
-!     Real part 
-!      call opgradt (w1 ,w2 ,w3 ,prcorr_3ds(1,1))
-!      call map21_all_3ds(w3,prcorr_3ds(1,2))    ! (imag) 
-!      const = k_3dsp
-!      call cmult(w3,const,ntot1)
-!      call col2(w3,bm1,ntot1)
-!      if (ifcyl_3ds) call invcol2(w3,ym1,ntot1)
-!     
-!!     Multiply by bm2,R before interpolation
-!      call copy(dp,prcorr_3ds(1,2),ntot2)       ! (imag)
-!      call col2(dp,bm2,ntot2)
-!      const = k_3dsp
-!      call cmult(dp,const,ntot2) 
-!      if (ifcyl_3ds) call invcol2(dp,ym2,ntot2)
-!      call map21_all_3ds(w3,dp)
-
-!!     1/R*B*(p)
-!      if (ifcyl_3ds) then
-!        call map12_all_3ds(ttmp2,tb2)
-!        call invcol2(ttmp2,ym2,ntot2)
-!        call Xaddcol3(ap,ttmp2,bm2,ntot2)
-!      endif        
-
       call opgradt_3ds(w1,w2,w3,prcorr_3ds(1,1))
 
       if3d = .true.
       call opbinv_3ds(dv1,dv2,dv3,w1,w2,w3,h2inv)
       if3d = .false.
-!      if (ifcyl_3ds) then
-!        call invcol2(dv3,ym1,ntot1)
-!      endif  
 
       call add2(vxp(1,jpr),dv1,ntot1)
       call add2(vyp(1,jpr),dv2,ntot1)
 !      call add2(vzp(1,jpr),dv3,ntot1)
       call add2(vzp(1,jpi),dv3,ntot1)           ! Imaginary part gets
                                                 ! updated here
-
-
-!!     Imaginary Part
-!      call opgradt (w1 ,w2 ,w3 ,prcorr_3ds(1,2))
-!      call map21_all_3ds(w3,prcorr_3ds(1,1))    ! (real)
-!      const = -k_3dsp
-!      call cmult(w3,const,ntot1)
-!      call col2(w3,bm1,ntot1)
-!      if (ifcyl_3ds) call invcol2(w3,ym1,ntot1)
-!
-!!     Multiply by bm2,R before interpolation
-!      call copy(dp,prcorr_3ds(1,1),ntot2)       ! (real)
-!      call col2(dp,bm2,ntot2)
-!      const = -k_3dsp
-!      call cmult(dp,const,ntot2)
-!      if (ifcyl_3ds) call invcol2(dp,ym2,ntot2)
-!      call map21_all_3ds(w3,dp)
 
       call opgradt_3ds(w1,w2,w3,prcorr_3ds(1,2))
 
@@ -1733,14 +1670,7 @@ c
                                           ! sub
 
 
-!!     prabal                                          
-!!     Setting constant pressure
-!      if (istep.eq.1) then
-!        call copy(tmp7,prp(1,jpr),ntot2)
-!        call copy(tmp8,prp(1,jpi),ntot2)
-!      else
-!        call copy(prp(1,jpi),tmp8,ntot2)
-!      endif
+      call chkdiv_3ds                                          
 
                                           
       return
@@ -2243,13 +2173,14 @@ c
       call cdtp (outy,inpfld,rym2,sym2,tym2,2)
 
 !     Outz is used as a work array      
-!     -BM1*p/R
+!     BM1*p/R
       if (ifcyl_3ds.and..not.ifaxis) then
         ntot1 = ly1*ly1*lz1*nelv
         call map21_all_3ds(outz,inpfld) 
         call col2(outz,bm1,ntot1)
         call invcol2(outz,ym1,ntot1)
-        call sub2(outy,outz,ntot1)
+!       call chsign(outz,ntot1) 
+        call add2(outy,outz,ntot1)
       endif  
 
 !     In principle the third component comes from the imaginary part
@@ -2291,12 +2222,12 @@ c
 !     2D Divergence 
       call opdiv  (outfld,inx,iny,inz)
 
-!     -1/R*B*(dp/dR)
+!     1/R*B*(dp/dR)
       if (ifcyl_3ds.and..not.ifaxis) then
 !       We calculate this term ourself            
         call map12_all_3ds(dummy,iny)
         call invcol2(dummy,ym2,ntot2)
-        call chsign(dummy,ntot2)
+!        call chsign(dummy,ntot2)
         call Xaddcol3(outfld,dummy,bm2,ntot2)
       endif        
     
@@ -2311,7 +2242,55 @@ c
       end subroutine opdiv_3ds        
 !-----------------------------------------------------------------------
 
+      subroutine chkdiv_3ds
 
+!     Check Divergence for the complex variable case 
+      
+      implicit none
+
+      include 'SIZE'
+      include 'SOLN'
+      include 'MASS'
+      include 'INPUT'
+      include 'TSTEP'
+
+      real divv,bdivv
+      common /scruz/  divv (lx2,ly2,lz2,lelv)
+     $ ,              bdivv(lx2,ly2,lz2,lelv)
+
+      real dummy1,dummy2
+      common /screv/ dummy1(lx1,ly1,lz1,lelt),
+     $               dummy2(lx1,ly1,lz1,lelt)    
+
+      integer jpr,jpi
+      integer ntot1,ntot2
+
+      real glsc2
+      real dnorm
+
+      jpr = 1
+      jpi = 2
+
+      ntot1 = lx1*ly1*lz1*nelv
+      ntot2 = lx2*ly2*lz2*nelv
+
+!     Real
+      call cmult2(dummy1,vzp(1,jpi),-1.0,ntot1)
+      call opdiv_3ds(bdivv,vxp(1,jpr),vyp(1,jpr),dummy1)
+      call col3 (divv,bdivv,bm2inv,ntot2)
+      dnorm = sqrt(glsc2(divv,bdivv,ntot2)/volvm2) 
+      if (nio.eq.0) write (6,*) istep,' Real: Dnorm', dnorm
+
+!     Imaginary
+      call cmult2(dummy1,vzp(1,jpr),1.0,ntot1)
+      call opdiv_3ds(bdivv,vxp(1,jpi),vyp(1,jpi),dummy1)
+      call col3 (divv,bdivv,bm2inv,ntot2)
+      dnorm = sqrt(glsc2(divv,bdivv,ntot2)/volvm2) 
+      if (nio.eq.0) write (6,*) istep,' Imaginary: Dnorm', dnorm
+
+      return
+      end subroutine chkdiv_3ds
+!---------------------------------------------------------------------- 
 
 
 

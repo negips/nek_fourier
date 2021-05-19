@@ -2889,7 +2889,10 @@ c      ENDIF
       ntot2 = nxyz2*nelv
       ntotg = nxyz2*nelgv
 
-      CALL UZPREC  (RPCG,RCG,H1,H2,INTYPE,WP)
+!      CALL UZPREC  (RPCG,RCG,H1,H2,INTYPE,WP)
+!     prabal
+      call copy(rpcg,rcg,ntot2)
+
       RRP1 = GLSC2 (RPCG,RCG,NTOT2)
       CALL COPY    (PCG,RPCG,NTOT2)
       CALL RZERO   (XCG,NTOT2)
@@ -2898,7 +2901,7 @@ c      ENDIF
       div0=0.
 C
       tolpss = tolps
-      DO 1000 ITER=1,NMXP
+      DO 1000 ITER=1,2000 !NMXP
 C
 C        CALL CONVPR  (RCG,tolpss,ICONV,RNORM)
          call convprn (iconv,rnorm,rrp1,rcg,rpcg,tolpss)
@@ -2954,8 +2957,12 @@ c        if (ratio.le.1.e-5) goto 9000
          call ortho(rcg)
 
          RRP2 = RRP1
-         CALL UZPREC  (RPCG,RCG,H1,H2,INTYPE,WP)
+!         CALL UZPREC  (RPCG,RCG,H1,H2,INTYPE,WP)
 c        RRP1 = GLSC2 (RPCG,RCG,NTOT2)
+!     prabal
+      call copy(rpcg,rcg,ntot2)
+
+
 
  1000 CONTINUE
       if (nid.eq.0) WRITE (6,3001) ITER,RNORM,tolpss

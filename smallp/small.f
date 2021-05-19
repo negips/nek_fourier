@@ -100,7 +100,7 @@ c-----------------------------------------------------------------------
 !        call copy(prp(1,2),pr,ntot2)
 !        call rzero(pr,ntot2)
 
-
+        param(44) = 0
 
         write(6,*) 'param40', param(40)
         write(6,*) 'param41', param(41)
