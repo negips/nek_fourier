@@ -399,7 +399,7 @@ c        if ( .not.ifprint )  goto 9999
 !      call copy3(kryli(1,1,1),kryli(1,2,1),kryli(1,3,1)
 !     $          ,r1i,r2i,r3i,n)
 
-      maxit=200
+      maxit=2000
       do 1000 iter=1,maxit
          call axhmsf_cyl(Ap1r,Ap2r,Ap3r,Ap1i,Ap2i,Ap3i,
      $                      p1r,p2r,p3r,p1i,p2i,p3i,h1,h2)

@@ -46,7 +46,7 @@
       ntot1 = nxyz*nelv
       ntot2 = lx2*ly2*lz2*nelv
 
-      k_3dsp = 1.0            ! wavenumber 
+      k_3dsp = 0.0            ! wavenumber 
      
       call init_pertfld_3ds() 
 
@@ -60,7 +60,6 @@
 !     prabal
       if (ifcyl_3ds.and.ifaxis) then
         ifaxis = .false.
-!        call invcol2(bm2,ym2,ntot2)
       endif  
 
       if (nio.eq.0) then
@@ -177,6 +176,8 @@
           jp = jp0+1
           call solvemom_cyl(igeom)
         endif
+
+        return
 
 !       Solve Pressure
         if (igeom.gt.1) then
@@ -1185,10 +1186,6 @@ c
 !     Real part      
       call bcdirvc_cyl(vxp(1,jpr),vyp(1,jpr),vzp(1,jpr),
      $              v1mask,v2mask,v3mask)
-!     prabal testing
-!     Real part      
-!      call bcdirvc (vzp(1,jpr),w2r,w3r,
-!     $              v1mask,v2mask,v3mask)
 
 !     Imaginary part
       call bcdirvc_cyl(vxp(1,jpi),vyp(1,jpi),vzp(1,jpi),
@@ -1201,7 +1198,8 @@ c
 !      call bcneutr
 
 !     Real part              
-!     Need to Extrapolate both pressures at the same time    
+!     Need to Extrapolate both pressures at the same time
+      jp = jpr 
       call extrapprp (prextr_3ds(1,1))
       jp = jpi
       call extrapprp (prextr_3ds(1,2))
@@ -2266,8 +2264,42 @@ c
 
       return
       end subroutine bcdirvc_cyl
-c-----------------------------------------------------------------------
-
 !-----------------------------------------------------------------------
+
+      subroutine opgradt_3ds(outx,outy,outz,inpfld)
+
+!     Compute DTx, DTy, DTz of an input field INPFLD 
+
+      implicit none  
+
+      include 'SIZE'
+      include 'GEOM'
+
+      real outx   (1)
+      real outy   (1)
+      real outz   (1)
+      real inpfld (1)
+
+      call cdtp (outx,inpfld,rxm2,sxm2,txm2,1)
+      call cdtp (outy,inpfld,rym2,sym2,tym2,2)
+      if (ldim.eq.3) 
+     $   call cdtp (outz,inpfld,rzm2,szm2,tzm2,3)
+
+      return
+      end subroutine opgradt_3ds
+!-----------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

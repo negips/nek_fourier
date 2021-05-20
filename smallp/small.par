@@ -39,7 +39,7 @@ equation = incompLinNS
 numberOfPerturbations=2
 solveBaseFlow = no
 stressFormulation = yes
-axiSymmetry = yes
+#axiSymmetry = yes
 
 
 [PRESSURE]
