@@ -2957,10 +2957,10 @@ c        if (ratio.le.1.e-5) goto 9000
          call ortho(rcg)
 
          RRP2 = RRP1
-!         CALL UZPREC  (RPCG,RCG,H1,H2,INTYPE,WP)
+         CALL UZPREC  (RPCG,RCG,H1,H2,INTYPE,WP)
 c        RRP1 = GLSC2 (RPCG,RCG,NTOT2)
 !     prabal
-      call copy(rpcg,rcg,ntot2)
+!      call copy(rpcg,rcg,ntot2)
 
 
 

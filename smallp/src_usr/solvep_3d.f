@@ -43,7 +43,7 @@
       nxyz  = lx1*ly1*lz1
       ntot1 = nxyz*nelv
 
-      k_3dsp = 0.0            ! wavenumber 
+      k_3dsp = 1.0            ! wavenumber 
      
       call init_pertfld_3ds() 
 
@@ -1468,7 +1468,7 @@ c
 
       real wk1(lx1*ly1*lz1*lelv),wk2(lx1*ly1*lz1*lelv)
       real wk3(lx1*ly1*lz1*lelv)
-      common /scrsf2/ wk1,wk2,wk3        ! UXYZ already uses scrsf
+      common /scrsf2/ wk1,wk2,wk3
 
       real glsc2
 
@@ -1480,6 +1480,8 @@ c
 
       jpr = jp
       jpi = jp+1
+
+      call chkdiv_3ds
 
       ntot1  = lx1*ly1*lz1*nelv
       ntot2  = lx2*ly2*lz2*nelv
@@ -1493,20 +1495,17 @@ c
 
 !     Note: OPDIV already contains the mass matrix multiplication
 
-!     prabal       
-!      call chkdiv_3ds
-
 !     Note, we take imaginary part of vzp
       call cmult2(wk1,vzp(1,jpi),-1.0,ntot1)
       call opdiv_3ds(prcorr_3ds(1,1),vxp(1,jpr),vyp(1,jpr),wk1)
       call chsign(prcorr_3ds(1,1),ntot2)
       call ortho (prcorr_3ds(1,1))
 
-!     prabal      
-      call col3 (wk2,prcorr_3ds(1,1),bm2inv,ntot2)
-      dnorm = sqrt(glsc2(wk2,prcorr_3ds(1,1),ntot2)/volvm2) 
-      if (nio.eq.0) write (6,*) istep,' Real: Dnorm', dnorm
-
+!!     prabal
+!      call copy(tmp7,prcorr_3ds(1,1),ntot2) 
+!      call col3 (wk2,prcorr_3ds(1,1),bm2inv,ntot2)
+!      dnorm = sqrt(glsc2(wk2,prcorr_3ds(1,1),ntot2)/volvm2) 
+!      if (nio.eq.0) write (6,*) istep,' Real: Dnorm', dnorm
 
 !!     Imaginary part      
 !     Note, we take real part of vzp
@@ -1515,10 +1514,10 @@ c
       call chsign(prcorr_3ds(1,2),ntot2)
       call ortho (prcorr_3ds(1,2))
 
-!     prabal      
-      call col3 (wk2,prcorr_3ds(1,2),bm2inv,ntot2)
-      dnorm = sqrt(glsc2(wk2,prcorr_3ds(1,2),ntot2)/volvm2) 
-      if (nio.eq.0) write (6,*) istep,' Imaginary: Dnorm', dnorm
+!!     prabal      
+!      call col3 (wk2,prcorr_3ds(1,2),bm2inv,ntot2)
+!      dnorm = sqrt(glsc2(wk2,prcorr_3ds(1,2),ntot2)/volvm2) 
+!      if (nio.eq.0) write (6,*) istep,' Imaginary: Dnorm', dnorm
 
       ifprjp=.false.    ! project out previous pressure solutions?
       istart=param(95)  
@@ -1531,29 +1530,32 @@ c
                               ! Need to modify cdabdtp accordingly
                               ! Also need to modify uzprec
 
-      call copy(tmp7,prcorr_3ds(1,1),ntot2)
-
       if (nio.eq.0.and.igeom.eq.2) write(6,3) istep,time,jpr
       call esolver (prcorr_3ds(1,1),h1,h2,h2inv,intype)
 
-!     prabal      
-      call cdabdtp_3ds(divv,prcorr_3ds(1,1),h1,h2,h2inv,intype)
-      call col3 (bdivv,divv,bm2,ntot2)
-      dnorm = sqrt(glsc2(divv,bdivv,ntot2)/volvm2) 
-      if (nio.eq.0) write (6,*) istep,' Real: Dnorm', dnorm
+!!     prabal      
+!      call cdabdtp_3ds(bdivv,prcorr_3ds(1,1),h1,h2,h2inv,intype)
+!      call col3 (divv,bdivv,bm2inv,ntot2)
+!
+!      dnorm = sqrt(glsc2(divv,bdivv,ntot2)/volvm2) 
+!      if (nio.eq.0) write (6,*) istep,' Real: Dnorm', dnorm
 
-      call copy(tmp8,divv,ntot2)
+!     prabal      
+      call copy(tmp8,bdivv,ntot2)
       call copy(tmp9,tmp7,ntot2)
       call sub2(tmp9,tmp8,ntot2)
-   
+!      call col3(bdivv,tmp9,bm2,ntot2)
+!      dnorm = dnorm + sqrt(glsc2(tmp9,bdivv,ntot2)/volvm2) 
+!      if (nio.eq.0) write (6,*) istep,' Real: Delta', dnorm
+ 
       if (nio.eq.0.and.igeom.eq.2) write(6,3) istep,time,jpi
       call esolver (prcorr_3ds(1,2),h1,h2,h2inv,intype)
 
-!     prabal      
-      call cdabdtp_3ds(divv,prcorr_3ds(1,2),h1,h2,h2inv,intype)
-      call col3 (bdivv,divv,bm2,ntot2)
-      dnorm = sqrt(glsc2(divv,bdivv,ntot2)/volvm2) 
-      if (nio.eq.0) write (6,*) istep,' Imaginary: Dnorm', dnorm
+!!     prabal      
+!      call cdabdtp_3ds(bdivv,prcorr_3ds(1,2),h1,h2,h2inv,intype)
+!      call col3 (divv,bdivv,bm2inv,ntot2)
+!      dnorm = sqrt(glsc2(divv,bdivv,ntot2)/volvm2) 
+!      if (nio.eq.0) write (6,*) istep,' Imaginary: Dnorm', dnorm
 
 !!     prabal
 !      ntot2 = lx2*ly2*lz2*nelv
@@ -1632,7 +1634,7 @@ c
 !      call copy    (h2,vtrans(1,1,1,1,ifield),ntot1)
       call cmult2  (h2,vtrans(1,1,1,1,ifield),bddt,ntot1)
       call invers2 (h2inv,h2,ntot1)
- 
+
 !!    Update Pressure
       jp = jpr
       call lagpresp
@@ -1757,12 +1759,6 @@ C
 
 !      call opmask  (inp1,inp2,inp3)
 !      call opdssum (inp1,inp2,inp3)
-!      call col2 (inp1,v1mask,ntot)
-!      call col2 (inp2,v2mask,ntot)
-!      call col2 (inp3,v3mask,ntot)
-!      call dssum(inp1,lx1,ly1,lz1)
-!      call dssum(inp2,lx1,ly1,lz1)
-!      call dssum(inp3,lx1,ly1,lz1)
 
 !     mask      
       call col2_3(inp1,inp2,inp3,v1mask,v2mask,v3mask,ntot)
@@ -1941,25 +1937,8 @@ c-----------------------------------------------------------------------
       ntot2 = nx2*ny2*nz2*nelv
 
 !!     (D^T)P
-!     (dp/dx; dp/dR)*BM1
-!      call opgradt (ta1,ta2,ta3,wp)
-
+!     (pdv/dx; pdv/dR + pv/R; -kpv/R)*BM1
        call opgradt_3ds(ta1,ta2,ta3,wp)
-
-!!     p*dv/dtheta = (k)v*BM1*p
-!      call map21_all_3ds(ta3,wp)
-!      call col2(ta3,bm1,ntot1)            ! opgradt includes a mass matrix
-!      const = k_3dsp
-!      call cmult(ta3,const,ntot1)
-!      if (ifcyl_3ds) call invcol2(ta3,ym1,ntot1) 
-
-!!     pdv/dtheta = k*v*B*p
-!      call copy(ttmp2,wp,ntot2)
-!      call col2(ttmp2,bm2,ntot2)
-!      if (ifcyl_3ds) call invcol2(ttmp2,ym2,ntot2)    ! 1/R
-!      call cmult(ttmp2,k_3dsp,ntot2)
-!      call map21_all_3ds(ta3,ttmp2)
-
 
 !!    ((B*beta/dt)^-1)*(D^T)P
       if3d = .true.  ! Also do this for the third component      
@@ -1968,23 +1947,6 @@ c-----------------------------------------------------------------------
 
       call chsign(tb3,ntot1)  ! since we need i*i = -1
       call opdiv_3ds(ap,tb1,tb2,tb3)
-
-!!     OPDIV also includes the mass matrix
-!!!     D*((B*beta/dt)^-1)*(D^T)P
-!      call opdiv  (ap,tb1,tb2,tb3)
-!     
-!!     Map third component to pressure grid 
-!      call map12_all_3ds(ttmp2,tb3)
-!      call cmult(ttmp2,k_3dsp,ntot2)
-!      if (ifcyl_3ds) call invcol2(ttmp2,ym2,ntot2)     ! 1/R
-!      call Xaddcol3(ap,ttmp2,bm2,ntot2)
-!
-!!     1/R*B*(dp/dR)
-!      if (ifcyl_3ds) then
-!        call map12_all_3ds(ttmp2,tb2)
-!        call invcol2(ttmp2,ym2,ntot2)
-!        call Xaddcol3(ap,ttmp2,bm2,ntot2)
-!      endif        
 
       return
       end subroutine cdabdtp_3ds
@@ -2169,6 +2131,8 @@ c
 
       integer ntot1
 
+!      ifaxis = .true.
+
       call cdtp (outx,inpfld,rxm2,sxm2,txm2,1)
       call cdtp (outy,inpfld,rym2,sym2,tym2,2)
 
@@ -2179,7 +2143,6 @@ c
         call map21_all_3ds(outz,inpfld) 
         call col2(outz,bm1,ntot1)
         call invcol2(outz,ym1,ntot1)
-!       call chsign(outz,ntot1) 
         call add2(outy,outz,ntot1)
       endif  
 
@@ -2191,6 +2154,8 @@ c
       const = -k_3dsp
       call cmult(outz,const,ntot1)
       if (ifcyl_3ds) call invcol2(outz,ym1,ntot1)      ! 1/R 
+
+!      ifaxis = .false.
 
       return
       end subroutine opgradt_3ds
@@ -2219,6 +2184,8 @@ c
 
       ntot2 = lx2*ly2*lz2*nelv
 
+!      ifaxis = .true.
+
 !     2D Divergence 
       call opdiv  (outfld,inx,iny,inz)
 
@@ -2237,6 +2204,7 @@ c
       if (ifcyl_3ds) call invcol2(dummy,ym2,ntot2)     ! 1/R
       call Xaddcol3(outfld,dummy,bm2,ntot2)
 
+!      ifaxis = .false.
 
       return
       end subroutine opdiv_3ds        
