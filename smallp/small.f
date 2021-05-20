@@ -88,7 +88,7 @@ c-----------------------------------------------------------------------
 !      call outpost(tmp1,tmp2,tmp3,pr,tmp3,'tmp')
 
       if (istep.eq.0) then
-!        call outpost(vx,vy,vz,pr,t,'   ')
+        call outpost(vx,vy,vz,pr,t,'   ')
         call initp_3ds
 
         if (.not.if3d_3ds.and.npert.gt.1) then
@@ -106,7 +106,7 @@ c-----------------------------------------------------------------------
 !        call copy(prp(1,2),pr,ntot2)
 !        call rzero(pr,ntot2)
 
-
+        param(44) = 0
 
         write(6,*) 'param40', param(40)
         write(6,*) 'param41', param(41)
@@ -165,19 +165,22 @@ c-----------------------------------------------------------------------
       include 'NEKUSE'
 
       integer ix,iy,iz,ieg
+      real pi
 
       integer jp
       common /ppointr/ jp
+
+      pi = 4.0*atan(1.0)
 
       if (jp.eq.0) then
         ux = 0.0 + 1.0*y
         uy = 0.
         uz = 0.0 + 1.0*y
       else
-        ux = -1.0 + (2.0e-0)*sin(x)*sin(jp*x+0.)
-        uy = 0.0 + (2.0e-1)*sin(y)*sin(jp*y+0.)
+        ux = 0.0 + (1.0e-0)*sin(x)*sin(2*pi*(y-1.0)/3)
+        uy = 0.0 + (2.0e-1)*sin(2*pi*(y-1.0)/3)*sin(jp + x + y)
 !        uz = -1.0 + (2.0e-0)*rand()
-        uz = ux*sin(jp+0.)
+        uz = ux*sin(jp + x*y+0.)
       endif
 
 
