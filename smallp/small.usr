@@ -74,9 +74,11 @@ c-----------------------------------------------------------------------
       integer ntot1,ntot2
       integer i,j
 
+      integer igeom
+
 !      call slp_mark_faces()
 
-      ifaxis = .false.
+!      ifaxis = .false.
       ifto = .true.
 
       ntot1 = lx1*ly1*lz1*nelv
@@ -100,7 +102,7 @@ c-----------------------------------------------------------------------
 !        call copy(prp(1,2),pr,ntot2)
 !        call rzero(pr,ntot2)
 
-        param(44) = 0
+!        param(44) = 0
 
         write(6,*) 'param40', param(40)
         write(6,*) 'param41', param(41)
@@ -132,7 +134,26 @@ c-----------------------------------------------------------------------
       endif  
 
 
-!      call exitt
+      if (istep.eq.1) then
+        
+        call init_pertfld_3ds()
+
+        istep = 1
+        igeom = 2
+        ifield = 1
+        jp = 1
+
+        call setsolv
+        call comment
+        
+        call settime
+        call incomprp_cyl(igeom)
+
+        jp = 1
+        call velpr_update_3ds(igeom)
+
+        call exitt
+      endif  
 
       return
       end
@@ -186,11 +207,17 @@ c-----------------------------------------------------------------------
       implicit none  
   
       include 'SIZE'      ! _before_ mesh is generated, which 
-      include 'TOTAL'     ! guarantees GLL mapping of mesh.
+      include 'INPUT'
+      include 'GEOM'
+      include 'TSTEP'
+!      include 'TOTAL'     ! guarantees GLL mapping of mesh.
 
       integer n,i,j
 
 !      ifaxis = .true.   ! just for initialization
+      param(42)=1
+      param(43)=1
+!      param(44)=1
 
       n = nelv * 2**ldim
 !      xmin = glmin(xc,n)
@@ -211,7 +238,7 @@ c-----------------------------------------------------------------------
       do j=1,nelv
       do i=1,2**ldim
 !         xc(i,j) = pi*(xc(i,j)+2.0)
-!         yc(i,j) = yc(i,j) + 2.0
+         yc(i,j) = yc(i,j) + 1000.0
 !         yc(i,1) = tanh(BETAM*(2*yc(i,1)-1))/tanh(BETAM)
 !         zc(i,1) = zscale*zc(i,1)
       enddo

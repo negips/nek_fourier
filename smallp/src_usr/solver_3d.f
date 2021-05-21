@@ -958,8 +958,352 @@ c
       end
 !---------------------------------------------------------------------- 
 
+      subroutine uzawa_3ds(rcgr,rcgi,h1,h2,h2inv,intype,iter)
+
+!     Solve the pressure equation by (nested) preconditioned 
+!     conjugate gradient iteration.
+!     INTYPE =  0  (steady)
+!     INTYPE =  1  (explicit)
+!     INTYPE = -1  (implicit)
+
+      implicit none
+
+      include 'SIZE'
+      include 'MASS'
+      include 'INPUT'
+      include 'TSTEP'
+
+!      include 'TOTAL'
+
+      real divex
+      common  /ctolpr/ divex
+
+      common  /cprint/ ifprint
+      logical          ifprint
+      real             rcg  (lx2,ly2,lz2,lelv)
+      real             h1   (lx1,ly1,lz1,lelv)
+      real             h2   (lx1,ly1,lz1,lelv)
+      real             h2inv(lx1,ly1,lz1,lelv)
+
+      real rcgr(1),rcgi(1)
+ 
+      real Apr,Api,wpr,wpi
+      common /scruz/   Apr(lx2,ly2,lz2,lelv)
+     $ ,               Api(lx2,ly2,lz2,lelv)
+     $ ,               wpr(lx2,ly2,lz2,lelv) 
+     $ ,               wpi(lx2,ly2,lz2,lelv)
+
+!     Gradients of real part of velocities      
+      real rpcgr,rpcgi,pcgr,pcgi,xcgr,xcgi 
+      common /scrpsn1/ rpcgr(lx2*ly2*lz2*lelt)
+     $               , rpcgi(lx2*ly2*lz2*lelt)
+     $               , pcgr(lx2*ly2*lz2*lelt)
+     $               , pcgi(lx2*ly2*lz2*lelt)
+     $               , xcgr(lx2*ly2*lz2*lelt)
+     $               , xcgi(lx2*ly2*lz2*lelt)
+
+      real wk1(lx2*ly2*lz2*lelv)
+      real wk2(lx2*ly2*lz2*lelv)
+      real wk3(lx2*ly2*lz2*lelv)
+      common /scrsf2/ wk1,wk2,wk3
 
 
+      real*8 etime1,dnekclock
+      integer*8 ntotg,nxyz2
+
+      real div0,h1_mx,h2_mx,pap,pcgmx,ratio,rnorm
+      real rrpx,tolpss,rnrm1,rrp1,rrp2,wp_mx
+      integer iter,iconv,nelgv,ntot1,ntot2
+      integer intype
+
+      real glsc2,glamax
+
+      real pApr,pApi
+      real alphar,alphai
+      real betar,betai
+      real rrp1r,rrp1i
+      real rrp2r,rrp2i
+
+      etime1 = dnekclock()
+      divex = 0.
+      iter  = 0
+
+      call chktcg2 (tolps,rcg,iconv)
+      if (param(21).gt.0.and.tolps.gt.abs(param(21))) 
+     $   tolps = abs(param(21))
+
+      nxyz2 = lx2*ly2*lz2
+      ntot2 = nxyz2*nelv
+      ntotg = nxyz2*nelgv
+
+!     x0 = 0.      
+      call rzero(xcgr,ntot2)
+      call rzero(xcgi,ntot2)
+
+!     r0 = b - Ax0 = b
+
+!     z0 = (M^-1)r0      ==> rpcg = (M^-1)r0
+      call uzprec(rpcgr,rcgr,h1,h2,intype,Apr)
+      call uzprec(rpcgi,rcgi,h1,h2,intype,Api)
+
+!      rrp1 = glsc2 (rpcg,rcg,ntot2)
+!      call copy    (pcg,rpcg,ntot2)
+!      call rzero   (xcg,ntot2)
+
+!     rrp1 = (r0^T)*z0
+      call glsc2_comp(rrp1r,rrp1i,rcgr,rcgi,rpcgr,rpcgi,ntot2)
+!     In principle rrp1i should be zero (I think)
+!     Otherwise preconditioner is not symmetric      
+
+!     p0 = z0 
+      call copy(pcgr,rpcgr,ntot2)
+      call copy(pcgi,rpcgi,ntot2)
+
+      rrp1 = sqrt(rrp1r*rrp1r +rrp1i*rrp1i)
+            
+      if (rrp1.eq.0) return
+      betar = 0.
+      betai = 0.
+      div0 = 0.
+
+      tolpss = tolps
+      do 1000 iter=1,2000 !nmxp
+
+!        Check Convergence. Also calculate rrp1 = (r^T)*z
+         call convprn_3ds(iconv,rnorm,rrp1r,rrp1i,
+     $                    rcgr,rcgi,rpcgr,rpcgi,tolpss)
+
+         if (iter.eq.1)      div0   = rnorm
+         if (param(21).lt.0) tolpss = abs(param(21))*div0
+
+         ratio = rnorm/div0
+         if (ifprint.and.nio.eq.0) 
+     $   write (6,66) iter,tolpss,rnorm,div0,ratio,istep
+   66    format(i5,1p4e12.5,i8,' Divergence')
+
+         if (iconv.eq.1.and.iter.gt.1) goto 9000
+
+         if (iter .ne. 1) then
+            rrp2 = rrp2r*rrp2r + rrp2i*rrp2i
+
+!           \beta = rrp1/rrp2 
+            betar = (rrp1r*rrp2r + rrp1i*rrp2i)/rrp2
+            betai = (rrp1i*rrp2r - rrp1r*rrp2i)/rrp2
+            
+            call copy(wk1,pcgr,ntot2)
+            call copy(wk2,pcgi,ntot2)
+
+!           p = z + \beta*p
+!           pr = zr + \beta_r*pr - \beta_i*pi
+            call copy(pcgr,rpcgr,ntot2)         ! pcgr = zr
+            call add2s2(pcgr,wk1,betar,ntot2)
+            call add2s2(pcgr,wk2,-betai,ntot2)
+
+!           pi = zi + \beta_r*pi + \beta_i*pr
+            call copy(pcgi,rpcgi,ntot2)         ! pcgi = zi 
+            call add2s2(pcgi,wk2,betar,ntot2)
+            call add2s2(pcgi,wk1,betai,ntot2)
+           
+!            call add2s1 (pcg,rpcg,beta,ntot2)
+         endif
+
+!        Ap = A*p            
+         call cdabdtp(Apr,pcgr,h1,h2,h2inv,intype)
+         call cdabdtp(Api,pcgi,h1,h2,h2inv,intype)
+
+!        pAp = (p^T)*Ap         
+         call glsc2_comp(pApr,pApi,pcgr,pcgi,Apr,Api,ntot2)
+
+         pAp = sqrt(pApr*pApr + pApi*pApi)
+
+!        \alpha = ((r^T)*z)/((p^T)*Ap)
+         if (pap.ne.0.) then
+           pAp = pAp*pAp
+           alphar = (rrp1r*pApr + rrp1i*pApi)/pAp
+           alphai = (rrp1i*pApr - rrp1r*pApi)/pAp
+         else
+            pcgmx = glamax(pcgr,ntot2)
+            wp_mx = glamax(pApr,ntot2)
+            ntot1 = lx1*ly1*lz1*nelv
+            h1_mx = glamax(h1 ,ntot1)
+            h2_mx = glamax(h2 ,ntot1)
+            if (nid.eq.0) write(6,*) 'error: pap=0 in uzawa.'
+     $      ,iter,pcgmx,wp_mx,h1_mx,h2_mx
+            call exitt
+         endif
+
+!        x = x + \alpha*p
+!        xr = xr + \alpha_r*pr
+         call add2s2(xcgr,pcgr,alphar,ntot2)
+!        xr = xr - \alpha_i*pi
+         call add2s2(xcgr,pcgi,-alphai,ntot2)
+
+!        xi = xi + \alpha_r*pi
+         call add2s2(xcgi,pcgi,alphar,ntot2)
+!        xi = xi + \alpha_i*pr
+         call add2s2(xcgi,pcgr,alphai,ntot2)
+
+
+!        r = r - \alpha*Ap
+!        rr = rr - \alpha_r*Apr
+         call add2s2(rcgr,Apr,-alphar,ntot2)
+!        rr = rr + \alpha_i*Api
+         call add2s2(rcgi,Api,alphai,ntot2)
+
+!        ri = ri - \alpha_r*Api
+         call add2s2(rcgr,Api,-alphar,ntot2)
+!        ri = ri - \alpha_i*Apr
+         call add2s2(rcgi,Apr,-alphai,ntot2)
+
+
+!         call add2s2 (xcg,pcg,alpha,ntot2)
+!         call add2s2 (rcg,wp,-alpha,ntot2)
+
+!         prabal. commented out. For whatever reason  
+!         if (iter.eq.-1) then
+!            call convprn (iconv,rnrm1,rrpx,rcg,rpcg,tolpss)
+!            if (iconv.eq.1) then
+!               rnorm = rnrm1
+!               ratio = rnrm1/div0
+!               if (nio.eq.0) 
+!     $         write (6,66) iter,tolpss,rnrm1,div0,ratio,istep
+!               goto 9000
+!            endif
+!         endif
+!
+         call ortho(rcgr)
+         call ortho(rcgi)
+
+         rrp2r = rrp1r
+         rrp2i = rrp1i
+
+!        z = (M^-1)r            
+         call uzprec(rpcgr,rcgr,h1,h2,intype,Apr)
+         call uzprec(rpcgi,rcgi,h1,h2,intype,Api)
+
+!        rrp1 = (r^T)*z
+!         call glsc2_comp(rrp1r,rrp1i,rcgr,rcgi,rpcgr,rpcgi,ntot2)
+           
+
+c        rrp1 = glsc2 (rpcg,rcg,ntot2)
+!     prabal
+!      call copy(rpcg,rcg,ntot2)
+
+
+
+ 1000 continue
+      if (nid.eq.0) write (6,3001) iter,rnorm,tolpss
+c     if (istep.gt.20) call emerxit
+ 3001 format(I6,' **ERROR**: Failed to converge in UZAWA:',6E13.4)
+ 9000 continue
+
+      divex = rnorm
+      iter  = iter-1
+
+      if (iter.gt.0) then
+        call copy (rcgr,xcgr,ntot2)
+        call copy (rcgi,xcgi,ntot2)
+      endif  
+
+      call ortho(rcgr)
+      call ortho(rcgi)
+
+      etime1 = dnekclock()-etime1
+      if (nio.eq.0) write(6,9999) istep, '  U-Press std. ',
+     &                            iter,divex,div0,tolpss,etime1
+ 9999 format(I11,a,I7,1p4E13.4)
+19999 format(I11,'  U-Press 1.e-5: ',I7,1p4E13.4)
+C
+C
+      return
+      end subroutine uzawa_3ds
+!-----------------------------------------------------------------------
+      subroutine convprn_3ds(iconv,rbnorm,rrptr,rrpti,
+     $                       resr,resi,zr,zi,tol)
+
+!                                               T
+!     Convergence test for the pressure step;  r z
+
+      implicit none
+
+      include 'SIZE'
+      include 'MASS'
+
+      real resr(1),resi(1)
+      real zr(1),zi(1)
+      real wrk1(4),wrk2(4)
+      real rrptr,rrpti,rbnorm
+      real tol
+
+      integer iconv
+      integer ntot2
+      real vlsc21
+      real vlsc2
+
+      ntot2   = lx2*ly2*lz2*nelv
+
+      wrk1(1) = vlsc21(resr,bm2inv,ntot2)  !  resr*bm2inv*resr
+      wrk1(2) = vlsc21(resi,bm2inv,ntot2)  !  resi*bm2inv*resi
+
+      call gop(wrk1,wrk2,'+  ',2)
+      rbnorm  = sqrt((wrk1(1)+wrk1(2))/volvm2) ! sqrt((rr² + ri²)/vol)
+
+      wrk1(1) = vlsc2(resr,zr,ntot2)     !  resr*zr
+      wrk1(2) = vlsc2(resi,zi,ntot2)     !  resi*zi
+      wrk1(3) = vlsc2(resr,zi,ntot2)     !  resr*zi
+      wrk1(4) = vlsc2(resi,zr,ntot2)     !  resi*zr
+
+      call gop(wrk1,wrk2,'+  ',4)
+      rrptr = wrk1(1) + wrk1(2)
+      rrpti = wrk1(3) - wrk1(4)
+
+      iconv  = 0
+      if (rbnorm.lt.tol) iconv=1
+      return
+      end subroutine convprn_3ds
+!---------------------------------------------------------------------- 
+
+      subroutine glsc2_comp(scr,sci,ur,ui,vr,vi,n)
+
+!                _       
+!     Calculate: u *Wt* v
+!     Assuming the Weight itself is real        
+
+      implicit none
+
+      integer i,n
+
+      real ur(n),ui(n)
+      real vr(n),vi(n)
+
+      real scr,sci,a1,a2
+
+      a1 = 0.
+      a2 = 0.
+      do i=1,n
+        a1 = a1 + ur(i)*vr(i)
+        a1 = a1 - ui(i)*vi(i)
+
+        a2 = a2 + ur(i)*vi(i)
+        a2 = a2 + ui(i)*vr(i)
+      enddo
+
+!     a1 = ur*Wt*vr + ui*Wt*vi
+!     a2 = ur*Wt*vi - ui*Wt*vr
+!     sc = a1 + i*a2      
+
+      scr = a1
+      sci = a2
+
+!     Sum over all processors 
+      call glsum(scr,1)
+      call glsum(sci,1)
+
+
+      return
+      end subroutine glsc2_comp
+
+!-----------------------------------------------------------------------
 
 
 

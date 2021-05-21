@@ -24,7 +24,7 @@
       
 
       if3d_3ds = .true.
-      ifcyl_3ds = .true.           ! If cylindrical coordinates
+      ifcyl_3ds = .false.           ! If cylindrical coordinates
 
       if (.not.if3d_3ds) return
 
@@ -43,7 +43,7 @@
       nxyz  = lx1*ly1*lz1
       ntot1 = nxyz*nelv
 
-      k_3dsp = 1.0            ! wavenumber 
+      k_3dsp = 0.0            ! wavenumber 
      
       call init_pertfld_3ds() 
 
@@ -80,10 +80,10 @@
       integer jp0,jp2
       integer i,j
 
-      if (ifcyl_3ds) then
+!      if (ifcyl_3ds) then
         call fluidp_cyl(igeom)
         return
-      endif  
+!      endif  
 
       jp = 0
       do i = 1,npert,2
@@ -104,7 +104,7 @@
         if (nio.eq.0.and.igeom.eq.2) write(6,2) istep,time,jp
    2    format(i9,1pe14.7,' Perturbation Solve (Pressure):',i5)
 
-!        call incomprp_3ds(igeom) 
+        call incomprp_3ds(igeom) 
       
 !       Pressure/Velocity Correction            
         do j = 1,npert,2
@@ -2129,9 +2129,16 @@ c
 
       real const
 
-      integer ntot1
+      integer ntot1,ntot2
+
+      real divv,bdivv
+      common /scruz2/  divv (lx2,ly2,lz2,lelv)
+     $ ,               bdivv(lx2,ly2,lz2,lelv)
+
 
 !      ifaxis = .true.
+      ntot1 = lx1*ly1*lz1*nelv
+      ntot2 = lx2*ly2*lz2*nelv
 
       call cdtp (outx,inpfld,rxm2,sxm2,txm2,1)
       call cdtp (outy,inpfld,rym2,sym2,tym2,2)
@@ -2139,21 +2146,34 @@ c
 !     Outz is used as a work array      
 !     BM1*p/R
       if (ifcyl_3ds.and..not.ifaxis) then
-        ntot1 = ly1*ly1*lz1*nelv
-        call map21_all_3ds(outz,inpfld) 
-        call col2(outz,bm1,ntot1)
-        call invcol2(outz,ym1,ntot1)
+!        ntot1 = lx1*ly1*lz1*nelv
+!        call map21_all_3ds(outz,inpfld) 
+!        call col2(outz,bm1,ntot1)
+!        call invcol2(outz,ym1,ntot1)
+!        call add2(outy,outz,ntot1)
+
+        call copy(divv,inpfld,ntot2)
+        call invcol2(divv,ym2,ntot2)
+        call map21_weak(outz,divv)
         call add2(outy,outz,ntot1)
       endif  
 
 !     In principle the third component comes from the imaginary part
+!     Or from the real part if the other two components are imaginary      
 !     I assume this is handled outside the routine      
 !     BM1*p*dv/dtheta = BM1*k*p*v
-      call map21_all_3ds(outz,inpfld) 
-      call col2(outz,bm1,ntot1)            ! opgradt includes a mass matrix
+!      call map21_all_3ds(outz,inpfld) 
+!      call col2(outz,bm1,ntot1)            ! opgradt includes a mass matrix
+!      const = -k_3dsp
+!      call cmult(outz,const,ntot1)
+!      if (ifcyl_3ds) call invcol2(outz,ym1,ntot1)      ! 1/R 
+
+      call copy(divv,inpfld,ntot2)
       const = -k_3dsp
-      call cmult(outz,const,ntot1)
-      if (ifcyl_3ds) call invcol2(outz,ym1,ntot1)      ! 1/R 
+      call cmult(divv,const,ntot2)
+      if (ifcyl_3ds) call invcol2(divv,ym2,ntot2)     ! 1/R
+      call map21_weak(outz,divv)
+
 
 !      ifaxis = .false.
 
@@ -2177,7 +2197,7 @@ c
       real inz    (1)   ! Vel. Mesh
 
       real dummy
-      common /scrcg/ dummy(lx1*ly1*lz1*lelt)    ! In principle I only need
+      common /scrcg2/ dummy(lx1*ly1*lz1*lelt)    ! In principle I only need
                                                 ! the pressure sized mesh
 
       integer ntot2                                                
@@ -2223,8 +2243,8 @@ c
       include 'TSTEP'
 
       real divv,bdivv
-      common /scruz/  divv (lx2,ly2,lz2,lelv)
-     $ ,              bdivv(lx2,ly2,lz2,lelv)
+      common /scruz/ divv (lx2,ly2,lz2,lelv)
+     $ ,             bdivv(lx2,ly2,lz2,lelv)
 
       real dummy1,dummy2
       common /screv/ dummy1(lx1,ly1,lz1,lelt),
@@ -2260,6 +2280,40 @@ c
       end subroutine chkdiv_3ds
 !---------------------------------------------------------------------- 
 
+      subroutine map21_weak(y,x)
+
+!     Map X from mesh M2 to mesh M1 (Y)
+      
+      implicit none
+
+      include 'SIZE'
+!      include 'GEOM'
+      include 'MASS'
+      include 'IXYZ'
+
+      real x(lx2,ly2,lz2,lelv)
+      real y(lx1,ly1,lz1,lelv)
+      real wk1,wk2
+      common /screv/ wk1(lx1,ly1,lz1,lelt),
+     $               wk2(lx1,ly1,lz1,lelt)    
+
+      integer e,nxyz1,nxyz2
+
+      nxyz1 = lx1*ly1*lz1
+      nxyz2 = lx2*ly2*lz2
+
+      do e=1,nelv
+         call col3    (y(1,1,1,e),x(1,1,1,e),bm2(1,1,1,e),nxyz2)
+!        I assume 1/R is already factored in x            
+!         call invcol2 (y(1,1,1,e),ym2(1,1,1,e),nxyz2)
+         call mxm     (ixtm12,lx1,y(1,1,1,e),lx2,wk1(1,1,1,e),ly2)
+         call mxm     (wk1(1,1,1,e),lx1,iym12,ly2,y(1,1,1,e),ly1)
+      enddo
+
+      return
+      end subroutine map21_weak
+
+!-----------------------------------------------------------------------
 
 
 

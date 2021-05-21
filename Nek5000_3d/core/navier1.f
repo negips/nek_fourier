@@ -2889,9 +2889,9 @@ c      ENDIF
       ntot2 = nxyz2*nelv
       ntotg = nxyz2*nelgv
 
-!      CALL UZPREC  (RPCG,RCG,H1,H2,INTYPE,WP)
+      CALL UZPREC  (RPCG,RCG,H1,H2,INTYPE,WP)
 !     prabal
-      call copy(rpcg,rcg,ntot2)
+!      call copy(rpcg,rcg,ntot2)
 
       RRP1 = GLSC2 (RPCG,RCG,NTOT2)
       CALL COPY    (PCG,RPCG,NTOT2)
