@@ -43,7 +43,7 @@
       nxyz  = lx1*ly1*lz1
       ntot1 = nxyz*nelv
 
-      k_3dsp = 0.0            ! wavenumber 
+      k_3dsp = 1.0            ! wavenumber 
      
       call init_pertfld_3ds() 
 
@@ -1501,23 +1501,12 @@ c
       call chsign(prcorr_3ds(1,1),ntot2)
       call ortho (prcorr_3ds(1,1))
 
-!!     prabal
-!      call copy(tmp7,prcorr_3ds(1,1),ntot2) 
-!      call col3 (wk2,prcorr_3ds(1,1),bm2inv,ntot2)
-!      dnorm = sqrt(glsc2(wk2,prcorr_3ds(1,1),ntot2)/volvm2) 
-!      if (nio.eq.0) write (6,*) istep,' Real: Dnorm', dnorm
-
 !!     Imaginary part      
 !     Note, we take real part of vzp
       call cmult2(wk1,vzp(1,jpr),1.0,ntot1)
       call opdiv_3ds(prcorr_3ds(1,2),vxp(1,jpi),vyp(1,jpi),wk1)
       call chsign(prcorr_3ds(1,2),ntot2)
       call ortho (prcorr_3ds(1,2))
-
-!!     prabal      
-!      call col3 (wk2,prcorr_3ds(1,2),bm2inv,ntot2)
-!      dnorm = sqrt(glsc2(wk2,prcorr_3ds(1,2),ntot2)/volvm2) 
-!      if (nio.eq.0) write (6,*) istep,' Imaginary: Dnorm', dnorm
 
       ifprjp=.false.    ! project out previous pressure solutions?
       istart=param(95)  
@@ -1531,41 +1520,14 @@ c
                               ! Also need to modify uzprec
 
       if (nio.eq.0.and.igeom.eq.2) write(6,3) istep,time,jpr
-      call esolver (prcorr_3ds(1,1),h1,h2,h2inv,intype)
-
-!!     prabal      
-!      call cdabdtp_3ds(bdivv,prcorr_3ds(1,1),h1,h2,h2inv,intype)
-!      call col3 (divv,bdivv,bm2inv,ntot2)
-!
-!      dnorm = sqrt(glsc2(divv,bdivv,ntot2)/volvm2) 
-!      if (nio.eq.0) write (6,*) istep,' Real: Dnorm', dnorm
-
-!     prabal      
-      call copy(tmp8,bdivv,ntot2)
-      call copy(tmp9,tmp7,ntot2)
-      call sub2(tmp9,tmp8,ntot2)
-!      call col3(bdivv,tmp9,bm2,ntot2)
-!      dnorm = dnorm + sqrt(glsc2(tmp9,bdivv,ntot2)/volvm2) 
-!      if (nio.eq.0) write (6,*) istep,' Real: Delta', dnorm
+!      call esolver (prcorr_3ds(1,1),h1,h2,h2inv,intype)
  
       if (nio.eq.0.and.igeom.eq.2) write(6,3) istep,time,jpi
-      call esolver (prcorr_3ds(1,2),h1,h2,h2inv,intype)
+!      call esolver (prcorr_3ds(1,2),h1,h2,h2inv,intype)
 
-!!     prabal      
-!      call cdabdtp_3ds(bdivv,prcorr_3ds(1,2),h1,h2,h2inv,intype)
-!      call col3 (divv,bdivv,bm2inv,ntot2)
-!      dnorm = sqrt(glsc2(divv,bdivv,ntot2)/volvm2) 
-!      if (nio.eq.0) write (6,*) istep,' Imaginary: Dnorm', dnorm
+      call esolver_3ds(prcorr_3ds(1,1),prcorr_3ds(1,2),
+     $                 h1,h2,h2inv,intype)
 
-!!     prabal
-!      ntot2 = lx2*ly2*lz2*nelv
-!      call copy(tmp7,prcorr_3ds(1,1),ntot2)
-!      call copy(tmp8,prcorr_3ds(1,2),ntot2)
-
-!     prabal      
-!      call cdabdtp_3ds(tmp9,tmp8,h1,h2,h2inv,intype)
-
-!      call cabdtp_3ds(tmp8,tmp4,tmp5,tmp6,h1,h2,h2inv,intype)
 
    3  format(i9,1pe14.7,' Perturbation Solve (Pressure):',i5)
 

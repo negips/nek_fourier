@@ -134,26 +134,26 @@ c-----------------------------------------------------------------------
       endif  
 
 
-      if (istep.eq.1) then
-        
-        call init_pertfld_3ds()
-
-        istep = 1
-        igeom = 2
-        ifield = 1
-        jp = 1
-
-        call setsolv
-        call comment
-        
-        call settime
-        call incomprp_cyl(igeom)
-
-        jp = 1
-        call velpr_update_3ds(igeom)
-
-        call exitt
-      endif  
+!      if (istep.eq.1) then
+!        
+!        call init_pertfld_3ds()
+!
+!        istep = 1
+!        igeom = 2
+!        ifield = 1
+!        jp = 1
+!
+!        call setsolv
+!        call comment
+!        
+!        call settime
+!        call incomprp_cyl(igeom)
+!
+!        jp = 1
+!        call velpr_update_3ds(igeom)
+!
+!        call exitt
+!      endif  
 
       return
       end
