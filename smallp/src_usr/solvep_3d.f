@@ -54,7 +54,10 @@
 !     Velocities can be initialized from useric. 
 
       if (nio.eq.0) then
-        write(6,*) 'Initializing IF3Ds', if3d_3ds
+        write(6,*) 'IF3DS: Wavenumber=',k_3dsp
+        write(6,*) 'Initializion done. IF3DS,IFCYL_3DS',if3d_3ds,
+     $            ifcyl_3ds  
+       
       endif
 
       return
@@ -383,9 +386,12 @@ c
       include 'TSTEP'   ! ifield
 
       integer i,n2
+      integer ifld
 
       n2 = lx2*ly2*lz2*lelv
 
+      ifld = ifield
+      ifield = 1
       do i = 1,npert
         jp = i
         call nekuic
@@ -398,6 +404,7 @@ c
         call dsavg(vzp(1,jp))
       enddo
       jp = 0
+      ifield = ifld
 
       return
       end subroutine init_pertfld_3ds
@@ -2161,7 +2168,6 @@ c
       real dummy
       common /scrcg2/ dummy(lx1*ly1*lz1*lelt)    ! In principle I only need
                                                 ! the pressure sized mesh
-
       integer ntot2                                                
 
       ntot2 = lx2*ly2*lz2*nelv

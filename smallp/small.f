@@ -68,6 +68,9 @@ c-----------------------------------------------------------------------
       include 'INPUT'
       include 'TSTEP'
 !      include 'TOTAL'
+      include 'MASS'
+
+      include '3DS'
 
       include 'TEST'
 
@@ -124,15 +127,52 @@ c-----------------------------------------------------------------------
      $               prp(1,i),vzp(1,i),'pti')
       endif
 
-      if (istep.eq.1) then
+      call chkdiv_3ds
+
+      call rzero3(tmp1,tmp2,tmp3,ntot1)
+      call rzero3(tmp5,tmp6,tmp7,ntot1)
+      call rzero3(tmp9,tmp10,tmp11,ntot1)
+
+      call copy(tmp1,vxp(1,1),ntot1)
+      call opdiv_3ds(tmp4,tmp1,tmp2,tmp3) ! du/dx
+      call col2(tmp4,bm2inv,ntot2)
+
+      call copy(tmp5,vyp(1,1),ntot1)
+      call opdiv_3ds(tmp8,tmp6,tmp5,tmp7) ! dv/dy
+      call col2(tmp8,bm2inv,ntot2)
+
+      call copy(tmp9,vzp(1,1),ntot1)
+      call opdiv_3ds(tmp8,tmp11,tmp10,tmp9) ! dw/dz
+!      call col2(tmp12,bm2inv,ntot2)
+
+      if3d_3ds = .false.
+      call opdiv_3ds(tmp4,vxp(1,1),vyp(1,1),tmp3)
+
+      call add3(tmp12,tmp8,tmp4,ntot2)
+
+!      call col2(tmp9,bm1,ntot1)
+
+!      if3d_3ds = .true.
+!      call opdiv_3ds(tmp12,vxp(1,1),vyp(1,1),vzp(1,2))
+
+!      call map12_all_3ds(prp,vxp(1,1))
+!      call map21_all_3ds(vz,prp)
+!      call sub3(tmp2,vxp,vz,ntot1)
+!      call map21_weak(vz,prp)
+!      call col2(vz,binvm1,ntot1)
+!      call sub3(tmp3,vxp,vz,ntot1)
+
+
+      if (istep.eq.0) then
         call outpost(tmp1,tmp2,tmp3,
-     $               tmp7,tmp3,'tmp')
-        call outpost(tmp4,tmp5,tmp6,
-     $               tmp8,tmp6,'tmp')
-        call outpost(tmp4,tmp5,tmp6,
-     $               tmp9,tmp6,'tmp')
+     $               tmp4,tmp3,'tmp')
+        call outpost(tmp5,tmp6,tmp7,
+     $               tmp8,tmp7,'tmp')
+        call outpost(tmp9,tmp10,tmp11,
+     $               tmp12,tmp11,'tmp')
       endif  
 
+      call exitt
 
 !      if (istep.eq.1) then
 !        
@@ -179,6 +219,8 @@ c-----------------------------------------------------------------------
 !      include 'TOTAL'
       include 'NEKUSE'
 
+      include '3DS'
+
       integer ix,iy,iz,ieg
       real pi
 
@@ -192,10 +234,20 @@ c-----------------------------------------------------------------------
         uy = 0.
         uz = 0.0 + 1.0*y
       else
-        ux = 0.0 + (1.0e-0)*sin(x)*sin(2*pi*(y-1.0)/3)
-        uy = 0.0 + (2.0e-1)*sin(2*pi*(y-1.0)/3)*sin(jp + x + y)
-!        uz = -1.0 + (2.0e-0)*rand()
-        uz = ux*sin(jp + x*y+0.)
+!        ux = 0.0 + (1.0e-0)*sin(x)*sin(2*pi*(y-1.0)/3)
+!        uy = 0.0 + (2.0e-1)*sin(2*pi*(y-1.0)/3)*sin(jp + x + y)
+!!        uz = -1.0 + (2.0e-0)*rand()
+!        uz = ux*sin(jp + x*y+0.)
+
+        ux = cos(x)
+        uy = sin(y)
+      
+        if (jp.eq.1) then
+          uz = 1.0/k_3dsp*(sin(x) - cos(y))
+        elseif (jp.eq.2) then
+          uz = 1.0/k_3dsp*(-sin(x) + cos(y))
+        endif
+
       endif
 
 
@@ -238,7 +290,7 @@ c-----------------------------------------------------------------------
       do j=1,nelv
       do i=1,2**ldim
 !         xc(i,j) = pi*(xc(i,j)+2.0)
-         yc(i,j) = yc(i,j) + 1000.0
+         yc(i,j) = yc(i,j) + 1.0
 !         yc(i,1) = tanh(BETAM*(2*yc(i,1)-1))/tanh(BETAM)
 !         zc(i,1) = zscale*zc(i,1)
       enddo
