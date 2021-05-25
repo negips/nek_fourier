@@ -24,7 +24,7 @@
       
 
       if3d_3ds = .true.
-      ifcyl_3ds = .false.           ! If cylindrical coordinates
+      ifcyl_3ds = .true.           ! If cylindrical coordinates
 
       if (.not.if3d_3ds) return
 
@@ -43,7 +43,7 @@
       nxyz  = lx1*ly1*lz1
       ntot1 = nxyz*nelv
 
-      k_3dsp = 1.0            ! wavenumber 
+      k_3dsp = 4.0            ! wavenumber 
      
       call init_pertfld_3ds() 
 
@@ -1488,8 +1488,6 @@ c
       jpr = jp
       jpi = jp+1
 
-      call chkdiv_3ds
-
       ntot1  = lx1*ly1*lz1*nelv
       ntot2  = lx2*ly2*lz2*nelv
       bddt   = bd(1)/dt
@@ -1527,13 +1525,13 @@ c
                               ! Also need to modify uzprec
 
       if (nio.eq.0.and.igeom.eq.2) write(6,3) istep,time,jpr
-!      call esolver (prcorr_3ds(1,1),h1,h2,h2inv,intype)
+      call esolver (prcorr_3ds(1,1),h1,h2,h2inv,intype)
  
       if (nio.eq.0.and.igeom.eq.2) write(6,3) istep,time,jpi
-!      call esolver (prcorr_3ds(1,2),h1,h2,h2inv,intype)
+      call esolver (prcorr_3ds(1,2),h1,h2,h2inv,intype)
 
-      call esolver_3ds(prcorr_3ds(1,1),prcorr_3ds(1,2),
-     $                 h1,h2,h2inv,intype)
+!      call esolver_3ds(prcorr_3ds(1,1),prcorr_3ds(1,2),
+!     $                 h1,h2,h2inv,intype)
 
 
    3  format(i9,1pe14.7,' Perturbation Solve (Pressure):',i5)
@@ -1639,9 +1637,6 @@ c
       call sub2(vzp(1,jpr),dv3,ntot1)     ! Real part gets updated here
                                           ! Note the change from add to
                                           ! sub
-
-
-      call chkdiv_3ds                                          
 
                                           
       return

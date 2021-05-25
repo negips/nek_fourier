@@ -127,28 +127,28 @@ c-----------------------------------------------------------------------
      $               prp(1,i),vzp(1,i),'pti')
       endif
 
-      call chkdiv_3ds
+!      call chkdiv_3ds
 
-      call rzero3(tmp1,tmp2,tmp3,ntot1)
-      call rzero3(tmp5,tmp6,tmp7,ntot1)
-      call rzero3(tmp9,tmp10,tmp11,ntot1)
-
-      call copy(tmp1,vxp(1,1),ntot1)
-      call opdiv_3ds(tmp4,tmp1,tmp2,tmp3) ! du/dx
-      call col2(tmp4,bm2inv,ntot2)
-
-      call copy(tmp5,vyp(1,1),ntot1)
-      call opdiv_3ds(tmp8,tmp6,tmp5,tmp7) ! dv/dy
-      call col2(tmp8,bm2inv,ntot2)
-
-      call copy(tmp9,vzp(1,1),ntot1)
-      call opdiv_3ds(tmp8,tmp11,tmp10,tmp9) ! dw/dz
-!      call col2(tmp12,bm2inv,ntot2)
-
-      if3d_3ds = .false.
-      call opdiv_3ds(tmp4,vxp(1,1),vyp(1,1),tmp3)
-
-      call add3(tmp12,tmp8,tmp4,ntot2)
+!      call rzero3(tmp1,tmp2,tmp3,ntot1)
+!      call rzero3(tmp5,tmp6,tmp7,ntot1)
+!      call rzero3(tmp9,tmp10,tmp11,ntot1)
+!
+!      call copy(tmp1,vxp(1,1),ntot1)
+!      call opdiv_3ds(tmp4,tmp1,tmp2,tmp3) ! du/dx
+!      call col2(tmp4,bm2inv,ntot2)
+!
+!      call copy(tmp5,vyp(1,1),ntot1)
+!      call opdiv_3ds(tmp8,tmp6,tmp5,tmp7) ! dv/dy
+!      call col2(tmp8,bm2inv,ntot2)
+!
+!      call copy(tmp9,vzp(1,1),ntot1)
+!      call opdiv_3ds(tmp8,tmp11,tmp10,tmp9) ! dw/dz
+!!      call col2(tmp12,bm2inv,ntot2)
+!
+!      if3d_3ds = .false.
+!      call opdiv_3ds(tmp4,vxp(1,1),vyp(1,1),tmp3)
+!
+!      call add3(tmp12,tmp8,tmp4,ntot2)
 
 !      call col2(tmp9,bm1,ntot1)
 
@@ -172,7 +172,7 @@ c-----------------------------------------------------------------------
      $               tmp12,tmp11,'tmp')
       endif  
 
-      call exitt
+!      call exitt
 
 !      if (istep.eq.1) then
 !        
@@ -234,19 +234,19 @@ c-----------------------------------------------------------------------
         uy = 0.
         uz = 0.0 + 1.0*y
       else
-!        ux = 0.0 + (1.0e-0)*sin(x)*sin(2*pi*(y-1.0)/3)
-!        uy = 0.0 + (2.0e-1)*sin(2*pi*(y-1.0)/3)*sin(jp + x + y)
-!!        uz = -1.0 + (2.0e-0)*rand()
-!        uz = ux*sin(jp + x*y+0.)
+        ux = 0.0 + (1.0e-0)*sin(x)*sin(2*pi*(y-1.0)/3)
+        uy = 0.0 + (2.0e-1)*sin(2*pi*(y-1.0)/3)*sin(jp + x + y)
+!        uz = -1.0 + (2.0e-0)*rand()
+        uz = ux*sin(jp + x*y+0.)
 
-        ux = cos(x)
-        uy = sin(y)
-      
-        if (jp.eq.1) then
-          uz = 1.0/k_3dsp*(sin(x) - cos(y))
-        elseif (jp.eq.2) then
-          uz = 1.0/k_3dsp*(-sin(x) + cos(y))
-        endif
+!        ux = cos(x)
+!        uy = sin(y)
+!      
+!        if (jp.eq.1) then
+!          uz = 1.0/k_3dsp*(sin(x) - cos(y))
+!        elseif (jp.eq.2) then
+!          uz = 1.0/k_3dsp*(-sin(x) + cos(y))
+!        endif
 
       endif
 
@@ -269,7 +269,7 @@ c-----------------------------------------------------------------------
 !      ifaxis = .true.   ! just for initialization
       param(42)=1
       param(43)=1
-!      param(44)=1
+      param(44)=1
 
       n = nelv * 2**ldim
 !      xmin = glmin(xc,n)
