@@ -11,7 +11,7 @@ C-----------------------------------------------------------------------
       include 'SOLN'
       include 'TSTEP'
 
-      include '3DS'
+      include 'F3D'
 C
       COMMON /SCRNS/  RESV1 (LX1,LY1,LZ1,LELV)
      $ ,              RESV2 (LX1,LY1,LZ1,LELV)
@@ -37,8 +37,8 @@ C
 
 
 !     prabal
-      if (if3d_3ds) then
-        call plan3_3ds(igeom)
+      if (iff3d) then
+        call plan3_f3d(igeom)
         return
       endif    
 

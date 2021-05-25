@@ -264,7 +264,7 @@ C     INTYPE=-1  Compute the matrix-vector product    D(A+B/DT)(-1)DT*p
       include 'SIZE'
       include 'TOTAL'
 
-      include '3DS'
+      include 'F3D'
 
       REAL           AP    (LX2,LY2,LZ2,1)
       REAL           WP    (LX2,LY2,LZ2,1)
@@ -280,8 +280,8 @@ C
      $ ,             TB3 (LX1,LY1,LZ1,LELV)
 
 !     prabal
-      if (if3d_3ds) then
-        call cdabdtp_3ds(ap,wp,h1,h2,h2inv,intype)
+      if (iff3d) then
+        call cdabdtp_f3d(ap,wp,h1,h2,h2inv,intype)
        return
       endif
 

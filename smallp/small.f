@@ -70,7 +70,7 @@ c-----------------------------------------------------------------------
 !      include 'TOTAL'
       include 'MASS'
 
-      include '3DS'
+      include 'F3D'
 
       include 'TEST'
 
@@ -78,6 +78,13 @@ c-----------------------------------------------------------------------
       integer i,j
 
       integer igeom
+
+
+      if (istep.eq.0) then
+        call frame_start
+      endif  
+
+      call frame_monitor
 
 !      call slp_mark_faces()
 
@@ -92,7 +99,7 @@ c-----------------------------------------------------------------------
 
       if (istep.eq.0) then
         call outpost(vx,vy,vz,pr,t,'   ')
-        call initp_3ds
+        call initp_f3d
 
 !       prabal. Temporarily initializing pressure
         do i=1,ntot1
@@ -174,26 +181,9 @@ c-----------------------------------------------------------------------
 
 !      call exitt
 
-!      if (istep.eq.1) then
-!        
-!        call init_pertfld_3ds()
-!
-!        istep = 1
-!        igeom = 2
-!        ifield = 1
-!        jp = 1
-!
-!        call setsolv
-!        call comment
-!        
-!        call settime
-!        call incomprp_cyl(igeom)
-!
-!        jp = 1
-!        call velpr_update_3ds(igeom)
-!
-!        call exitt
-!      endif  
+      if (istep.eq.nsteps.or.lastep.eq.1) then
+        call frame_end
+      endif
 
       return
       end
@@ -219,7 +209,7 @@ c-----------------------------------------------------------------------
 !      include 'TOTAL'
       include 'NEKUSE'
 
-      include '3DS'
+      include 'F3D'
 
       integer ix,iy,iz,ieg
       real pi
@@ -330,6 +320,47 @@ c-----------------------------------------------------------------------
       return
       end
 c-----------------------------------------------------------------------
+!=======================================================================
+!> @brief Register user specified modules
+      subroutine frame_usr_register
+      implicit none
+
+      include 'SIZE'
+      include 'FRAMELP'
+
+!     register modules
+      call io_register
+      call frame_register_f3d
+
+      return
+      end subroutine
+!======================================================================
+!> @brief Initialise user specified modules
+      subroutine frame_usr_init
+      implicit none
+
+      include 'SIZE'
+      include 'FRAMELP'
+
+!     initialise modules
+      call frame_get_param_f3d
+
+      return
+      end subroutine
+!======================================================================
+!> @brief Finalise user specified modules
+      subroutine frame_usr_end
+      implicit none
+
+      include 'SIZE'
+      include 'FRAMELP'
+
+      
+      return
+      end subroutine
+
+!-----------------------------------------------------------------------
+
 
 c automatically added by makenek
       subroutine usrdat0() 

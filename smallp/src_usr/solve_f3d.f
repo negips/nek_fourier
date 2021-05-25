@@ -7,14 +7,14 @@
 !====================================================================== 
 !-----------------------------------------------------------------------
 
-      subroutine init_3ds()
+      subroutine init_f3d()
 
       implicit none
 
       include 'SIZE'
       include 'SOLN'
 
-      include '3DS'
+      include 'F3D'
 
       integer icalld
       save icalld
@@ -26,7 +26,7 @@
       nxyz  = lx1*ly1*lz1
       ntot1 = nxyz*nelv
 
-      if3d_3ds = .true.
+      iff3d = .true.
 
 !     Need to initialize some variables
 !     V3MASK
@@ -37,10 +37,10 @@
 
 
       return
-      end subroutine init_3ds
+      end subroutine init_f3d
 !----------------------------------------------------------------------
 
-      subroutine makef_3ds
+      subroutine makef_f3d
 
       implicit none
 
@@ -50,7 +50,7 @@
       include 'MASS'
       include 'TSTEP'   ! ifield
 
-      include '3DS'
+      include 'F3D'
 
 
       integer nxyz,ntot1
@@ -64,41 +64,41 @@
       nxyz = lx1*ly1*lz1
       ntot1 = nxyz*nelv
 
-      if (.not.if3d_3ds) then
-        call rzero(bfz_3ds,ntot1)    
+      if (.not.iff3d) then
+        call rzero(bfz_f3d,ntot1)    
         return
       endif
 
 
 !     Build user defined forcing for uz
-      call makeuf_3ds
+      call makeuf_f3d
 
       if3d = .true.
 !      if (filterType.eq.2) call make_hpf
 !     hpf field stored in ta3
-!      call xaddcol3(bfz_3ds,ta3,bm1,ntot1)
+!      call xaddcol3(bfz_f3d,ta3,bm1,ntot1)
       if3d = .false. 
 
 !     Put vx,vy,vz on Dealiased grid (rst form)
 !     Standard nek routine. Don't need to change anything (yet) 
 !      call set_convect_new(vxd,vyd,vzd,vx,vy,vz)
-      call advab_3ds
+      call advab_f3d
 
 !     Just leaving it here but we don't need this.
 !      call admeshv      ! subroutine not defined yet
 
-      if (iftran) call makeabf_3ds
+      if (iftran) call makeabf_f3d
 
       if ((iftran.and..not.ifchar).or.
-     $    (iftran.and..not.ifnav.and.ifchar)) call makebdf_3ds
+     $    (iftran.and..not.ifnav.and.ifchar)) call makebdf_f3d
 
 
       return
-      end subroutine makef_3ds
+      end subroutine makef_f3d
 
 !----------------------------------------------------------------------
 
-      subroutine makeuf_3ds
+      subroutine makeuf_f3d
 
 !     Compute and add: (1) user specified forcing function (FX,FY,FZ)
 
@@ -111,7 +111,7 @@
       include 'PARALLEL'
       include 'NEKUSE'
 
-      include '3DS'
+      include 'F3D'
 
       real ta1,ta2,ta3
       common /scruz/ ta1 (lx1,ly1,lz1,lelv)
@@ -124,7 +124,7 @@
       ntot1 = lx1*ly1*lz1*nelv
 
       time = time-dt
-      call rzero(bfz_3ds,ntot1)
+      call rzero(bfz_f3d,ntot1)
 
       do 100 iel=1,nelv
          ielg = lglel(iel)
@@ -133,17 +133,17 @@
          do 100 i=1,lx1
             call nekasgn (i,j,k,iel)
             call userf   (i,j,k,ielg)
-            bfz_3ds(i,j,k,iel) = ffz
+            bfz_f3d(i,j,k,iel) = ffz
  100  continue
 
-      call col2  (bfz_3ds,bm1,ntot1)
+      call col2  (bfz_f3d,bm1,ntot1)
       time = time+dt
 
       return
-      end subroutine makeuf_3ds
+      end subroutine makeuf_f3d
 
 !----------------------------------------------------------------------
-      subroutine advab_3ds
+      subroutine advab_f3d
 
 !     Eulerian scheme, add convection term to forcing function 
 !     at current time step.
@@ -155,7 +155,7 @@
       include 'MASS'
       include 'TSTEP'
 
-      include '3DS'
+      include 'F3D'
 
       include 'TEST'
 
@@ -171,17 +171,17 @@
 !      call setup_convect(2)
 
       call convop  (ta3,ta1)
-      call subcol3 (bfz_3ds,ta3,bm1,ntot1)
+      call subcol3 (bfz_f3d,ta3,bm1,ntot1)
 
 !     prabal
 !      call copy(tmp3,ta3,ntot1)
 
 
       return
-      end subroutine advab_3ds
+      end subroutine advab_f3d
 c-----------------------------------------------------------------------
 
-      subroutine makeabf_3ds
+      subroutine makeabf_f3d
 !
 !     Eulerian scheme, add convection term to forcing function 
 !     at current time step.
@@ -194,7 +194,7 @@ c-----------------------------------------------------------------------
       include 'TSTEP'
       include 'INPUT'
 
-      include '3DS'
+      include 'F3D'
 
 
       real ta1,ta2,ta3
@@ -214,14 +214,14 @@ c-----------------------------------------------------------------------
       call add3s2 (ta3,abz1,abz2,ab1,ab2,ntot1)
       call copy   (abz2,abz1,ntot1)
       call copy   (abz1,bfz,ntot1)
-      call add2s1 (bfz_3ds,ta3,ab0,ntot1)
-      if (.not.iflomach) call col2 (bfz_3ds,vtrans,ntot1)
+      call add2s1 (bfz_f3d,ta3,ab0,ntot1)
+      if (.not.iflomach) call col2 (bfz_f3d,vtrans,ntot1)
 
       return
-      end subroutine makeabf_3ds
+      end subroutine makeabf_f3d
 
 !-----------------------------------------------------------------------
-      subroutine makebdf_3ds
+      subroutine makebdf_f3d
 
 !     Add contributions to F from lagged BD terms.
 
@@ -234,7 +234,7 @@ c-----------------------------------------------------------------------
       include 'INPUT'
       include 'TSTEP'
 
-      include '3DS'
+      include 'F3D'
 
       real ta1,ta2,ta3,tb1,tb2,tb3,h2
       common /scrns/ ta1(lx1,ly1,lz1,lelv)
@@ -273,13 +273,13 @@ c-----------------------------------------------------------------------
          endif
          call add2 (tb3,ta3,ntot1)
  100  continue
-      call xaddcol3(bfz_3ds,tb3,h2,ntot1)     
+      call xaddcol3(bfz_f3d,tb3,h2,ntot1)     
 
       return
-      end subroutine makebdf_3ds
+      end subroutine makebdf_f3d
 !-----------------------------------------------------------------------
 
-      subroutine lagvel_3ds
+      subroutine lagvel_f3d
 
 !     Keep old velocity field(s)
 
@@ -301,9 +301,9 @@ c-----------------------------------------------------------------------
       call copy (vzlag,vz,ntot1)
 
       return
-      end subroutine lagvel_3ds
+      end subroutine lagvel_f3d
 !----------------------------------------------------------------------
-      subroutine ophx_3ds (out1,out2,out3,inp1,inp2,inp3,h1,h2)
+      subroutine ophx_f3d (out1,out2,out3,inp1,inp2,inp3,h1,h2)
 
 !     OUT = (H1*A+H2*B) * INP  
 
@@ -313,7 +313,7 @@ c-----------------------------------------------------------------------
       include 'INPUT'
       include 'SOLN'
 
-      include '3DS'
+      include 'F3D'
 
 
       real out1 (lx1,ly1,lz1,1)
@@ -343,9 +343,9 @@ c-----------------------------------------------------------------------
       endif
 
       return
-      end subroutine ophx_3ds
+      end subroutine ophx_f3d
 !-----------------------------------------------------------------------
-      subroutine cresvif_3ds (resv1,resv2,resv3,h1,h2)
+      subroutine cresvif_f3d (resv1,resv2,resv3,h1,h2)
 
 !     Compute startresidual/right-hand-side in the velocity solver
 
@@ -356,7 +356,7 @@ c-----------------------------------------------------------------------
 
 !      include 'TOTAL'
 
-      include '3DS'
+      include 'F3D'
 
       real           resv1 (lx1,ly1,lz1,1)
       real           resv2 (lx1,ly1,lz1,1)
@@ -394,7 +394,7 @@ c-----------------------------------------------------------------------
 
 !     prabal
 !     for 3d solve
-      if (igeom.eq.2) call lagvel_3ds
+      if (igeom.eq.2) call lagvel_f3d
 
 !     prabal
 !      call opzero(vx,vy,vz)   ! zero out velocity field
@@ -414,19 +414,19 @@ c-----------------------------------------------------------------------
 !      call opzero(resv1,resv2,resv3)
       call rzero(resv3,ntot1)             ! homogeneous in z
 
-      call copy(bfz,bfz_3ds,ntot1)
+      call copy(bfz,bfz_f3d,ntot1)
       call opadd2(resv1,resv2,resv3,bfx,bfy,bfz)
       call add2(resv3,bfz,ntot1)
 
 !     prabal
-      call ophx_3ds(w1,w2,w3,vx,vy,vz,h1,h2)
+      call ophx_f3d(w1,w2,w3,vx,vy,vz,h1,h2)
       call opsub2(resv1,resv2,resv3,w1,w2,w3)
       call sub2(resv3,w3,ntot1)
 
       return
-      end subroutine cresvif_3ds
+      end subroutine cresvif_f3d
 !-----------------------------------------------------------------------
-      subroutine plan3_3ds (igeom)
+      subroutine plan3_f3d (igeom)
 
 !     Compute pressure and velocity using consistent approximation spaces.     
 !     Operator splitting technique.
@@ -439,7 +439,7 @@ c-----------------------------------------------------------------------
       include 'SOLN'
       include 'TSTEP'
 
-      include '3DS'
+      include 'F3D'
 
       real resv1,resv2,resv3
       real dv1,dv2,dv3
@@ -479,7 +479,7 @@ c-----------------------------------------------------------------------
 
          call makef
 
-         call makef_3ds
+         call makef_f3d
 
       else
 
@@ -497,7 +497,7 @@ c-----------------------------------------------------------------------
 !         call opsub2  (bfx,bfy,bfz,ut4,ut5,ut6)             ! bfx - Ax
 !-------------------------------------------------- 
 
-         call cresvif_3ds (resv1,resv2,resv3,h1,h2)
+         call cresvif_f3d (resv1,resv2,resv3,h1,h2)
 
 !         debugging  
 !         call opcopy(vx,vy,vz,resv1,resv2,resv3)
@@ -536,7 +536,7 @@ c-----------------------------------------------------------------------
       endif
 
       return
-      end subroutine plan3_3ds
+      end subroutine plan3_f3d
 
 !----------------------------------------------------------------------
 

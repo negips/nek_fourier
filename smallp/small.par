@@ -58,3 +58,12 @@ residualProj = no
 #rhoCp = 1.
 #conductivity = -10000
 #residualTol = 1e-6 
+#
+
+[_F3D]
+iff3d = yes
+ifcyl_f3d = no
+k_f3d = 1.0
+
+
+

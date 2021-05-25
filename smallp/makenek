@@ -30,7 +30,14 @@ FFLAGS="-I./src_inc -g -fbacktrace"
 # auxilliary files to compile
 # NOTE: source files have to located in the same directory as makenek
 #       a makefile_usr.inc has to be provided containing the build rules 
-USR="slp.o solve_3d.o solvep_3d.o weak_lapl_cyl.o solver_3d.o"
+FRM="frame.o io_tools.o mntrlog.o mntrtmr.o rprm.o io_tools_block.o mntrlog_block.o mntrtmr_block.o rprm_block.o"
+USR="solve_f3d.o solvep_f3d.o weak_lapl_cyl.o solver_f3d.o frame_f3d.o"
+USR+=" $FRM"
+#echo $USR
+#USR="frame.o mntrlog_block.o mntrlog.o mntrtmr_block.o mntrtmr.o rprm_block.o rprm.o"
+#USR+="io_tools.o io_tools_block.o" 
+#USR+="solve_f3d.o solvep_f3d.o weak_lapl_cyl.o solver_f3d.o frame_f3d.o"
+
 
 # MPI (default 1) 
 #MPI=0

@@ -6,7 +6,7 @@
 !
 !====================================================================== 
 !-----------------------------------------------------------------------
-      subroutine initp_3ds()
+      subroutine initp_f3d()
 
       implicit none
 
@@ -14,7 +14,7 @@
       include 'INPUT'
       include 'SOLN'
 
-      include '3DS'
+      include 'F3D'
 
       integer icalld
       save icalld
@@ -23,17 +23,17 @@
       integer nxyz,ntot1
       
 
-      if3d_3ds = .true.
-      ifcyl_3ds = .true.           ! If cylindrical coordinates
+!      iff3d = .true.
+!      ifcyl_f3d = .true.           ! If cylindrical coordinates
 
-      if (.not.if3d_3ds) return
+      if (.not.iff3d) return
 
       if (nio.eq.0) then
-        write(6,*) 'Initializing IF3Ds', if3d_3ds
+        write(6,*) 'Initializing IF3Ds', iff3d
       endif
 
 
-      if (if3d_3ds.and.npert.ne.2) then
+      if (iff3d.and.npert.ne.2) then
         write(6,'(A7,1x,I2)') 'NPERT =', npert
         write(6,*) 'Need both real and imaginary parts'
         write(6,*) 'Ensure NPERT = 2 for 3D perturbation solve'
@@ -43,9 +43,9 @@
       nxyz  = lx1*ly1*lz1
       ntot1 = nxyz*nelv
 
-      k_3dsp = 4.0            ! wavenumber 
+!      k_f3d = 4.0            ! wavenumber 
      
-      call init_pertfld_3ds() 
+      call init_pertfld_f3d() 
 
 !     Need to initialize some variables
 !     V3MASK
@@ -54,17 +54,17 @@
 !     Velocities can be initialized from useric. 
 
       if (nio.eq.0) then
-        write(6,*) 'IF3DS: Wavenumber=',k_3dsp
-        write(6,*) 'Initializion done. IF3DS,IFCYL_3DS',if3d_3ds,
-     $            ifcyl_3ds  
+        write(6,*) 'IFF3D: Wavenumber=',k_f3d
+        write(6,*) 'Initializion done. IFF3D,IFCYL_F3D',iff3d,
+     $            ifcyl_f3d  
        
       endif
 
       return
-      end subroutine initp_3ds
+      end subroutine initp_f3d
 !----------------------------------------------------------------------
 
-      subroutine fluidp_3ds (igeom)
+      subroutine fluidp_f3d (igeom)
 
 !     Driver for perturbation velocity
 
@@ -75,7 +75,7 @@
       include 'TSTEP'
       include 'SOLN'
 
-      include '3DS'
+      include 'F3D'
 
       include 'TEST'          ! test arrays
 
@@ -83,7 +83,7 @@
       integer jp0,jp2
       integer i,j
 
-!      if (ifcyl_3ds) then
+!      if (ifcyl_f3d) then
         call fluidp_cyl(igeom)
         return
 !      endif  
@@ -98,7 +98,7 @@
           if (nio.eq.0.and.igeom.eq.2) write(6,1) istep,time,jp
    1      format(i9,1pe14.7,' Perturbation Solve (Momentum):',i5)
 
-          call perturbv_mom_3ds(igeom)
+          call perturbv_mom_f3d(igeom)
 
         enddo
 
@@ -107,12 +107,12 @@
         if (nio.eq.0.and.igeom.eq.2) write(6,2) istep,time,jp
    2    format(i9,1pe14.7,' Perturbation Solve (Pressure):',i5)
 
-        call incomprp_3ds(igeom) 
+        call incomprp_f3d(igeom) 
       
 !       Pressure/Velocity Correction            
         do j = 1,npert,2
           jp = jp0 + j    
-          call velpr_update_3ds(igeom)
+          call velpr_update_f3d(igeom)
         enddo
       enddo ! i=1,jp2
 
@@ -120,7 +120,7 @@
       jp=0   ! set jp to zero, for baseline flow
 
       return
-      end subroutine fluidp_3ds
+      end subroutine fluidp_f3d
 !-----------------------------------------------------------------------
       subroutine fluidp_cyl (igeom)
 
@@ -134,7 +134,7 @@
       include 'TSTEP'
       include 'SOLN'
 
-      include '3DS'
+      include 'F3D'
 
       include 'TEST'
 
@@ -173,7 +173,7 @@
 
 !         Pressure/Velocity Correction            
           jp = jp0+1
-          call velpr_update_3ds(igeom)
+          call velpr_update_f3d(igeom)
 
 !          call rzero(prp(1,jp0+2),lx2*ly2*lz2*nelv)
 
@@ -187,7 +187,7 @@
       return
       end subroutine fluidp_cyl
 !-----------------------------------------------------------------------
-      subroutine perturbv_mom_3ds (igeom)
+      subroutine perturbv_mom_f3d (igeom)
 
       implicit none
 
@@ -227,19 +227,19 @@
 
 !        Old geometry, old velocity
 
-         call makefp_3ds
-         call lagfieldp_3ds
+         call makefp_f3d
+         call lagfieldp_f3d
 
 !        Add third component of convective term   
-!         call advab_w_3ds   
+!         call advab_w_f3d   
 
       else
 c
 c        New geometry, new velocity
 c
          intype = -1
-         call sethlm_3dsp(h1,h2,intype)
-         call cresvipp_3ds(resv1,resv2,resv3,h1,h2)
+         call sethlm_f3dp(h1,h2,intype)
+         call cresvipp_f3d(resv1,resv2,resv3,h1,h2)
 
          if3d = .true.   
          call ophinv   (dv1,dv2,dv3,resv1,resv2,resv3,h1,h2,tolhv,nmxv)
@@ -252,7 +252,7 @@ c
       endif
 
       return
-      end subroutine perturbv_mom_3ds
+      end subroutine perturbv_mom_f3d
 !-----------------------------------------------------------------------
 
       subroutine buildrhs_cyl (igeom)
@@ -280,8 +280,8 @@ c
 
 !        Old geometry, old velocity
 
-         call makefp_3ds
-         call lagfieldp_3ds
+         call makefp_f3d
+         call lagfieldp_f3d
 
       endif
 
@@ -352,7 +352,7 @@ c
         ntot1 = lx1*ly1*lz1*nelv
 
         intype = -1
-        call sethlm_3dsp(h1,h2,intype)
+        call sethlm_f3dp(h1,h2,intype)
         call cresvipp_cyl(resv1r,resv2r,resv3r,
      $                    resv1i,resv2i,resv3i,h1,h2)
 
@@ -377,7 +377,7 @@ c
       end subroutine solvemom_cyl
 !-----------------------------------------------------------------------
 
-      subroutine init_pertfld_3ds
+      subroutine init_pertfld_f3d
 
       implicit none
 
@@ -407,9 +407,9 @@ c
       ifield = ifld
 
       return
-      end subroutine init_pertfld_3ds
+      end subroutine init_pertfld_f3d
 !----------------------------------------------------------------------
-      subroutine makefp_3ds
+      subroutine makefp_f3d
 
       implicit none
 
@@ -419,7 +419,7 @@ c
       include 'MASS'
       include 'TSTEP'   ! ifield
 
-      include '3DS'
+      include 'F3D'
 
 
       integer nxyz,ntot1
@@ -434,26 +434,26 @@ c
       ntot1 = nxyz*nelv
 
 !     Build user defined forcing
-      call makeufp_3ds
+      call makeufp_f3d
       if (filterType.eq.2) call make_hpf
-      if (ifcyl_3ds) then
-        call advabp_cyl_3ds
+      if (ifcyl_f3d) then
+        call advabp_cyl_f3d
       else
-        call advabp_3ds
+        call advabp_f3d
       endif
 
-!      if (ifnav.and.(.not.ifchar).and.(ifadj)) call advabp_adjoint_3dsp
+!      if (ifnav.and.(.not.ifchar).and.(ifadj)) call advabp_adjoint_f3dp
 
-      if (iftran) call makextp_3ds
-      call makebdfp_3ds
+      if (iftran) call makextp_f3d
+      call makebdfp_f3d
 
 
       return
-      end subroutine makefp_3ds
+      end subroutine makefp_f3d
 
 !----------------------------------------------------------------------
 
-      subroutine makeufp_3ds
+      subroutine makeufp_f3d
 
 !     Compute and add: (1) user specified forcing function (FX,FY,FZ)
 
@@ -466,7 +466,7 @@ c
       include 'PARALLEL'
       include 'NEKUSE'
 
-      include '3DS'
+      include 'F3D'
 
       real ta1,ta2,ta3
       common /scruz/ ta1 (lx1,ly1,lz1,lelv)
@@ -506,10 +506,10 @@ c
       time = time+dt
 
       return
-      end subroutine makeufp_3ds
+      end subroutine makeufp_f3d
 
 !-----------------------------------------------------------------------
-      subroutine advabp_3ds
+      subroutine advabp_f3d
 
 !     Eulerian scheme, add convection term to forcing function
 !     at current time step.
@@ -522,7 +522,7 @@ c
       include 'MASS'
       include 'TSTEP'
 
-      include '3DS'
+      include 'F3D'
 
       real ta1,ta2,ta3
       real tb1,tb2,tb3
@@ -539,7 +539,7 @@ c
 
       ntot1 = lx1*ly1*lz1*nelv
 
-      if (if3d.or.if3d_3ds) then
+      if (if3d.or.iff3d) then
          call copy  (tb1,vx,ntot1)                   ! Save velocity
          call copy  (tb2,vy,ntot1)                   ! Save velocity
          call copy  (tb3,vz,ntot1)                   ! Save velocity
@@ -579,24 +579,24 @@ c
 !        Add z convection for all components
 !        Assuming dU/dz, dV/dz, dW/dz = 0 of course
          if (mod(jp,2).eq.1) then
-            call convect_w_3ds(ta1,vxp(1,jp+1),vz)           
-            call convect_w_3ds(ta2,vyp(1,jp+1),vz)           
-            call convect_w_3ds(ta3,vzp(1,jp+1),vz)           
+            call convect_w_f3d(ta1,vxp(1,jp+1),vz)           
+            call convect_w_f3d(ta2,vyp(1,jp+1),vz)           
+            call convect_w_f3d(ta3,vzp(1,jp+1),vz)           
 
             do i=1,ntot1
-               tmp = -k_3dsp*bm1(i,1,1,1)*vtrans(i,1,1,1,ifield)
+               tmp = -k_f3d*bm1(i,1,1,1)*vtrans(i,1,1,1,ifield)
                bfxp(i,jp) = bfxp(i,jp)-tmp*ta1(i)
                bfyp(i,jp) = bfyp(i,jp)-tmp*ta2(i)
                bfzp(i,jp) = bfzp(i,jp)-tmp*ta3(i)
             enddo
 
          else
-            call convect_w_3ds(ta1,vxp(1,jp-1),vz)           
-            call convect_w_3ds(ta2,vyp(1,jp-1),vz)           
-            call convect_w_3ds(ta3,vzp(1,jp-1),vz)           
+            call convect_w_f3d(ta1,vxp(1,jp-1),vz)           
+            call convect_w_f3d(ta2,vyp(1,jp-1),vz)           
+            call convect_w_f3d(ta3,vzp(1,jp-1),vz)           
 
             do i=1,ntot1
-               tmp = k_3dsp*bm1(i,1,1,1)*vtrans(i,1,1,1,ifield)
+               tmp = k_f3d*bm1(i,1,1,1)*vtrans(i,1,1,1,ifield)
                bfxp(i,jp) = bfxp(i,jp)-tmp*ta1(i)
                bfyp(i,jp) = bfyp(i,jp)-tmp*ta2(i)
                bfzp(i,jp) = bfzp(i,jp)-tmp*ta3(i)
@@ -631,10 +631,10 @@ c
 
 
       return
-      end subroutine advabp_3ds
+      end subroutine advabp_f3d
 !--------------------------------------------------------------------
 
-      subroutine advabp_cyl_3ds
+      subroutine advabp_cyl_f3d
 
 !     Eulerian scheme, add convection term to forcing function
 !     at current time step.
@@ -652,7 +652,7 @@ c
       include 'TSTEP'
       include 'GEOM'
 
-      include '3DS'
+      include 'F3D'
 
       real ta1,ta2,ta3
       real tb1,tb2,tb3
@@ -676,7 +676,7 @@ c
 
       ntot1 = lx1*ly1*lz1*nelv
 
-      if (if3d.or.if3d_3ds) then
+      if (if3d.or.iff3d) then
         call copy  (tb1,vx,ntot1)                   ! Save velocity
         call copy  (tb2,vy,ntot1)                   ! Save velocity
         call copy  (tb3,vz,ntot1)                   ! Save velocity
@@ -726,30 +726,30 @@ c
 !         Real part
 
 !         x component
-          call convect_w_3ds(ta1,vxp(1,jp+1),vz)  ! U\theta*ux'_i
+          call convect_w_f3d(ta1,vxp(1,jp+1),vz)  ! U\theta*ux'_i
 
           do i=1,ntot1
-            tmp = -k_3dsp*rinv(i)*rhom(i)
+            tmp = -k_f3d*rinv(i)*rhom(i)
             bfxp(i,jp) = bfxp(i,jp)-tmp*ta1(i)
           enddo
 
 !         R component
-          call convect_w_3ds(ta1,vzp(1,jp),vz)    ! U\theta*u\theta'_r
-          call convect_w_3ds(ta2,vyp(1,jp+1),vz)  ! U\theta*uR'_i 
+          call convect_w_f3d(ta1,vzp(1,jp),vz)    ! U\theta*u\theta'_r
+          call convect_w_f3d(ta2,vyp(1,jp+1),vz)  ! U\theta*uR'_i 
           do i=1,ntot1
             tmp   = -2.*rinv(i)*rhom(i)
-            tmp2  = -k_3dsp*rinv(i)*rhom(i)
+            tmp2  = -k_f3d*rinv(i)*rhom(i)
             bfyp(i,jp) = bfyp(i,jp)-tmp*ta1(i)-tmp2*ta2(i)
           enddo
 
 !         \theta component
-          call convect_w_3ds(ta1,vyp(1,jp),vz)    ! U\theta*uR'_r
-          call convect_w_3ds(ta2,vzp(1,jp),vy)    ! UR*u\theta'_r
-          call convect_w_3ds(ta3,vzp(1,jp+1),vz)  ! U\theta*u\theta'_i
+          call convect_w_f3d(ta1,vyp(1,jp),vz)    ! U\theta*uR'_r
+          call convect_w_f3d(ta2,vzp(1,jp),vy)    ! UR*u\theta'_r
+          call convect_w_f3d(ta3,vzp(1,jp+1),vz)  ! U\theta*u\theta'_i
 
           do i=1,ntot1
             tmp   =  rinv(i)*rhom(i)
-            tmp2  = -k_3dsp*rinv(i)*rhom(i)
+            tmp2  = -k_f3d*rinv(i)*rhom(i)
             bfzp(i,jp) = bfzp(i,jp)-tmp*ta1(i)-tmp*ta2(i)-tmp2*ta3(i)
           enddo
           
@@ -757,31 +757,31 @@ c
 !         Imaginary part
 
 !         x component
-          call convect_w_3ds(ta1,vxp(1,jp-1),vz)  ! U\theta*ux'_r
+          call convect_w_f3d(ta1,vxp(1,jp-1),vz)  ! U\theta*ux'_r
 
           do i=1,ntot1
-            tmp = k_3dsp*rinv(i)*rhom(i)
+            tmp = k_f3d*rinv(i)*rhom(i)
             bfxp(i,jp) = bfxp(i,jp)-tmp*ta1(i)
           enddo
 
 !         R component
-          call convect_w_3ds(ta1,vzp(1,jp),vz)    ! U\theta*u\theta'_i
-          call convect_w_3ds(ta2,vyp(1,jp-1),vz)  ! U\theta*uR'_r
+          call convect_w_f3d(ta1,vzp(1,jp),vz)    ! U\theta*u\theta'_i
+          call convect_w_f3d(ta2,vyp(1,jp-1),vz)  ! U\theta*uR'_r
 
           do i=1,ntot1
             tmp   = -2.*rinv(i)*rhom(i)
-            tmp2  =  k_3dsp*rinv(i)*rhom(i)
+            tmp2  =  k_f3d*rinv(i)*rhom(i)
             bfyp(i,jp) = bfyp(i,jp)-tmp*ta1(i)-tmp2*ta2(i)
           enddo
 
 !         \theta component
-          call convect_w_3ds(ta1,vyp(1,jp),vz)    ! U\theta*uR'_i
-          call convect_w_3ds(ta2,vzp(1,jp),vy)    ! UR*u\theta'_i
-          call convect_w_3ds(ta3,vzp(1,jp-1),vz)  ! U\theta*u\theta'_r
+          call convect_w_f3d(ta1,vyp(1,jp),vz)    ! U\theta*uR'_i
+          call convect_w_f3d(ta2,vzp(1,jp),vy)    ! UR*u\theta'_i
+          call convect_w_f3d(ta3,vzp(1,jp-1),vz)  ! U\theta*u\theta'_r
 
           do i=1,ntot1
             tmp   =  rinv(i)*rhom(i)
-            tmp2  =  k_3dsp*rinv(i)*rhom(i)
+            tmp2  =  k_f3d*rinv(i)*rhom(i)
             bfzp(i,jp) = bfzp(i,jp)-tmp*ta1(i)-tmp*ta2(i)-tmp2*ta3(i)
           enddo
 
@@ -810,14 +810,14 @@ c
           bfyp(i,jp) = bfyp(i,jp)-tmp*ta2(i)
         enddo
 
-      endif       ! if3d .or. if3d_3ds
+      endif       ! if3d .or. iff3d
 
 
       return
-      end subroutine advabp_cyl_3ds
+      end subroutine advabp_cyl_f3d
 !--------------------------------------------------------------------
 
-      subroutine makextp_3ds
+      subroutine makextp_f3d
 
 !     Add extrapolation terms to perturbation source terms
 
@@ -829,7 +829,7 @@ c
       include 'MASS'
       include 'TSTEP'
 
-      include '3DS'
+      include 'F3D'
 
       common /scrns/ ta1 (lx1,ly1,lz1,lelv)
      $ ,             ta2 (lx1,ly1,lz1,lelv)
@@ -848,7 +848,7 @@ c
       call copy   (exy1p(1,jp),bfyp (1,jp),ntot1)
       call add2s1 (bfxp(1,jp),ta1,ab0,ntot1)
       call add2s1 (bfyp(1,jp),ta2,ab0,ntot1)
-      if (if3d.or.if3d_3ds) then
+      if (if3d.or.iff3d) then
          call add3s2 (ta3,exz1p(1,jp),exz2p(1,jp),ab1,ab2,ntot1)
          call copy   (exz2p(1,jp),exz1p(1,jp),ntot1)
          call copy   (exz1p(1,jp),bfzp (1,jp),ntot1)
@@ -856,10 +856,10 @@ c
       endif
 c
       return
-      end subroutine makextp_3ds
+      end subroutine makextp_f3d
 !-----------------------------------------------------------------------
 
-      subroutine makebdfp_3ds
+      subroutine makebdfp_f3d
 
 !     Add contributions to perturbation source from lagged BD terms.
 
@@ -872,7 +872,7 @@ c
       include 'INPUT'
       include 'TSTEP'
 
-      include '3DS'
+      include 'F3D'
 
       real ta1,ta2,ta3,tb1,tb2,tb3,h2
       common /scrns/ ta1(lx1,ly1,lz1,lelv)
@@ -895,7 +895,7 @@ c
       call opcolv3c (tb1,tb2,tb3
      $              ,vxp(1,jp),vyp(1,jp),vzp(1,jp),bm1,bd(2))
 
-      if (if3d_3ds) then
+      if (iff3d) then
         call col3(tb3,vzp(1,jp),bm1,ntot1)
         call cmult(tb3,bd(2),ntot1)
       endif
@@ -918,7 +918,7 @@ c
       call opadd2col (bfxp(1,jp),bfyp(1,jp),bfzp(1,jp),tb1,tb2,tb3,h2)
 
 !     Add contribution of lag terms to vzp
-      if (if3d_3ds) then
+      if (iff3d) then
         do ilag=2,nbd
            if (ifgeom) then
               call col3(ta3,vzlagp(1,ilag-1,jp),bm1lag(1,1,1,1,ilag-1),
@@ -931,14 +931,14 @@ c
            call add2(tb3,ta3,ntot1)
         enddo
         call add2col2(bfzp(1,jp),tb3,h2,ntot1)
-      endif       ! if3d_3ds
+      endif       ! iff3d
 
 
       return
-      end subroutine makebdfp_3ds
+      end subroutine makebdfp_f3d
 !-----------------------------------------------------------------------
 
-      subroutine lagfieldp_3ds
+      subroutine lagfieldp_f3d
 
 !     Keep old velocity field(s)
 
@@ -949,7 +949,7 @@ c
       include 'SOLN'
       include 'TSTEP'
 
-      include '3DS'
+      include 'F3D'
 
       integer ilag,ntot1
 
@@ -963,8 +963,8 @@ c
       call opcopy(vxlagp(1,1,jp),vylagp(1,1,jp),vzlagp(1,1,jp)
      $           ,vxp   (1,jp)  ,vyp   (1,jp)  ,vzp   (1,jp) )
 
-!     if3d_3ds
-      if (if3d_3ds) then
+!     iff3d
+      if (iff3d) then
         do ilag=nbdinp-1,2,-1
           call copy(vzlagp(1,ilag,jp),vzlagp(1,ilag-1,jp),ntot1)
         enddo
@@ -973,9 +973,9 @@ c
 
 
       return
-      end subroutine lagfieldp_3ds
+      end subroutine lagfieldp_f3d
 !----------------------------------------------------------------------
-      subroutine ophx_3ds (out1,out2,out3,inp1,inp2,inp3,h1,h2)
+      subroutine ophx_f3d (out1,out2,out3,inp1,inp2,inp3,h1,h2)
 
 !     OUT = (H1*A+H2*B) * INP  
 
@@ -985,7 +985,7 @@ c
       include 'INPUT'
       include 'SOLN'
 
-      include '3DS'
+      include 'F3D'
 
 
       real out1 (lx1,ly1,lz1,1)
@@ -1015,9 +1015,9 @@ c
       endif
 
       return
-      end subroutine ophx_3ds
+      end subroutine ophx_f3d
 !-----------------------------------------------------------------------
-      subroutine cresvipp_3ds (resv1,resv2,resv3,h1,h2)
+      subroutine cresvipp_f3d (resv1,resv2,resv3,h1,h2)
 
 !     Compute startresidual/right-hand-side in the velocity solver
 
@@ -1028,7 +1028,7 @@ c
       include 'SOLN'    ! v?mask
       include 'MASS'    ! bm1
 
-      include '3DS'
+      include 'F3D'
 
       real           resv1 (lx1,ly1,lz1,lelv)
       real           resv2 (lx1,ly1,lz1,lelv)
@@ -1065,30 +1065,30 @@ c
 !       Real part              
 
 !       Need to Extrapolate both pressures at the same time    
-        call extrapprp (prextr_3ds(1,1))
-        call opgradt (resv1,resv2,resv3,prextr_3ds(1,1))
+        call extrapprp (prextr_f3d(1,1))
+        call opgradt (resv1,resv2,resv3,prextr_f3d(1,1))
 
 
         jp = jp + 1
-        call extrapprp (prextr_3ds(1,2))
+        call extrapprp (prextr_f3d(1,2))
         jp = jp - 1
 
-        call map21_all_3ds(resv3,prextr_3ds(1,2))
-        const = k_3dsp
+        call map21_all_f3d(resv3,prextr_f3d(1,2))
+        const = k_f3d
         call cmult(resv3,const,ntot1)
         call col2(resv3,bm1,ntot1)
       else
 !       Imaginary part
 
-        call extrapprp (prextr_3ds(1,2))
-        call opgradt (resv1,resv2,resv3,prextr_3ds(1,2))
+        call extrapprp (prextr_f3d(1,2))
+        call opgradt (resv1,resv2,resv3,prextr_f3d(1,2))
 
         jp = jp - 1
-        call extrapprp (prextr_3ds(1,1))
+        call extrapprp (prextr_f3d(1,1))
         jp = jp + 1
 
-        call map21_all_3ds(resv3,prextr_3ds(1,1))
-        const = -k_3dsp
+        call map21_all_f3d(resv3,prextr_f3d(1,1))
+        const = -k_f3d
         call cmult(resv3,const,ntot1)
         call col2(resv3,bm1,ntot1)
       endif    
@@ -1098,14 +1098,14 @@ c
       call add2(resv3,bfzp(1,jp),ntot1)
 
 !     prabal
-      call ophx_3ds(w1,w2,w3,vxp(1,jp),vyp(1,jp),
+      call ophx_f3d(w1,w2,w3,vxp(1,jp),vyp(1,jp),
      $              vzp(1,jp),h1,h2)
       call sub2(resv1,w1,ntot1)
       call sub2(resv2,w2,ntot1)
       call sub2(resv3,w3,ntot1)
 
       return
-      end subroutine cresvipp_3ds
+      end subroutine cresvipp_f3d
 !-----------------------------------------------------------------------
 
       subroutine cresvipp_cyl (resv1r,resv2r,resv3r,
@@ -1120,7 +1120,7 @@ c
       include 'SOLN'    ! v?mask
       include 'MASS'    ! bm1
 
-      include '3DS'
+      include 'F3D'
 
       include 'TEST'
 
@@ -1185,16 +1185,16 @@ c
 !     Real part              
 !     Need to Extrapolate both pressures at the same time
       jp = jpr 
-      call extrapprp (prextr_3ds(1,1))
+      call extrapprp (prextr_f3d(1,1))
       jp = jpi
-      call extrapprp (prextr_3ds(1,2))
+      call extrapprp (prextr_f3d(1,2))
       jp = jpr
 
-!      call opgradt (resv1r,resv2r,resv3r,prextr_3ds(1,1))
+!      call opgradt (resv1r,resv2r,resv3r,prextr_f3d(1,1))
 !
 !!     Map to velocity grid
-!      call map21_all_3ds(resv3r,prextr_3ds(1,2))
-!      const = k_3dsp
+!      call map21_all_f3d(resv3r,prextr_f3d(1,2))
+!      const = k_f3d
 !      call cmult(resv3r,const,ntot1)
 !      call col2(resv3r,bm1,ntot1)
 !
@@ -1203,11 +1203,11 @@ c
 !      call add2(resv3r,bfzp(1,jpr),ntot1)
 
 !!     Imaginary part
-!      call opgradt (resv1i,resv2i,resv3i,prextr_3ds(1,2))
+!      call opgradt (resv1i,resv2i,resv3i,prextr_f3d(1,2))
 !
 !!     Map to velocity grid
-!      call map21_all_3ds(resv3i,prextr_3ds(1,1))
-!      const = -k_3dsp
+!      call map21_all_f3d(resv3i,prextr_f3d(1,1))
+!      const = -k_f3d
 !      call cmult(resv3i,const,ntot1)
 !      call col2(resv3i,bm1,ntot1)
 !
@@ -1217,9 +1217,9 @@ c
 
 
 !     Note: theta gradient goes to imaginary part      
-      call opgradt_3ds(resv1r,resv2r,resv3i,prextr_3ds(1,1))
+      call opgradt_f3d(resv1r,resv2r,resv3i,prextr_f3d(1,1))
 !     Note: theta gradient goes to real part 
-      call opgradt_3ds(resv1i,resv2i,resv3r,prextr_3ds(1,2))
+      call opgradt_f3d(resv1i,resv2i,resv3r,prextr_f3d(1,2))
       call chsign(resv3r,ntot1)     ! i*i = -1
 
 !     Real      
@@ -1258,7 +1258,7 @@ c
       end subroutine cresvipp_cyl
 !-----------------------------------------------------------------------
 
-      subroutine sethlm_3dsp(h1,h2,intype)
+      subroutine sethlm_f3dp(h1,h2,intype)
 
       implicit none
 
@@ -1272,7 +1272,7 @@ c     INTYPE =      integration type
       include 'SOLN' 
       include 'TSTEP'   ! ifield
 
-      include '3DS'
+      include 'F3D'
 
       real h1(1),h2(1)
 
@@ -1290,7 +1290,7 @@ c     INTYPE =      integration type
       nel   = nelfld(ifield)
       ntot1 = lx1*ly1*lz1*nel
 
-      k2    = k_3dsp**2
+      k2    = k_f3d**2
 
       if (iftran) then
          dtbd = bd(1)/dt
@@ -1300,7 +1300,7 @@ c     INTYPE =      integration type
          else
             call cmult2(h2,vtrans(1,1,1,1,ifield),dtbd,ntot1)
 
-            if (.not.ifcyl_3ds) then
+            if (.not.ifcyl_f3d) then
 !             Add second derivative of the 3rd direction to the operator
               call add2s2(h2,vdiff(1,1,1,1,ifield),k2,ntot1)
             endif  
@@ -1309,7 +1309,7 @@ c     INTYPE =      integration type
          call copy  (h1,vdiff (1,1,1,1,ifield),ntot1)
          call rzero (h2,ntot1)
 
-         if (.not.ifcyl_3ds) then
+         if (.not.ifcyl_f3d) then
 !          Add second derivative of the 3rd direction to the operator
            call add2s2(h2,vdiff(1,1,1,1,ifield),k2,ntot1)
          endif  
@@ -1317,10 +1317,10 @@ c     INTYPE =      integration type
 
 
       return
-      end subroutine sethlm_3dsp
+      end subroutine sethlm_f3dp
 
 !----------------------------------------------------------------------
-      subroutine incomprp_3ds (igeom)
+      subroutine incomprp_f3d (igeom)
 c
 c     Project U onto the closest incompressible field
 c
@@ -1339,7 +1339,7 @@ c
       include 'TSTEP'         ! dt,ifield
       include 'CTIMER'
 
-      include '3DS'
+      include 'F3D'
 
       real w1,w2,w3
       real dv1,dv2,dv3,dp
@@ -1386,22 +1386,22 @@ c
       call cmult2  (h2,vtrans(1,1,1,1,ifield),dtbd,ntot1)
       call invers2 (h2inv,h2,ntot1)
 
-      call opdiv   (prcorr_3ds(1,jpi),vxp(1,jp),vyp(1,jp),vzp(1,jp))
+      call opdiv   (prcorr_f3d(1,jpi),vxp(1,jp),vyp(1,jp),vzp(1,jp))
 
       if (jpi.eq.1) then
-        call map12_all_3ds(dp2,vzp(1,jpi+1))
-        const = -k_3dsp
+        call map12_all_f3d(dp2,vzp(1,jpi+1))
+        const = -k_f3d
       else
-        call map12_all_3ds(dp2,vzp(1,jpi-1))
-        const =  k_3dsp
+        call map12_all_f3d(dp2,vzp(1,jpi-1))
+        const =  k_f3d
       endif
 
       call cmult(dp2,const,ntot2)
 
-!      call add2s2(prcorr_3ds(1,jpi),dp2,const,ntot2)
+!      call add2s2(prcorr_f3d(1,jpi),dp2,const,ntot2)
 
-      call chsign  (prcorr_3ds(1,jpi),ntot2)
-      call ortho   (prcorr_3ds(1,jpi))
+      call chsign  (prcorr_f3d(1,jpi),ntot2)
+      call ortho   (prcorr_f3d(1,jpi))
 
 
       ifprjp=.false.    ! project out previous pressure solutions?
@@ -1415,11 +1415,11 @@ c
                               ! Need to modify cdabdtp accordingly
                               ! Also need to modify uzprec
 
-      call esolver (prcorr_3ds(1,jpi),h1,h2,h2inv,intype)
+      call esolver (prcorr_f3d(1,jpi),h1,h2,h2inv,intype)
 
 
       return
-      end subroutine incomprp_3ds
+      end subroutine incomprp_f3d
 !------------------------------------------------------------------------
 
       subroutine incomprp_cyl (igeom)
@@ -1443,7 +1443,7 @@ c
       include 'GEOM'          ! YM1,YM2
       include 'MASS'
 
-      include '3DS'
+      include 'F3D'
 
       include 'TEST'
 
@@ -1502,16 +1502,16 @@ c
 
 !     Note, we take imaginary part of vzp
       call cmult2(wk1,vzp(1,jpi),-1.0,ntot1)
-      call opdiv_3ds(prcorr_3ds(1,1),vxp(1,jpr),vyp(1,jpr),wk1)
-      call chsign(prcorr_3ds(1,1),ntot2)
-      call ortho (prcorr_3ds(1,1))
+      call opdiv_f3d(prcorr_f3d(1,1),vxp(1,jpr),vyp(1,jpr),wk1)
+      call chsign(prcorr_f3d(1,1),ntot2)
+      call ortho (prcorr_f3d(1,1))
 
 !!     Imaginary part      
 !     Note, we take real part of vzp
       call cmult2(wk1,vzp(1,jpr),1.0,ntot1)
-      call opdiv_3ds(prcorr_3ds(1,2),vxp(1,jpi),vyp(1,jpi),wk1)
-      call chsign(prcorr_3ds(1,2),ntot2)
-      call ortho (prcorr_3ds(1,2))
+      call opdiv_f3d(prcorr_f3d(1,2),vxp(1,jpi),vyp(1,jpi),wk1)
+      call chsign(prcorr_f3d(1,2),ntot2)
+      call ortho (prcorr_f3d(1,2))
 
       ifprjp=.false.    ! project out previous pressure solutions?
       istart=param(95)  
@@ -1525,12 +1525,12 @@ c
                               ! Also need to modify uzprec
 
       if (nio.eq.0.and.igeom.eq.2) write(6,3) istep,time,jpr
-      call esolver (prcorr_3ds(1,1),h1,h2,h2inv,intype)
+      call esolver (prcorr_f3d(1,1),h1,h2,h2inv,intype)
  
       if (nio.eq.0.and.igeom.eq.2) write(6,3) istep,time,jpi
-      call esolver (prcorr_3ds(1,2),h1,h2,h2inv,intype)
+      call esolver (prcorr_f3d(1,2),h1,h2,h2inv,intype)
 
-!      call esolver_3ds(prcorr_3ds(1,1),prcorr_3ds(1,2),
+!      call esolver_f3d(prcorr_f3d(1,1),prcorr_f3d(1,2),
 !     $                 h1,h2,h2inv,intype)
 
 
@@ -1539,7 +1539,7 @@ c
       return
       end subroutine incomprp_cyl
 !------------------------------------------------------------------------
-      subroutine velpr_update_3ds (igeom)
+      subroutine velpr_update_f3d (igeom)
 
 !     Update Pressure and velocities based on pressure correction
 
@@ -1554,7 +1554,7 @@ c
       include 'CTIMER'
       include 'GEOM'          ! YM1
 
-      include '3DS'
+      include 'F3D'
 
       include 'TEST'
 
@@ -1605,18 +1605,18 @@ c
 !!    Update Pressure
       jp = jpr
       call lagpresp
-      call add3(prp(1,jpr),prextr_3ds(1,1),prcorr_3ds(1,1),ntot2)
+      call add3(prp(1,jpr),prextr_f3d(1,1),prcorr_f3d(1,1),ntot2)
 
       jp = jpi
       call lagpresp
-      call add3(prp(1,jpi),prextr_3ds(1,2),prcorr_3ds(1,2),ntot2)
+      call add3(prp(1,jpi),prextr_f3d(1,2),prcorr_f3d(1,2),ntot2)
 
       jp = jpr
 
-      call opgradt_3ds(w1,w2,w3,prcorr_3ds(1,1))
+      call opgradt_f3d(w1,w2,w3,prcorr_f3d(1,1))
 
       if3d = .true.
-      call opbinv_3ds(dv1,dv2,dv3,w1,w2,w3,h2inv)
+      call opbinv_f3d(dv1,dv2,dv3,w1,w2,w3,h2inv)
       if3d = .false.
 
       call add2(vxp(1,jpr),dv1,ntot1)
@@ -1625,10 +1625,10 @@ c
       call add2(vzp(1,jpi),dv3,ntot1)           ! Imaginary part gets
                                                 ! updated here
 
-      call opgradt_3ds(w1,w2,w3,prcorr_3ds(1,2))
+      call opgradt_f3d(w1,w2,w3,prcorr_f3d(1,2))
 
       if3d = .true.
-      call opbinv_3ds(dv1,dv2,dv3,w1 ,w2 ,w3 ,h2inv)
+      call opbinv_f3d(dv1,dv2,dv3,w1 ,w2 ,w3 ,h2inv)
       if3d = .false.
 
       call add2(vxp(1,jpi),dv1,ntot1)
@@ -1640,9 +1640,9 @@ c
 
                                           
       return
-      end subroutine velpr_update_3ds
+      end subroutine velpr_update_f3d
 !------------------------------------------------------------------------
-      subroutine map12_all_3ds(pm2,pm1)
+      subroutine map12_all_f3d(pm2,pm1)
 
       implicit none
 
@@ -1657,10 +1657,10 @@ c
       enddo
    
       return
-      end subroutine map12_all_3ds
+      end subroutine map12_all_f3d
 !-----------------------------------------------------------------------
 
-      subroutine map21_all_3ds (y,x)
+      subroutine map21_all_f3d (y,x)
 
 !     Map X from mesh M2 to mesh M1 (Y)
       
@@ -1678,11 +1678,11 @@ c
       enddo
 
       return
-      end subroutine map21_all_3ds
+      end subroutine map21_all_f3d
 
 !-----------------------------------------------------------------------
 
-      subroutine opbinv_3ds (out1,out2,out3,inp1,inp2,inp3,h2inv)
+      subroutine opbinv_f3d (out1,out2,out3,inp1,inp2,inp3,h2inv)
 
 !     Compute OUT = (H2*B)-1 * INP   (explicit)
 
@@ -1694,7 +1694,7 @@ c
       include 'MASS'
       include 'SOLN'
 
-      include '3DS'     ! if3ds
+      include 'F3D'     ! iff3d
 
       real out1  (1)
       real out2  (1)
@@ -1739,7 +1739,7 @@ C
 
       call invcol3 (out1,bm1,h2inv,ntot)  ! this is expensive and should
       call dssum   (out1,lx1,ly1,lz1)     ! be changed (pff, 3/18/09)
-      if (if3d_3ds) then
+      if (iff3d) then
          do i=1,ntot
             tmp = 1./out1(i)
             out1(i)=inp1(i)*tmp
@@ -1755,10 +1755,10 @@ C
       endif
 
       return
-      end subroutine opbinv_3ds
+      end subroutine opbinv_f3d
 c-----------------------------------------------------------------------
 
-      subroutine convect_w_3ds(cku,u,Cz)
+      subroutine convect_w_f3d(cku,u,Cz)
 
 !     Compute dealiased form:  J^T Bf *JCz .Ju w/ correct Jacobians
 
@@ -1856,9 +1856,9 @@ c-----------------------------------------------------------------------
       enddo
 
       return
-      end subroutine convect_w_3ds
+      end subroutine convect_w_f3d
 !-----------------------------------------------------------------------
-      subroutine cdabdtp_3ds(ap,wp,h1,h2,h2inv,intype)
+      subroutine cdabdtp_f3d(ap,wp,h1,h2,h2inv,intype)
 
 !     INTYPE= 0  Compute the matrix-vector product    DA(-1)DT*p
 !     INTYPE= 1  Compute the matrix-vector product    D(B/DT)(-1)DT*p
@@ -1871,7 +1871,7 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'INPUT'         ! if3d
       include 'MASS'
-      include '3DS'
+      include 'F3D'
       include 'GEOM'          ! YM2
 
       include 'TEST'
@@ -1902,18 +1902,18 @@ c-----------------------------------------------------------------------
 
 !!     (D^T)P
 !     (pdv/dx; pdv/dR + pv/R; -kpv/R)*BM1
-       call opgradt_3ds(ta1,ta2,ta3,wp)
+       call opgradt_f3d(ta1,ta2,ta3,wp)
 
 !!    ((B*beta/dt)^-1)*(D^T)P
       if3d = .true.  ! Also do this for the third component      
-      call opbinv_3ds (tb1,tb2,tb3,ta1,ta2,ta3,h2inv)
+      call opbinv_f3d (tb1,tb2,tb3,ta1,ta2,ta3,h2inv)
       if3d = .false.
 
       call chsign(tb3,ntot1)  ! since we need i*i = -1
-      call opdiv_3ds(ap,tb1,tb2,tb3)
+      call opdiv_f3d(ap,tb1,tb2,tb3)
 
       return
-      end subroutine cdabdtp_3ds
+      end subroutine cdabdtp_f3d
 
 !-----------------------------------------------------------------------
 
@@ -2073,7 +2073,7 @@ c
       return
       end subroutine bcdirvc_cyl
 !-----------------------------------------------------------------------
-      subroutine opgradt_3ds(outx,outy,outz,inpfld)
+      subroutine opgradt_f3d(outx,outy,outz,inpfld)
 
 !     Compute DTx, DTy, DTz of an input field INPFLD
 !     INPFLD is on Pressure grid        
@@ -2084,7 +2084,7 @@ c
       include 'GEOM'
       include 'MASS'
       include 'INPUT'
-      include '3DS'
+      include 'F3D'
 
       real outx   (1)
       real outy   (1)
@@ -2109,9 +2109,9 @@ c
 
 !     Outz is used as a work array      
 !     BM1*p/R
-      if (ifcyl_3ds.and..not.ifaxis) then
+      if (ifcyl_f3d.and..not.ifaxis) then
 !        ntot1 = lx1*ly1*lz1*nelv
-!        call map21_all_3ds(outz,inpfld) 
+!        call map21_all_f3d(outz,inpfld) 
 !        call col2(outz,bm1,ntot1)
 !        call invcol2(outz,ym1,ntot1)
 !        call add2(outy,outz,ntot1)
@@ -2126,26 +2126,26 @@ c
 !     Or from the real part if the other two components are imaginary      
 !     I assume this is handled outside the routine      
 !     BM1*p*dv/dtheta = BM1*k*p*v
-!      call map21_all_3ds(outz,inpfld) 
+!      call map21_all_f3d(outz,inpfld) 
 !      call col2(outz,bm1,ntot1)            ! opgradt includes a mass matrix
-!      const = -k_3dsp
+!      const = -k_f3d
 !      call cmult(outz,const,ntot1)
-!      if (ifcyl_3ds) call invcol2(outz,ym1,ntot1)      ! 1/R 
+!      if (ifcyl_f3d) call invcol2(outz,ym1,ntot1)      ! 1/R 
 
       call copy(divv,inpfld,ntot2)
-      const = -k_3dsp
+      const = -k_f3d
       call cmult(divv,const,ntot2)
-      if (ifcyl_3ds) call invcol2(divv,ym2,ntot2)     ! 1/R
+      if (ifcyl_f3d) call invcol2(divv,ym2,ntot2)     ! 1/R
       call map21_weak(outz,divv)
 
 
 !      ifaxis = .false.
 
       return
-      end subroutine opgradt_3ds
+      end subroutine opgradt_f3d
 !-----------------------------------------------------------------------
       
-      subroutine opdiv_3ds(outfld,inx,iny,inz)
+      subroutine opdiv_f3d(outfld,inx,iny,inz)
 
       implicit none
 
@@ -2153,7 +2153,7 @@ c
       include 'INPUT'
       include 'GEOM'
       include 'MASS'
-      include '3DS'
+      include 'F3D'
 
       real outfld (1)   ! Pressure Mesh
       real inx    (1)   ! Vel. Mesh   
@@ -2173,27 +2173,27 @@ c
       call opdiv  (outfld,inx,iny,inz)
 
 !     1/R*B*(dp/dR)
-      if (ifcyl_3ds.and..not.ifaxis) then
+      if (ifcyl_f3d.and..not.ifaxis) then
 !       We calculate this term ourself            
-        call map12_all_3ds(dummy,iny)
+        call map12_all_f3d(dummy,iny)
         call invcol2(dummy,ym2,ntot2)
 !        call chsign(dummy,ntot2)
         call Xaddcol3(outfld,dummy,bm2,ntot2)
       endif        
     
 !     Map third component to pressure grid 
-      call map12_all_3ds(dummy,inz)
-      call cmult(dummy,k_3dsp,ntot2)
-      if (ifcyl_3ds) call invcol2(dummy,ym2,ntot2)     ! 1/R
+      call map12_all_f3d(dummy,inz)
+      call cmult(dummy,k_f3d,ntot2)
+      if (ifcyl_f3d) call invcol2(dummy,ym2,ntot2)     ! 1/R
       call Xaddcol3(outfld,dummy,bm2,ntot2)
 
 !      ifaxis = .false.
 
       return
-      end subroutine opdiv_3ds        
+      end subroutine opdiv_f3d        
 !-----------------------------------------------------------------------
 
-      subroutine chkdiv_3ds
+      subroutine chkdiv_f3d
 
 !     Check Divergence for the complex variable case 
       
@@ -2227,20 +2227,20 @@ c
 
 !     Real
       call cmult2(dummy1,vzp(1,jpi),-1.0,ntot1)
-      call opdiv_3ds(bdivv,vxp(1,jpr),vyp(1,jpr),dummy1)
+      call opdiv_f3d(bdivv,vxp(1,jpr),vyp(1,jpr),dummy1)
       call col3 (divv,bdivv,bm2inv,ntot2)
       dnorm = sqrt(glsc2(divv,bdivv,ntot2)/volvm2) 
       if (nio.eq.0) write (6,*) istep,' Real: Dnorm', dnorm
 
 !     Imaginary
       call cmult2(dummy1,vzp(1,jpr),1.0,ntot1)
-      call opdiv_3ds(bdivv,vxp(1,jpi),vyp(1,jpi),dummy1)
+      call opdiv_f3d(bdivv,vxp(1,jpi),vyp(1,jpi),dummy1)
       call col3 (divv,bdivv,bm2inv,ntot2)
       dnorm = sqrt(glsc2(divv,bdivv,ntot2)/volvm2) 
       if (nio.eq.0) write (6,*) istep,' Imaginary: Dnorm', dnorm
 
       return
-      end subroutine chkdiv_3ds
+      end subroutine chkdiv_f3d
 !---------------------------------------------------------------------- 
 
       subroutine map21_weak(y,x)

@@ -192,7 +192,7 @@ c--------------------------------------------------------------------
       include 'DOMAIN'
       include 'FDMH1'
 
-      include '3DS'           ! k_3dsp
+      include 'F3D'           ! k_f3d
 
       include 'TEST'
 
@@ -333,9 +333,9 @@ c        if ( .not.ifprint )  goto 9999
 !     different components.        
 !     Evaluate diagional pre-conidtioner for fluid solve
       if (ifjacobi) then
-        call setprec_cyl (qq1,h1,h2,k_3dsp,imesh,1)
-        call setprec_cyl (qq2,h1,h2,k_3dsp,imesh,2)
-        call setprec_cyl (qq3,h1,h2,k_3dsp,imesh,3)
+        call setprec_cyl (qq1,h1,h2,k_f3d,imesh,1)
+        call setprec_cyl (qq2,h1,h2,k_f3d,imesh,2)
+        call setprec_cyl (qq3,h1,h2,k_f3d,imesh,3)
       else
         call rone(qq1,n)
         call rone(qq2,n)
@@ -790,7 +790,7 @@ c        if ( .not.ifprint )  goto 9999
       return
       end subroutine col2_3
 !-----------------------------------------------------------------------
-      subroutine setprec_cyl (dpcm1,helm1,helm2,k_3ds,imsh,isd)
+      subroutine setprec_cyl (dpcm1,helm1,helm2,k_f3d,imsh,isd)
 
 !     Generate diagonal preconditioner for the Helmholtz operator.
 
@@ -815,7 +815,7 @@ c        if ( .not.ifprint )  goto 9999
       integer nel,imsh,isd
       real term1,term2
 
-      real k_3ds                ! passed as argument
+      real k_f3d                ! passed as argument
       real const
 
       real rinv(lx1,ly1,lz1,lelv)
@@ -912,7 +912,7 @@ c
       call invers2(rinv,ym1,ntot)               ! rinv = 1/R
       call copy(rinv2,rinv,ntot)
       call invcol2(rinv2,rinv,ntot)             ! rinv2 = 1/R^2
-      const = k_3ds*k_3ds                       ! k^2
+      const = k_f3d*k_f3d                       ! k^2
 
       if (isd.eq.1) then
         call cmult(rinv2,const,ntot)            ! (k^2)/R^2
@@ -962,7 +962,7 @@ c
       end
 !---------------------------------------------------------------------- 
 
-      subroutine uzawa_3ds(rcgr,rcgi,h1,h2,h2inv,intype,iter)
+      subroutine uzawa_f3d(rcgr,rcgi,h1,h2,h2inv,intype,iter)
 
 !     Solve the pressure equation by (nested) preconditioned 
 !     conjugate gradient iteration.
@@ -1060,7 +1060,7 @@ c
       call copy(pcgi,rpcgi,ntot2)
 
 !     Check Convergence. Also calculate rrp1 = (r^T)*z
-      call convprn_3ds(iconv,rnorm,rrp1r,rrp1i,
+      call convprn_f3d(iconv,rnorm,rrp1r,rrp1i,
      $                 rcgr,rcgi,rpcgr,rpcgi,tolpss)
       div0  = rnorm
       betar = 0.
@@ -1079,8 +1079,8 @@ c
         call glsc2_comp(rrp1r,rrp1i,rcgr,rcgi,rpcgr,rpcgi,ntot2)
 
 !       Ap = A*p            
-        call cdabdtp_3ds(Apr,pcgr,h1,h2,h2inv,intype)
-        call cdabdtp_3ds(Api,pcgi,h1,h2,h2inv,intype)
+        call cdabdtp_f3d(Apr,pcgr,h1,h2,h2inv,intype)
+        call cdabdtp_f3d(Api,pcgi,h1,h2,h2inv,intype)
 
 !       pAp = (p^T)*Ap         
         call glsc2_comp(pApr,pApi,pcgr,pcgi,Apr,Api,ntot2)
@@ -1137,7 +1137,7 @@ c
         rrp2 = rrp2r*rrp2r + rrp2i*rrp2i
 
 !       Check Convergence        
-        call convprn_3ds(iconv,rnorm,rpx,rpy,
+        call convprn_f3d(iconv,rnorm,rpx,rpy,
      $                   rcgr,rcgi,rpcgr,rpcgi,tolpss)
 
         ratio = rnorm/div0
@@ -1211,9 +1211,9 @@ c     if (istep.gt.20) call emerxit
 19999 format(I11,'  U-Press 1.e-5: ',I7,1p4E13.4)
 
       return
-      end subroutine uzawa_3ds
+      end subroutine uzawa_f3d
 !-----------------------------------------------------------------------
-      subroutine convprn_3ds(iconv,rbnorm,rrptr,rrpti,
+      subroutine convprn_f3d(iconv,rbnorm,rrptr,rrpti,
      $                       resr,resi,zr,zi,tol)
 
 !                                               T
@@ -1257,7 +1257,7 @@ c     if (istep.gt.20) call emerxit
       iconv  = 0
       if (rbnorm.lt.tol) iconv=1
       return
-      end subroutine convprn_3ds
+      end subroutine convprn_f3d
 !---------------------------------------------------------------------- 
 
       subroutine glsc2_comp(scr,sci,ur,ui,vr,vi,n)
@@ -1291,7 +1291,7 @@ c     if (istep.gt.20) call emerxit
       end subroutine glsc2_comp
 
 !-----------------------------------------------------------------------
-      subroutine esolver_3ds(resr,resi,h1,h2,h2inv,intype)
+      subroutine esolver_f3d(resr,resi,h1,h2,h2inv,intype)
 
 !     Choose E-solver
 
@@ -1323,10 +1323,10 @@ c     if (istep.gt.20) call emerxit
 
       if (.not. ifsplit) then
         if (param(42).eq.1) then
-          call uzawa_3ds(resr,resi,h1,h2,h2inv,intype,icg)
+          call uzawa_f3d(resr,resi,h1,h2,h2inv,intype,icg)
         else
 !          call uzawa_gmres(res,h1,h2,h2inv,intype,icg)
-          write(6,*) 'ERROR: E-solver (3DS) not implemented for GMRES'
+          write(6,*) 'ERROR: E-solver (F3D) not implemented for GMRES'
           call exitt
         endif
       else
@@ -1337,7 +1337,7 @@ c     if (istep.gt.20) call emerxit
       teslv=teslv+(dnekclock()-etime1)
 
       return
-      end subroutine esolver_3ds
+      end subroutine esolver_f3d
 !-----------------------------------------------------------------------
 
 

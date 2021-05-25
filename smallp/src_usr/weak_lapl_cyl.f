@@ -69,7 +69,7 @@
       include 'GEOM'          ! ym1 == R
       include 'TSTEP'
 
-      include '3DS'
+      include 'F3D'
 
 !     Real Variables      
       real erxt,errt,erxx,erxr,errr,ertt
@@ -207,14 +207,14 @@
 !!    Er_\thetax
 !     (Real)      
       call col3(erxt,u1i,rinv,ntot1)       ! u1(im)/R
-      call cmult(erxt,-k_3dsp,ntot1)       ! -k/R*u1(im)
+      call cmult(erxt,-k_f3d,ntot1)       ! -k/R*u1(im)
       call add2(erxt,ur3x,ntot1)           ! + du3/dx
       call cmult(erxt,0.5,ntot1)           ! 1/2*[du3/dx - k/R*u1(im)]
 
 !!    Ei_\thetax
 !     (Imaginary) 
       call col3(eixt,u1r,rinv,ntot1)       ! u1/R
-      call cmult(eixt,k_3dsp,ntot1)        ! k/R*u1
+      call cmult(eixt,k_f3d,ntot1)        ! k/R*u1
       call add2(eixt,ui3x,ntot1)           ! + du3(im)/dx
       call cmult(eixt,0.5,ntot1)           ! 1/2*[du3(im)/dx + k/R*u1]
 
@@ -231,39 +231,39 @@
 !!    Er_\thetaR
 !     (Real)      
       call copy(errt,ur3r,ntot1)           ! du3/dr
-      if (ifcyl_3ds) then
+      if (ifcyl_f3d) then
         call col3(wk1,u3r,rinv,ntot1)      ! u3/R
         call sub2(errt,wk1,ntot1)          ! du3/dr - u3/R
       endif        
       call col3(wk2,u2i,rinv,ntot1)        ! u2(im)/R
-      call add2s2(errt,wk2,-k_3dsp,ntot1)  ! du3/dr - u3/R - k/R*u2(im)
+      call add2s2(errt,wk2,-k_f3d,ntot1)  ! du3/dr - u3/R - k/R*u2(im)
       call cmult(errt,0.5,ntot1)           ! 0.5*[du3/dr - u3/R - k/R*u2(im)]
 
 !!    Ei_\thetaR
 !     (Imaginary)      
       call copy(eirt,ui3r,ntot1)           ! du3(im)/dr
-      if (ifcyl_3ds) then
+      if (ifcyl_f3d) then
         call col3(wk1,u3i,rinv,ntot1)      ! u3(im)/R
         call sub2(eirt,wk1,ntot1)          ! du3(im)/dr - u3(im)/R
       endif        
       call col3(wk2,u2r,rinv,ntot1)        ! u2/R
-      call add2s2(eirt,wk2,k_3dsp,ntot1)   ! du3(im)/dr - u3(im)/R + k/R*u2
+      call add2s2(eirt,wk2,k_f3d,ntot1)   ! du3(im)/dr - u3(im)/R + k/R*u2
       call cmult(eirt,0.5,ntot1)           ! 0.5*[du3(im)/dr - u3(im)/R + k/R*u2]
 
 
 !!    Er_\theta\theta
 !     (Real)      
       call col3(ertt,u3i,rinv,ntot1)       ! u3(im)/R      
-      call cmult(ertt,-k_3dsp,ntot1)       ! -k/R*u3(im)
-      if (ifcyl_3ds) then
+      call cmult(ertt,-k_f3d,ntot1)       ! -k/R*u3(im)
+      if (ifcyl_f3d) then
         call xaddcol3(ertt,u2r,rinv,ntot1) ! -k/R*u3(im) + u2/R
       endif  
 
 !!    Ei_\theta\theta
 !     (Imaginary)      
       call col3(eitt,u3r,rinv,ntot1)       ! u3/R      
-      call cmult(eitt,k_3dsp,ntot1)        ! k/R*u3
-      if (ifcyl_3ds) then
+      call cmult(eitt,k_f3d,ntot1)        ! k/R*u3
+      if (ifcyl_f3d) then
         call xaddcol3(eitt,u2i,rinv,ntot1) ! k/R*u3 + u2(im)/R
       endif  
 
@@ -280,7 +280,7 @@ C     CAUTION : Stresses and strainrates share the same scratch commons
       implicit none
 
       include 'SIZE'
-      include '3DS'
+      include 'F3D'
 
 !      common /ctmp1/ txx(lx1,ly1,lz1,lelt)
 !     $             , txy(lx1,ly1,lz1,lelt)
@@ -354,7 +354,7 @@ c        newtonian fluids
 !        Somebody will need to implement it carefully        
 
          if (nid.eq.0)
-     $     write(6,*) 'Elasticity not implemented for 3DS'
+     $     write(6,*) 'Elasticity not implemented for F3D'
 
          call exitt
 
@@ -371,7 +371,7 @@ c        newtonian fluids
       include 'MASS'
       include 'GEOM'
 
-      include '3DS'
+      include 'F3D'
 
       include 'TEST'
 
@@ -424,7 +424,7 @@ c        newtonian fluids
 
 !     rinv = 1/R      
       call invers2(rinv,ym1,ntot1)
-      call col2c(rinv,bm1,k_3dsp,ntot1)   ! rinv = k*BM1/R
+      call col2c(rinv,bm1,k_f3d,ntot1)   ! rinv = k*BM1/R
 
 !     Real Variables      
       call ttxyz(Au1r,erxx,erxr,erxt,nel)  ! [erxx*dv/dx + erxr*dv/dr]*BM1
@@ -435,7 +435,7 @@ c        newtonian fluids
       call col3(wk1,eirt,rinv,ntot1)       ! eirt*k*BM1/R    
       call sub2(Au2r,wk1,ntot1)
 !     Additional terms from vector gradient of test functions
-      if (ifcyl_3ds) then
+      if (ifcyl_f3d) then
         call invcol2(wk1,ym1,ntot1)
         call col2c(wk1,bm1,-1.0,ntot1)       ! -BM1*v/R
         call Xaddcol3(Au2r,errt,wk1,ntot1)   ! -BM1*v/R*[errt]
@@ -445,7 +445,7 @@ c        newtonian fluids
       call col3(wk1,eitt,rinv,ntot1)       ! eitt*k*BM1/R    
       call sub2(Au3r,wk1,ntot1)
 !     Additional terms from vector gradient of test functions
-      if (ifcyl_3ds) then
+      if (ifcyl_f3d) then
         call invcol2(wk1,ym1,ntot1)
         call col2(wk1,bm1,ntot1)             ! BM1*v/R
         call Xaddcol3(Au3r,ertt,wk1,ntot1)   ! BM1*v/R*[ertt]
@@ -461,7 +461,7 @@ c        newtonian fluids
       call col3(wk1,errt,rinv,ntot1)      ! errt*k*BM1/R    
       call add2(Au2i,wk1,ntot1)
 !     Additional terms from vector gradient of test functions
-      if (ifcyl_3ds) then
+      if (ifcyl_f3d) then
         call invcol2(wk1,ym1,ntot1)
         call col2c(wk1,bm1,-1.0,ntot1)       ! -BM1*v/R
         call Xaddcol3(Au2i,eirt,wk1,ntot1)   ! -BM1*v/R*[eirt]
@@ -471,7 +471,7 @@ c        newtonian fluids
       call col3(wk1,ertt,rinv,ntot1)      ! ertt*k*BM1/R    
       call add2(Au3i,wk1,ntot1)
 !     Additional terms from vector gradient of test functions
-      if (ifcyl_3ds) then
+      if (ifcyl_f3d) then
         call invcol2(wk1,ym1,ntot1)
         call col2(wk1,bm1,ntot1)             ! BM1*v/R
         call Xaddcol3(Au3i,eitt,wk1,ntot1)   ! BM1*v/R*[eitt]

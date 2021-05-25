@@ -8,10 +8,10 @@ c
       include 'TSTEP'
       include 'SOLN'
 
-      include '3DS'
+      include 'F3D'
 
-      if (if3d_3ds) then
-        call fluidp_3ds(igeom)
+      if (iff3d) then
+        call fluidp_f3d(igeom)
         return
       endif
 
