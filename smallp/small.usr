@@ -106,19 +106,6 @@ c-----------------------------------------------------------------------
           tmp1(i,1,1,1) = sin(2.0*pi*ym1(i,1,1,1))
           tmp2(i,1,1,1) = sin(2.0*pi*xm1(i,1,1,1))
         enddo
-!        call map_pm1_to_pr(tmp1,1)
-!        call copy(prp(1,1),pr,ntot2)
-!        call map_pm1_to_pr(tmp2,1)
-!        call copy(prp(1,2),pr,ntot2)
-!        call rzero(pr,ntot2)
-
-!        param(44) = 0
-
-        write(6,*) 'param40', param(40)
-        write(6,*) 'param41', param(41)
-        write(6,*) 'param42', param(42)
-        write(6,*) 'param43', param(43)
-        write(6,*) 'param44', param(44)
 
         call rzero(zm1,ntot1)
         call outpost(vx,vy,vz,pr,vz,'ini')
@@ -133,42 +120,6 @@ c-----------------------------------------------------------------------
         call outpost(vxp(1,i),vyp(1,i),vzp(1,i),
      $               prp(1,i),vzp(1,i),'pti')
       endif
-
-!      call chkdiv_3ds
-
-!      call rzero3(tmp1,tmp2,tmp3,ntot1)
-!      call rzero3(tmp5,tmp6,tmp7,ntot1)
-!      call rzero3(tmp9,tmp10,tmp11,ntot1)
-!
-!      call copy(tmp1,vxp(1,1),ntot1)
-!      call opdiv_3ds(tmp4,tmp1,tmp2,tmp3) ! du/dx
-!      call col2(tmp4,bm2inv,ntot2)
-!
-!      call copy(tmp5,vyp(1,1),ntot1)
-!      call opdiv_3ds(tmp8,tmp6,tmp5,tmp7) ! dv/dy
-!      call col2(tmp8,bm2inv,ntot2)
-!
-!      call copy(tmp9,vzp(1,1),ntot1)
-!      call opdiv_3ds(tmp8,tmp11,tmp10,tmp9) ! dw/dz
-!!      call col2(tmp12,bm2inv,ntot2)
-!
-!      if3d_3ds = .false.
-!      call opdiv_3ds(tmp4,vxp(1,1),vyp(1,1),tmp3)
-!
-!      call add3(tmp12,tmp8,tmp4,ntot2)
-
-!      call col2(tmp9,bm1,ntot1)
-
-!      if3d_3ds = .true.
-!      call opdiv_3ds(tmp12,vxp(1,1),vyp(1,1),vzp(1,2))
-
-!      call map12_all_3ds(prp,vxp(1,1))
-!      call map21_all_3ds(vz,prp)
-!      call sub3(tmp2,vxp,vz,ntot1)
-!      call map21_weak(vz,prp)
-!      call col2(vz,binvm1,ntot1)
-!      call sub3(tmp3,vxp,vz,ntot1)
-
 
       if (istep.eq.0) then
         call outpost(tmp1,tmp2,tmp3,

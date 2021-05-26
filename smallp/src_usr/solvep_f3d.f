@@ -21,17 +21,17 @@
       data icalld /0/
 
       integer nxyz,ntot1
+      integer p41,p42,p43,p44
+      logical ifaxis_init           ! Did we initialize with ifaxis
       
-
-!      iff3d = .true.
-!      ifcyl_f3d = .true.           ! If cylindrical coordinates
 
       if (.not.iff3d) return
 
       if (nio.eq.0) then
-        write(6,*) 'Initializing IF3Ds', iff3d
+        write(6,'(A18)') 'F3D: Initializing'
       endif
 
+      ifaxis_init = ifaxis
 
       if (iff3d.and.npert.ne.2) then
         write(6,'(A7,1x,I2)') 'NPERT =', npert
@@ -42,8 +42,6 @@
 
       nxyz  = lx1*ly1*lz1
       ntot1 = nxyz*nelv
-
-!      k_f3d = 4.0            ! wavenumber 
      
       call init_pertfld_f3d() 
 
@@ -54,10 +52,65 @@
 !     Velocities can be initialized from useric. 
 
       if (nio.eq.0) then
-        write(6,*) 'IFF3D: Wavenumber=',k_f3d
-        write(6,*) 'Initializion done. IFF3D,IFCYL_F3D',iff3d,
-     $            ifcyl_f3d  
-       
+        write(6,'(A19,1x,G10.3)') 'IFF3D: Wavenumber=',k_f3d
+        write(6,'(A7,1x,L1)') 'IFF3D:', iff3d
+        write(6,'(A11,1x,L1)') 'IFCYL_F3D:',ifcyl_f3d
+
+!       Set ifaxis to false 
+        write(6,'(A23,1x,L1)') 'IFAXIS initialization:',ifaxis_init
+        if (ifcyl_f3d) ifaxis = .false.
+        write(6,'(A8,1x,L1)') 'IFAXIS:',ifaxis
+
+        write(6,'(A24)') 'F3D: Initializion done.'
+
+!       Write out Preconditioner settings:
+        p41 = param(41)
+        p42 = param(42)
+        p43 = param(43)
+        p44 = param(44)
+
+        write(6,'(A24)') 'Preconditioner Settings'
+        if (p41.eq.0) then
+          write(6,'(A11,1x,I1,A44)') 'Param(41)=',p41,
+     $      ': Additive Spectral-Element Multigrid (SEMG)'
+        elseif(p41.eq.1) then
+          write(6,'(A11,1x,I1,A42)') 'Param(41)=',p41,
+     $      ': Hybrid Spectral-Element Multigrid (SEMG)'
+        else
+          write(6,'(A11,1x,I1)') 'Param(41)=',p41
+        endif  
+
+        if (p42.eq.0) then
+          write(6,'(A11,1x,I1,A33)') 'Param(42)=',p42,
+     $      ': GMRES with nonsymmetric weights'
+        elseif(p42.eq.1) then
+          write(6,'(A11,1x,I1,A21)') 'Param(42)=',p42,
+     $      ': PCG without weights'
+        else
+          write(6,'(A11,1x,I1)') 'Param(42)=',p42
+        endif  
+
+        if (p43.eq.0) then
+          write(6,'(A11,1x,I1,A28)') 'Param(43)=',p43,
+     $      ': Additive multilevel scheme'
+        elseif(p43.eq.1) then
+          write(6,'(A11,1x,I1,A27)') 'Param(43)=',p43,
+     $      ': Original two level scheme'
+        else
+          write(6,'(A11,1x,I1)') 'Param(43)=',p43
+        endif  
+
+        if (p44.eq.0) then
+          write(6,'(A11,1x,I1,A47)') 'Param(44)=',p44,
+     $      ': Top level Schwartz based on restrictions of E'
+        elseif(p44.eq.1) then
+          write(6,'(A11,1x,I1,A47)') 'Param(44)=',p44,
+     $      ': Top level Schwartz based on restrictions of A'
+        else
+          write(6,'(A11,1x,I1)') 'Param(44)=',p44
+        endif  
+
+
       endif
 
       return
@@ -434,7 +487,9 @@ c
       ntot1 = nxyz*nelv
 
 !     Build user defined forcing
+      if3d = .true.
       call makeufp_f3d
+      if3d = .false.
       if (filterType.eq.2) call make_hpf
       if (ifcyl_f3d) then
         call advabp_cyl_f3d
@@ -2167,8 +2222,6 @@ c
 
       ntot2 = lx2*ly2*lz2*nelv
 
-!      ifaxis = .true.
-
 !     2D Divergence 
       call opdiv  (outfld,inx,iny,inz)
 
@@ -2186,8 +2239,6 @@ c
       call cmult(dummy,k_f3d,ntot2)
       if (ifcyl_f3d) call invcol2(dummy,ym2,ntot2)     ! 1/R
       call Xaddcol3(outfld,dummy,bm2,ntot2)
-
-!      ifaxis = .false.
 
       return
       end subroutine opdiv_f3d        
