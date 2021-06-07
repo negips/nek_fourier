@@ -1,0 +1,69 @@
+#
+# nek parameter file
+#
+[GENERAL] 
+polynomialOrder = 7
+#PnPnFormulation = yes
+minNumProcesses = 1
+
+#startFrom = restart.fld
+#time=0 
+#stopAt = endTime
+#endTime = 400
+
+stopAt   = numsteps
+numSteps = 10000
+
+dt = 0.002
+timeStepper = bdf3
+extrapolation = standard
+variableDt = no
+targetCFL = 0.4
+
+writeControl = TimeStep
+writeInterval = 10
+
+userParam01 = 200    # start time collecting statistics
+userParam02 = 10     # writeInterval 1D statistics 
+
+filtering = none #hpfrt
+filterWeight = 10
+filterModes  = 1
+
+dealiasing = yes
+
+[PROBLEMTYPE]
+#variableProperties = yes
+#equation = incompNS
+equation = incompLinNS
+numberOfPerturbations=2
+solveBaseFlow = no
+stressFormulation = yes
+axiSymmetry = yes
+
+
+[PRESSURE]
+#preconditioner = semg_amg
+preconditioner = semg_xxt
+residualTol = 1e-12 
+residualProj = yes
+
+[VELOCITY]
+residualTol = 1e-12
+density = 1
+viscosity = -1
+residualProj = no
+
+#[TEMPERATURE]
+#rhoCp = 1.
+#conductivity = -10000
+#residualTol = 1e-6 
+#
+
+[_F3D]
+iff3d = yes
+ifcyl_f3d = no
+k_f3d = 0.01
+
+
+
