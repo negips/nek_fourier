@@ -303,12 +303,12 @@
 
             IFADJ = .TRUE.
 
-            ! itaration count
+!           iteration count
             tst_istep = 0
 
-!           ! should be the first step of every cycle performed with Uzawa
-!     turned on?
-!               IFUZAWA = tst_ifuz
+!           should be the first step of every cycle performed with Uzawa
+!           turned on?
+!            IFUZAWA = tst_ifuz
 
             ! set time and iteration number
             TIME=0.0
@@ -325,11 +325,11 @@
             call rzero(PRP,tst_np)
 
             ! set cpfld for conjugated heat transfer
-               if (IFHEAT) call cht_cpfld_set
+            if (IFHEAT) call cht_cpfld_set
          else
             !stepper phase counting
             tst_istep = 0
-            tst_vstep = tst_vstep +1
+            tst_vstep = tst_vstep + 1
 
             call mntr_logi(tst_id,lp_prd,'Finished stepper phase:',
      $           tst_vstep)
@@ -348,7 +348,7 @@
 
             endif
 
-            ! run vector solver (arpack, power iteration)
+!           run vector solver (arpack, power iteration)
             call stepper_vsolve
 
             if (LASTEP.ne.1) then
@@ -357,8 +357,8 @@
                TIME=0.0
                ISTEP=0
 
-!     should be the first step of every cycle performed with Uzawa 
-!     turned on?
+!              should be the first step of every cycle performed with Uzawa 
+!              turned on?
 !               IFUZAWA = tst_ifuz
 
                ! zero presure
@@ -401,6 +401,9 @@
       include 'TSTEP'           ! IFIELD
       include 'TSTEPPERD'       ! tst_nt
 
+      include 'ARN_ARPD'
+      include 'F3D'
+
       ! local variables
       integer ifield_tmp
 !-----------------------------------------------------------------------
@@ -411,8 +414,22 @@
 #ifdef AMR
       call amr_oph1_proj(vxp,vyp,vzp,nx1,ny1,nz1,nelv)
 #else
-      call opdssum(VXP,VYP,VZP)
-      call opcolv (VXP,VYP,VZP,VMULT)
+      if (arna_ifcomplex) then
+          call dsavg(vxp(1,1))
+          call dsavg(vyp(1,1))
+
+          call dsavg(vxp(1,2))
+          call dsavg(vyp(1,2))
+       
+        if (iff3d) then 
+          call dsavg(vzp(1,1))
+          call dsavg(vzp(1,2))
+        endif
+
+      else        
+        call opdssum(VXP,VYP,VZP)
+        call opcolv (VXP,VYP,VZP,VMULT)
+      endif  
 #endif
 
       if(IFHEAT) then
@@ -420,8 +437,13 @@
 #ifdef AMR
          call h1_proj(tp,nx1,ny1,nz1)
 #else
-         call dssum(TP,NX1,NY1,NZ1)
-         call col2 (TP,TMULT,tst_nt)
+         if (arna_ifcomplex) then
+           call dsavg(tp(1,1,1)) 
+           call dsavg(tp(1,1,2))
+         else  
+           call dssum(TP,NX1,NY1,NZ1)
+           call col2 (TP,TMULT,tst_nt)
+         endif  
 #endif
       endif
       IFIELD = ifield_tmp
@@ -429,3 +451,7 @@
       return
       end subroutine
 !=======================================================================
+
+
+
+

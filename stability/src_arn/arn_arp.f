@@ -230,8 +230,12 @@
       ! vector lengths
       ! single vector length in Krylov space
       ! velocity
-      arna_ns = tst_nv*3 !          ! velocity
-      arna_ns = arna_ns + tst_np    ! pressure
+      if (iff3d) then
+        arna_ns = tst_nv*3 !          ! velocity
+      else
+        arna_ns = tst_nv*ndim
+      endif
+      if (arna_ifpr) arna_ns = arna_ns + tst_np    ! pressure
       ! temperature
       if(IFHEAT) then
          arna_ns = arna_ns + tst_nt ! temperature
@@ -247,6 +251,7 @@
         call czero(vbasea,arna_ls*arna_lkrl)
         call czero(resida,arna_ls)
 
+!       This is real        
         call rzero(driarp,arna_lkrl*4)
       else
         call rzero(workda,wddima)
@@ -501,7 +506,7 @@
       endif  
 #endif
 
-      ! ARPACK interface
+!     ARPACK interface
       call arn_naupd
 
       if (idoarp.eq.-2) then
@@ -768,10 +773,10 @@
       endif
 
       if (idoarp.eq.2) then
-!     From Documentation:         
-!     IDO =  2: compute  Y = M * X  where
-!               IPNTR(1) is the pointer into WORKD for X,
-!               IPNTR(2) is the pointer into WORKD for Y.
+!        From Documentation:         
+!        IDO =  2: compute  Y = M * X  where
+!                  IPNTR(1) is the pointer into WORKD for X,
+!                  IPNTR(2) is the pointer into WORKD for Y.
          do
            if (arna_ifcomplex) then
              ix = ipntarp(1)
@@ -896,8 +901,8 @@
 
            ! make sure the velocity and temperature fields are continuous at
            ! element faces and edges
-           call tst_dssum
-         endif          ! arna_ifcomplex 
+         endif          ! arna_ifcomplex
+         call tst_dssum
       endif                     ! idoarp.eq.-1.or.idoarp.eq.1
 
       return
