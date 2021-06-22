@@ -13,10 +13,9 @@
 ! performed in inverse mode due to speciffic inner product.
 !
 ! Direct eigenvalue problem A*x = lambda*x
-#define ARPACK_DIRECT
+!#define ARPACK_DIRECT
 ! Generalized (inverse) eigenvalue problem A*x = lambda*B*x
-!#undef ARPACK_DIRECT
-! Complex arithmetic for arpack
+#undef ARPACK_DIRECT
 !=======================================================================
 !> @brief Register Arnoldi ARPACK module
 !! @ingroup arn_arp
@@ -267,35 +266,60 @@
 
 !     Symmetric codes
       msgets = 0
-      msaitr = 2
+      msaitr = 0
       msapps = 0
-      msaupd = 2
-      msaup2 = 3
-      mseupd = 3
+      msaupd = 0
+      msaup2 = 0
+      mseupd = 0
 
 !     Non-Symmetric codes      
       mngets = 0
-      mnaitr = 2
+      mnaitr = 0
       mnapps = 0
-      mnaupd = 2
-      mnaup2 = 3
-      mneupd = 3
+      mnaupd = 0
+      mnaup2 = 0
+      mneupd = 0
 
 !     Complex subroutine codes      
       mcgets = 0
-      mcaitr = 2
+      mcaitr = 0
       mcapps = 0
-      mcaupd = 2
-      mcaup2 = 3
-      mceupd = 3
+      mcaupd = 0
+      mcaup2 = 0
+      mceupd = 0
+      
+      if (nio.eq.0) then
+!       Symmetric codes
+        msgets = 0
+        msaitr = 2
+        msapps = 0
+        msaupd = 2
+        msaup2 = 3
+        mseupd = 3
 
+!       Non-Symmetric codes      
+        mngets = 0
+        mnaitr = 2
+        mnapps = 0
+        mnaupd = 2
+        mnaup2 = 3
+        mneupd = 3
+
+!       Complex subroutine codes      
+        mcgets = 0
+        mcaitr = 2
+        mcapps = 0
+        mcaupd = 2
+        mcaup2 = 3
+        mceupd = 3
+      endif  
 
       ! restart
       if (arna_ifrst) then
          ! read checkpoint
          call arn_rst_read
       else
-         ! if no restatrt fill RESIDA with initial conditions
+         ! if no restart fill RESIDA with initial conditions
          ! V?MASK removes points at the wall and inflow
 #ifdef ARPACK_DIRECT
          ! A*x = lambda*x
@@ -369,12 +393,12 @@
          else           ! real arithmetic
            ! velocity
            i = 1
-           call copy(resida(i),VXP,tst_nv)
+           call col3(resida(i),VXP,v1mask,tst_nv)
            i = i + tst_nv
-           call copy(resida(i),VYP,tst_nv)
+           call col3(resida(i),VYP,v2mask,tst_nv)
            i = i + tst_nv
            if (IF3D.or.iff3d) then
-             call copy(resida(i),VZP,tst_nv)
+             call col3(resida(i),VZP,v3mask,tst_nv)
              i = i + tst_nv
            endif
            if (arna_ifpr) then
@@ -383,7 +407,7 @@
            endif  
            ! temperature
            if (IFHEAT) then
-             call copy(resida(i),TP,tst_nt)
+             call col3(resida(i),TP,tmask,tst_nt)
              i = i + tst_nt
            endif  
          endif          ! arna_ifcomplex
@@ -607,6 +631,7 @@
       common /nekmpi/ NIDD,NPP,NEKCOMM,NEKGROUP,NEKREAL
 
       integer i
+      integer nps
 !-----------------------------------------------------------------------
       if (idoarp.eq.99) then
 
@@ -722,19 +747,36 @@
                  call outpost(vxp(1,2),vyp(1,2),vzp(1,2),prp(1,2),
      $                        tp(1,1,2),'egv')
                else
-                 call copy(VXP,vbasea(1,il),tst_nv)
-                 call copy(VYP,vbasea(1+tst_nv,il),tst_nv)
-                 if (IF3D) call copy(VZP,vbasea(1+2*tst_nv,il),tst_nv)
-                 if(IFHEAT) then
-                    call copy(TP,vbasea(1+NDIM*tst_nv,il),tst_nt)
-                    call outpost2(VXP,VYP,VZP,PRP,TP,1,'egv')
-                 else
-                    call outpost2(VXP,VYP,VZP,PRP,TP,0,'egv')
+                 i = 1
+                 call copy(VXP,vbasea(i,il),tst_nv)
+                 i = i + tst_nv
+                 call copy(VYP,vbasea(i,il),tst_nv)
+                 i = i + tst_nv
+                 if (IF3D.or.iff3d) then
+                   call copy(VZP,vbasea(i,il),tst_nv)
+                   i = i + tst_nv
                  endif
+                 if (arna_ifpr) then
+                   call copy(PRP,vbasea(i,il),tst_np)
+                   i = i + tst_np
+                 endif  
+                  
+                 nps = 0 
+                 if (IFHEAT) then
+                   nps = nps + 1
+                   call copy(TP(1,nps,1),vbasea(i,il),tst_nt)
+                   i = i + tst_nt
+                 endif
+                 if (iff3d.and..not.if3d) then
+                   nps = nps + 1
+                   call copy(TP(1,nps,1),vzp,tst_nv)
+                   ifpso(nps-1) = .true.
+                 endif 
+                 call outpost2(VXP,VYP,VZP,PRP,TP,nps,'egv')
                endif          ! arna_ifcomplex
 
                ! possible place to test error
-               ! get growth rate; get eigenvalues of continuous operator
+               ! get growth rate; get eigenvalues of Operator
                driarp(il,3) = log(sqrt(driarp(il,1)**2+
      $              driarp(il,2)**2))*dumm
                driarp(il,4) = atan2(driarp(il,2),driarp(il,1))*dumm
@@ -829,6 +871,8 @@
 !        IDO =  2: compute  Y = M * X  where
 !                  IPNTR(1) is the pointer into WORKD for X,
 !                  IPNTR(2) is the pointer into WORKD for Y.
+
+!        multiply by weights and masks
          do
            if (arna_ifcomplex) then
              ix = ipntarp(1)
@@ -861,27 +905,36 @@
                i = i+tst_nt
              endif
            else
-             ! A*x = lambda*M*x
-             ! multiply by weights and masks
-             ! velocity
-             call col3(workda(ipntarp(2)),BM1,V1MASK,tst_nv)
-             call col3(workda(ipntarp(2)+tst_nv),BM1,V2MASK,tst_nv)
-             if (IF3D) call col3(workda(ipntarp(2)+2*tst_nv),
-     $            BM1,V3MASK,tst_nv)
+             ix = ipntarp(1)
+             iy = ipntarp(2) 
+             i  = iy
+!            velocity
+             call col3(workda(i),BM1,V1MASK,tst_nv)
+             i = i + tst_nv
+             call col3(workda(i),BM1,V2MASK,tst_nv)
+             i = i + tst_nv
+             if (IF3D.or.iff3d) then
+               call col3(workda(i),BM1,V3MASK,tst_nv)
+               i = i + tst_nv
+             endif
+!            Pressure             
+             if (arna_ifpr) then
+               call rzero(workda(i),tst_np)
+               i = i + tst_np
+             endif     
 
-             ! temperature
+!            Temperature
              if(IFHEAT) then
-                call col3(workda(ipntarp(2)+NDIM*tst_nv),
-     $               BM1,TMASK,tst_nt)
-
-                !coefficients
+                call col3(workda(i),BM1,TMASK,tst_nt)
+                i = i + tst_nt
+!               Temperature coefficients
                 call cht_weight_fun (workda(ipntarp(2)),
      $               workda(ipntarp(2)+tst_nv),
      $               workda(ipntarp(2)+2*tst_nv),
      $               workda(ipntarp(2)+NDIM*tst_nv),1.0)
              endif
 
-             call col2(workda(ipntarp(2)),workda(ipntarp(1)),arna_ns)
+             call col2(workda(iy),workda(ix),arna_ns)
            endif        ! arna_ifcomplex
 
 #ifdef MPI
@@ -943,16 +996,28 @@
            endif  
          else  
            ! velocity
-           call copy(VXP,workda(ipntarp(1)),tst_nv)
-           call copy(VYP,workda(ipntarp(1)+tst_nv),tst_nv)
-           if (IF3D) 
-     $       call copy(VZP,workda(ipntarp(1)+2*tst_nv),tst_nv)
-           ! temperature
-           if(IFHEAT) 
-     $       call copy(TP,workda(ipntarp(1)+NDIM*tst_nv),tst_nt)
+           i = ipntarp(1)
+           call copy(VXP,workda(i),tst_nv)
+           i = i + tst_nv
+           call copy(VYP,workda(i),tst_nv)
+           i = i + tst_nv
+           if (IF3D.or.iff3d) then 
+             call copy(VZP,workda(i),tst_nv)
+             i = i + tst_nv
+           endif
+!          Pressure            
+           if (arna_ifpr) then
+             call copy(prp,workda(i),tst_np)
+             i = i + tst_np
+           endif  
+!          Temperature
+           if (IFHEAT) then
+             call copy(TP,workda(i),tst_nt)
+             i = i + tst_nt
+           endif  
 
-           ! make sure the velocity and temperature fields are continuous at
-           ! element faces and edges
+!          make sure the velocity and temperature fields are continuous at
+!          element faces and edges
          endif          ! arna_ifcomplex
          call tst_dssum
       endif                     ! idoarp.eq.-1.or.idoarp.eq.1

@@ -105,19 +105,9 @@ c-----------------------------------------------------------------------
           call init_pertfld_f3d
         endif  
 
-!!       prabal. Temporarily initializing pressure
-!        do i=1,ntot1
-!          tmp1(i,1,1,1) = sin(2.0*pi*ym1(i,1,1,1))
-!          tmp2(i,1,1,1) = sin(2.0*pi*xm1(i,1,1,1))
-!        enddo
-
         call rzero(zm1,ntot1)
         call outpost(vx,vy,vz,pr,vz,'ini')
       endif
-
-!     Call time stepper      
-      call tst_solve()
-
 
       if (mod(istep,iostep).eq.0) then
 !      if (istep.le.10) then
@@ -129,16 +119,9 @@ c-----------------------------------------------------------------------
      $               prp(1,i),vzp(1,i),'pti')
       endif
 
-!      if (istep.eq.0) then
-!        call outpost(tmp1,tmp2,tmp3,
-!     $               tmp4,tmp3,'tmp')
-!        call outpost(tmp5,tmp6,tmp7,
-!     $               tmp8,tmp7,'tmp')
-!        call outpost(tmp9,tmp10,tmp11,
-!     $               tmp12,tmp11,'tmp')
-!      endif  
+!     Call time stepper      
+      call tst_solve()
 
-!      call exitt
 
       if (istep.eq.nsteps.or.lastep.eq.1) then
         call frame_end
@@ -197,19 +180,37 @@ c-----------------------------------------------------------------------
         xl(1) = X
         xl(2) = Y
         if (IF3D.or.iff3d) xl(3) = Y+X
-
-        fcoeff(1)=  3.0e4
-        fcoeff(2)= -1.5e3
-        fcoeff(3)=  0.5e5
+        
+        if (jp.eq.1) then
+          fcoeff(1)=  3.0e4
+          fcoeff(2)= -1.5e3
+          fcoeff(3)=  0.5e5
+        else
+          fcoeff(1)=  9.0e4
+          fcoeff(2)=  1.5e3
+          fcoeff(3)= -2.5e5
+        endif          
         ux=UPARAM(1)*mth_ran_dst(ix,iy,iz,ieg,xl,fcoeff)
-        fcoeff(1)=  2.3e4
-        fcoeff(2)=  2.3e3
-        fcoeff(3)= -2.0e5
+        if (jp.eq.1) then
+          fcoeff(1)=  2.3e4
+          fcoeff(2)=  2.3e3
+          fcoeff(3)= -2.0e5
+        else
+          fcoeff(1)=  1.3e4
+          fcoeff(2)= -5.8e3
+          fcoeff(3)= -1.9e5
+        endif
         uy=UPARAM(1)*mth_ran_dst(ix,iy,iz,ieg,xl,fcoeff)
         if (IF3D.or.iff3d) then
-           fcoeff(1)= 2.e4
-           fcoeff(2)= 1.e3
-           fcoeff(3)= 1.e5
+           if (jp.eq.1) then           
+             fcoeff(1)= 2.e4
+             fcoeff(2)= 1.e3
+             fcoeff(3)= 1.e5
+           else
+             fcoeff(1)= -1.9e4
+             fcoeff(2)= -8.0e3
+             fcoeff(3)=  3.2e5
+           endif 
            uz=UPARAM(1)*mth_ran_dst(ix,iy,iz,ieg,xl,fcoeff)
         else
            uz = 0.0
@@ -349,6 +350,47 @@ c-----------------------------------------------------------------------
       end subroutine
 
 !-----------------------------------------------------------------------
+
+      subroutine check_vbasea
+
+      implicit none
+
+      include 'SIZE'
+      include 'ARN_ARPD'
+      include 'TSTEPPERD'
+      include 'F3D'
+      include 'TSTEP'
+      include 'SOLN'
+      include 'INPUT'
+
+      integer i,j
+
+      do j=1,2
+        i = 1
+        call copy(vxp(1,2),vbasea(i,j),tst_nv)
+        i = i + tst_nv
+        call copy(vyp(1,2),vbasea(i,j),tst_nv)
+        i = i + tst_nv
+        if (if3d.or.iff3d) then
+          call copy(vzp(1,2),vbasea(i,j),tst_nv)
+          i = i + tst_nv
+        endif
+        if (arna_ifpr) then
+          call copy(prp(1,2),vbasea(i,j),tst_np)
+          i = i + tst_np
+        endif  
+
+        ifto = .true.
+        call outpost(vxp(1,2),vyp(1,2),vzp(1,2),prp(1,2),
+     $               vzp(1,2),'vba')
+      enddo 
+
+      call exitt
+
+      return
+      endsubroutine check_vbasea
+!---------------------------------------------------------------------- 
+
 
 
 c automatically added by makenek

@@ -118,6 +118,7 @@
       include 'SOLN'
       include 'ADJOINT'
       include 'TSTEPPERD'
+      include 'ARN_ARPD'
 
       ! local variables
       integer itmp, il
@@ -198,7 +199,8 @@
       else
          tst_nt  = 0
       endif
-      tst_np  = NX2*NY2*NZ2*NELV ! presure
+      tst_np = 0
+      if (arna_ifpr) tst_np = NX2*NY2*NZ2*NELV ! presure
 
       ! place for submodule initialisation
       ! arnoldi or power iterations

@@ -36,7 +36,7 @@
 !     array sizes; static allocation
 !     max size of Krylov space (maxncv in ARPCK notation)
       integer arna_lkrl
-      parameter (arna_lkrl = 25)
+      parameter (arna_lkrl = 200)
 
 !     single vector sizes
       integer arna_lv, arna_lp, arna_lt
