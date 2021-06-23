@@ -34,9 +34,11 @@
       ifaxis_init = ifaxis
 
       if (iff3d.and.npert.ne.2) then
-        write(6,'(A7,1x,I2)') 'NPERT =', npert
-        write(6,*) 'Need both real and imaginary parts'
-        write(6,*) 'Ensure NPERT = 2 for 3D perturbation solve'
+        if (nio.eq.0) then
+          write(6,'(A7,1x,I2)') 'NPERT =', npert
+          write(6,*) 'Need both real and imaginary parts'
+          write(6,*) 'Ensure NPERT = 2 for 3D perturbation solve'
+        endif  
         call exitt
       endif
 

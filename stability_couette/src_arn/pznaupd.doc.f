@@ -1,11 +1,13 @@
-!> @file znaupd.doc.f
+!> @file pznaupd.doc.f
 !! @ingroup arn_arp
-!! @brief Description of znaupd subroutine in arpack 
+!! @brief Description of pznaupd subroutine in parpack 
 !! @author Prabal Negi
 !! @date June 17, 2021
 !
 !=======================================================================
-!\Name: znaupd
+!\Name: pznaupd
+!
+! Message Passing Layer: MPI
 !
 !\Description: 
 !  Reverse communication interface for the Implicitly Restarted Arnoldi
@@ -19,7 +21,7 @@
 !  The computed approximate eigenvalues are called Ritz values and
 !  the corresponding approximate eigenvectors are called Ritz vectors.
 !
-!  znaupd is usually called iteratively to solve one of the 
+!  pznaupd is usually called iteratively to solve one of the 
 !  following problems:
 !
 !  Mode 1:  A*x = lambda*x.
@@ -48,18 +50,20 @@
 !        approximations.
 !
 !\Usage:
-!  call znaupd
-!     ( IDO, BMAT, N, WHICH, NEV, TOL, RESID, NCV, V, LDV, IPARAM,
+!  call pznaupd
+!     ( COMM, IDO, BMAT, N, WHICH, NEV, TOL, RESID, NCV, V, LDV, IPARAM,
 !       IPNTR, WORKD, WORKL, LWORKL, RWORK, INFO )
 !
 !\Arguments
+!  COMM    MPI Communicator for the processor grid.  (INPUT)
+!
 !  IDO     Integer.  (INPUT/OUTPUT)
 !          Reverse communication flag.  IDO must be zero on the first 
-!          call to znaupd.  IDO will be set internally to
+!          call to pznaupd.  IDO will be set internally to
 !          indicate the type of operation to be performed.  Control is
 !          then given back to the calling routine which has the
 !          responsibility to carry out the requested operation and call
-!          znaupd with the result.  The operand is given in
+!          pznaupd with the result.  The operand is given in
 !          WORKD(IPNTR(1)), the result must be put in WORKD(IPNTR(2)).
 !          -------------------------------------------------------------
 !          IDO =  0: first call to the reverse communication interface
@@ -68,16 +72,17 @@
 !                    IPNTR(2) is the pointer into WORKD for Y.
 !                    This is for the initialization phase to force the
 !                    starting vector into the range of OP.
-!          IDO =  1: compute  Y = OP * Z  and Z = B * X where
+!          IDO =  1: compute  Y = OP * X  where
 !                    IPNTR(1) is the pointer into WORKD for X,
-!                    IPNTR(2) is the pointer into WORKD for Y,
-!                    IPNTR(3) is the pointer into WORKD for Z.
+!                    IPNTR(2) is the pointer into WORKD for Y.
+!                    In mode 3, the vector B * X is already
+!                    available in WORKD(ipntr(3)).  It does not
+!                    need to be recomputed in forming OP * X.
 !          IDO =  2: compute  Y = M * X  where
 !                    IPNTR(1) is the pointer into WORKD for X,
 !                    IPNTR(2) is the pointer into WORKD for Y.
 !          IDO =  3: compute and return the shifts in the first 
 !                    NP locations of WORKL.
-!          IDO =  4: compute Z = OP * X
 !          IDO = 99: done
 !          -------------------------------------------------------------
 !          After the initialization phase, when the routine is used in 
@@ -108,8 +113,8 @@
 !          Stopping criteria: the relative accuracy of the Ritz value 
 !          is considered acceptable if BOUNDS(I) .LE. TOL*ABS(RITZ(I))
 !          where ABS(RITZ(I)) is the magnitude when RITZ(I) is complex.
-!          DEFAULT = dlamch('EPS')  (machine precision as computed
-!                    by the LAPACK auxiliary subroutine dlamch).
+!          DEFAULT = pdlamch(comm, 'EPS')  (machine precision as computed
+!                    by the ScaLAPACK auxiliary subroutine pdlamch).
 !
 !  RESID   Complex*16 array of length N.  (INPUT/OUTPUT)
 !          On INPUT: 
@@ -121,15 +126,13 @@
 !
 !  NCV     Integer.  (INPUT)
 !          Number of columns of the matrix V. NCV must satisfy the two
-!          inequalities 2 <= NCV-NEV and NCV <= N.
+!          inequalities 1 <= NCV-NEV and NCV <= N.
 !          This will indicate how many Arnoldi vectors are generated 
 !          at each iteration.  After the startup phase in which NEV 
 !          Arnoldi vectors are generated, the algorithm generates 
 !          approximately NCV-NEV Arnoldi vectors at each subsequent update 
 !          iteration. Most of the cost in generating each Arnoldi vector is 
-!          in the matrix-vector operation OP*x. 
-!          NOTE: 2 <= NCV-NEV in order that complex conjugate pairs of Ritz 
-!          values are kept together. (See remark 4 below)
+!          in the matrix-vector operation OP*x. (See remark 4 below)
 !
 !  V       Complex*16 array N by NCV.  (OUTPUT)
 !          Contains the final set of Arnoldi basis vectors. 
@@ -173,7 +176,7 @@
 !
 !          IPARAM(7) = MODE
 !          On INPUT determines what type of eigenproblem is being solved.
-!          Must be 1,2,3,4; See under \Description of znaupd for the 
+!          Must be 1,2,3,4; See under \Description of pznaupd for the 
 !          four modes available.
 !
 !          IPARAM(8) = NP
@@ -201,12 +204,19 @@
 !          IPNTR(6): pointer to the  ritz value array  RITZ
 !          IPNTR(7): pointer to the (projected) ritz vector array Q
 !          IPNTR(8): pointer to the error BOUNDS array in WORKL.
-!          Note: IPNTR(9:13) is only referenced by zneupd. See Remark 2 below.
-!          IPNTR(9): pointer to the NCV RITZ values of the 
-!                    original system.
+!          IPNTR(14): pointer to the NP shifts in WORKL. See Remark 5 below.
+!
+!          Note: IPNTR(9:13) is only referenced by pzneupd. See Remark 2 below.
+!
+!          IPNTR(9):  pointer to the NCV RITZ values of the 
+!                     original system.
 !          IPNTR(10): Not Used
 !          IPNTR(11): pointer to the NCV corresponding error bounds.
-!          IPNTR(14): pointer to the NP shifts in WORKL. See Remark 5 below.
+!          IPNTR(12): pointer to the NCV by NCV upper triangular
+!                     Schur matrix for H.
+!          IPNTR(13): pointer to the NCV by NCV matrix of eigenvectors
+!                     of the upper Hessenberg matrix H. Only referenced by
+!                     zneupd if RVEC = .TRUE. See Remark 2 below.
 !          -------------------------------------------------------------
 !          
 !  WORKD   Complex*16 work array of length 3*N.  (REVERSE COMMUNICATION)
@@ -267,11 +277,11 @@
 !     Mode = 3.  When operating in Mode = 3 setting WHICH = 'LM' will
 !     compute the NEV eigenvalues of the original problem that are
 !     closest to the shift SIGMA . After convergence, approximate eigenvalues 
-!     of the original problem may be obtained with the ARPACK subroutine zneupd.
+!     of the original problem may be obtained with the ARPACK subroutine pzneupd.
 !
 !  2. If a basis for the invariant subspace corresponding to the converged Ritz 
-!     values is needed, the user must call zneupd immediately following 
-!     completion of znaupd. This is new starting with release 2 of ARPACK.
+!     values is needed, the user must call pzneupd immediately following 
+!     completion of pznaupd. This is new starting with release 2 of ARPACK.
 !
 !  3. If M can be factored into a Cholesky factorization M = LL'
 !     then Mode = 2 should not be selected.  Instead one should use
@@ -281,9 +291,9 @@
 !     eigenvector z of the original problem is recovered by solving
 !     L'z = x  where x is a Ritz vector of OP.
 !
-!  4. At present there is no a-priori analysis to guide the selection of NCV 
-!     relative to NEV.  The only formal requirement is that NCV > NEV + 2.
-!     However, it is recommended that NCV .ge. 2*NEV+1.  If many problems of
+!  4. At present there is no a-priori analysis to guide the selection
+!     of NCV relative to NEV.  The only formal requrement is that NCV > NEV + 1.
+!     However, it is recommended that NCV .ge. 2*NEV.  If many problems of
 !     the same type are to be solved, one should experiment with increasing
 !     NCV while keeping NEV fixed for a given test problem.  This will 
 !     usually decrease the required number of OP*x operations but it
@@ -302,6 +312,35 @@
 !     WORKL(IPNTR(8)+NCV-1).
 !
 !-----------------------------------------------------------------------
-
+!\References:
+!  1. D.C. Sorensen, "Implicit Application of Polynomial Filters in
+!     a k-Step Arnoldi Method", SIAM J. Matr. Anal. Apps., 13 (1992),
+!     pp 357-385.
+!  2. R.B. Lehoucq, "Analysis and Implementation of an Implicitly 
+!     Restarted Arnoldi Iteration", Rice University Technical Report
+!     TR95-13, Department of Computational and Applied Mathematics.
+!  3. B.N. Parlett & Y. Saad, "_Complex_ Shift and Invert Strategies for
+!     Double precision Matrices", Linear Algebra and its Applications, vol 88/89,
+!     pp 575-595, (1987).
+!
+!\Routines called:
+!     pznaup2  Parallel ARPACK routine that implements the Implicitly Restarted
+!              Arnoldi Iteration.
+!     zstatn   ARPACK routine that initializes the timing variables.
+!     pivout   Parallel ARPACK utility routine that prints integers.
+!     pzvout   Parallel ARPACK utility routine that prints vectors.
+!     second   ARPACK utility routine for timing.
+!     pdlamch  ScaLAPACK routine that determines machine constants.
+!
+!\Author
+!     Danny Sorensen               Phuong Vu
+!     Richard Lehoucq              CRPC / Rice University
+!     Dept. of Computational &     Houston, Texas
+!     Applied Mathematics 
+!     Rice University           
+!     Houston, Texas 
+!
+!\Parallel Modifications
+!     Kristi Maschhoff
 
 

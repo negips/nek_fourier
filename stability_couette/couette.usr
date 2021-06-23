@@ -109,6 +109,9 @@ c-----------------------------------------------------------------------
         call outpost(vx,vy,vz,pr,vz,'ini')
       endif
 
+!     Call time stepper      
+      call tst_solve()
+
       if (mod(istep,iostep).eq.0) then
 !      if (istep.le.10) then
         i = 1
@@ -118,9 +121,6 @@ c-----------------------------------------------------------------------
         call outpost(vxp(1,i),vyp(1,i),vzp(1,i),
      $               prp(1,i),vzp(1,i),'pti')
       endif
-
-!     Call time stepper      
-      call tst_solve()
 
 
       if (istep.eq.nsteps.or.lastep.eq.1) then

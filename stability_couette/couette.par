@@ -36,7 +36,7 @@ dealiasing = yes
 #variableProperties = yes
 #equation = incompNS
 equation = incompLinNS
-numberOfPerturbations=1
+numberOfPerturbations=2
 solveBaseFlow = no
 stressFormulation = yes
 axiSymmetry = no
@@ -61,7 +61,7 @@ residualProj = no
 #
 
 [_F3D]
-iff3d = no
+iff3d = yes
 ifcyl_f3d = no
 k_f3d = 0.00
 
@@ -74,10 +74,10 @@ TOL                  = 1.00000000E-06         # Convergence threshold
 IFTST                = yes                    # If enable?
 #
 [_ARN_ARP]              # Runtime paramere section for Arnoldi ARPACK module
-NKRL                 = 100                    # Krylov space size
-NEGV                 = 30                     # Number of eigenvalues
+NKRL                 = 50                    # Krylov space size
+NEGV                 = 15                     # Number of eigenvalues
 IFPR                 = yes                    # If pressure in arnoldi vector
-IFCOMPLEX            = no                     # Use complex arithmetic (znaupd)
+IFCOMPLEX            = yes                    # Use complex arithmetic (znaupd)
 
 
 

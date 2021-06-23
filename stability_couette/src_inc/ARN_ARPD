@@ -67,25 +67,46 @@
 
 !     Parameters for ARPACK; names kept for consistency with ARPACK naming
 !     work array sizes for arpack
-      integer wddima, wldima, wedima
+      integer wddima, wldima, wedima, wrdima
       parameter (wddima = 3*arna_ls)
       parameter (wldima = 3*arna_lkrl*arna_lkrl+6*arna_lkrl)
       parameter (wedima = 3*arna_lkrl)
+      parameter (wrdima = arna_lkrl)
 
-!!     arrays
-!      complex*16 workda(wddima), workla(wldima), workea(wedima),
-!     $     vbasea(arna_ls,arna_lkrl), resida(arna_ls) 
-!      real     driarp(arna_lkrl,4)
+!     arrays
+!     Complex case declaration      
+      complex*16 workda(wddima)                 ! Main Arnoldi array for
+                                                ! reverse communication
+      complex*16 workla(wldima)                 ! Private work array 
+                                                ! for arpack
+      complex*16 workea(wedima)                 ! Private work array     
+                                                ! for arpack
+      complex*16 vbasea(arna_ls,arna_lkrl)      ! Krylov Vectors
+      complex*16 resida(arna_ls)                ! Residual vector
+      complex*16 driarp(arna_lkrl,2)            ! Ritz/Eigen values
+      real       workra(wrdima)                 ! Private work array for
+                                                ! arpack (Complex case only)
+      complex*16 sigarp(1)                      ! Complex Shift
 
-      real workda(wddima), workla(wldima), workea(wedima),
-     $     vbasea(arna_ls,arna_lkrl), resida(arna_ls), 
-     $     driarp(arna_lkrl,4)
+!!     Real Case declaration      
+!      real workda(wddima)                       ! Main Arnoldi array for
+!                                                ! reverse communication
+!      real workla(wldima)                       ! Private work array 
+!                                                ! for arpack
+!      real workea(wedima)                       ! private work array 
+!                                                ! for arpack
+!      real vbasea(arna_ls,arna_lkrl)            ! Krylov Vectors
+!      real resida(arna_ls)                      ! Residual vector
+!      real driarp(arna_lkrl,4)                  ! Ritz/Eigen values
+!      real       workra(wrdima)                 ! Private work array for
+!                                                ! arpack (Complex case only)
+!      real sigarp(2)                            ! Real and Imag
+!                                                ! parts of the shift
+
 
 !     integer parameters
       integer idoarp, iparp(11), ipntarp(14), nwlarp, infarp, ierrarp
 
-!     real parameters
-      real sigarp(2)
 
 !     logical parameters
       logical rvarp, selarp(arna_lkrl)
@@ -113,18 +134,10 @@
      $     iparp0, ipntarp0, nwlarp0, infarp0, nparp0, ncarp0, 
      $     tst_step0, tst_mode0
 
-!     real variables
+!     real/Complex variables
       common /parpr/ sigarp, workda, workla, workea,
-     $     vbasea, resida, driarp, rnmarp, tst_tol0, rnmarp0, dtarp0
-
-!!     Complex arrays
-!      real workda(wddima), workla(wldima), workea(wedima),
-!     $     vbasea(arna_ls,arna_lkrl), resida(arna_ls), 
-!     $     driarp(arna_lkrl,4)
-
-!!     Complex variables
-!      common /parpc/ sigarp, workda, workla, workea,
-!     $     vbasea, resida, driarp
+     $     vbasea, resida, driarp, rnmarp, tst_tol0, rnmarp0, dtarp0,
+     $     workra  
 
 
 !     logical variables

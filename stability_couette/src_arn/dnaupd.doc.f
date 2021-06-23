@@ -4,7 +4,7 @@
 !! @warning There is no restart option for serial ARPACK version. It is
 !!   supported by parallel PARPACK only.
 !! @author Prabal Negi
-!! @date June 17, 2021
+!! @date June 23, 2021
 !
 !=======================================================================
 !\Name: dnaupd
@@ -63,6 +63,22 @@
 !        the accuracy requirements for the eigenvalue
 !        approximations.
 !
+!\Usage:
+!  call dnaupd
+!     ( IDO, BMAT, N, WHICH, NEV, TOL, RESID, NCV, V, LDV, IPARAM,
+!       IPNTR, WORKD, WORKL, LWORKL, INFO )
+!
+!
+!\Arguments
+!  IDO     Integer.  (INPUT/OUTPUT)
+!          Reverse communication flag.  IDO must be zero on the first 
+!          call to dnaupd.  IDO will be set internally to
+!          indicate the type of operation to be performed.  Control is
+!          then given back to the calling routine which has the
+!          responsibility to carry out the requested operation and call
+!          dnaupd with the result.  The operand is given in
+!          WORKD(IPNTR(1)), the result must be put in WORKD(IPNTR(2)).
+!          -------------------------------------------------------------
 !          IDO =  0: first call to the reverse communication interface
 !          IDO = -1: compute  Y = OP * X  where
 !                    IPNTR(1) is the pointer into WORKD for X,

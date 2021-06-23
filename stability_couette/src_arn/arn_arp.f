@@ -222,8 +222,12 @@
       ! select should be specified for howarp='S'
 
       ! no shift
-      sigarp(1) = 0.0
-      sigarp(2) = 0.0
+      if (arna_ifcomplex) then
+        sigarp(1) = complex(0.,0.)
+      else  
+        sigarp(1) = 0.0
+        sigarp(2) = 0.0
+      endif  
 
       ! vector lengths
       ! single vector length in Krylov space
@@ -557,12 +561,12 @@
         endif
       else
         i = ipntarp(2) 
-        call copy(workda(i),VXP,tst_nv)
+        call col3(workda(i),VXP,V1MASK,tst_nv)
         i = i + tst_nv
-        call copy(workda(i),VYP,tst_nv)
+        call col3(workda(i),VYP,V2MASK,tst_nv)
         i = i + tst_nv
         if (IF3D.or.iff3d) then
-          call copy(workda(i),VZP,tst_nv)
+          call col3(workda(i),VZP,V3MASK,tst_nv)
           i = i + tst_nv
         endif
 !       pressure
@@ -571,15 +575,15 @@
           i = i + tst_np
         endif  
 !       temperature
-        if(IFHEAT) then
-          call copy(workda(i),TP,tst_nt)
+        if (IFHEAT) then
+          call col3(workda(i),TP,TMASK,tst_nt)
           i = i + tst_nt
         endif  
         ! this may be not necessary, but ARPACK manual is not clear about it
         !call col3(workda(ipntarp(1)),VXP,BM1,tst_nv)
         !call col3(workda(ipntarp(1)+tst_nv),VYP,BM1,tst_nv)
         !if (IF3D) call col3(workda(ipntarp(1)+2*tst_nv),VZP,BM1,tst_nv)
-      endif  
+      endif       ! arna_ifcomplex 
 #endif
 
 !     ARPACK interface
@@ -632,6 +636,10 @@
 
       integer i
       integer nps
+
+      real eigr, eigi
+      real ritzr, ritzi
+     
 !-----------------------------------------------------------------------
       if (idoarp.eq.99) then
 
@@ -640,10 +648,10 @@
 
 #ifdef MPI
          if (arna_ifcomplex) then            
-           call pzneupd(NEKCOMM,rvarp,howarp,selarp,driarp,driarp(1,2),
-     $       vbasea,arna_ls,sigarp(1),sigarp(2),workea,bmatarp,arna_ns,
+           call pzneupd(NEKCOMM,rvarp,howarp,selarp,driarp,
+     $       vbasea,arna_ls,sigarp,workea,bmatarp,arna_ns,
      $       whicharp,arna_negv,tst_tol,resida,arna_nkrl,vbasea,
-     $       arna_ls,iparp,ipntarp,workda,workla,nwlarp,ierrarp)
+     $       arna_ls,iparp,ipntarp,workda,workla,nwlarp,workra,ierrarp)
          else
            call pdneupd(NEKCOMM,rvarp,howarp,selarp,driarp,driarp(1,2),
      $       vbasea,arna_ls,sigarp(1),sigarp(2),workea,bmatarp,arna_ns,
@@ -652,11 +660,23 @@
          endif  
 #else
          if (arna_ifcomplex) then
-           call zneupd(rvarp,howarp,selarp,driarp,driarp(1,2),
-     $       vbasea,arna_ls,sigarp(1),sigarp(2),workea,bmatarp,arna_ns,
+!          From Documentation:              
+!          zneupd( RVEC, HOWMNY, SELECT, D,
+!                  Z, LDZ, SIGMA, WORKEV, BMAT, N,
+!                  WHICH, NEV, TOL, RESID, NCV, V, 
+!                  LDV, IPARAM, IPNTR, WORKD, WORKL, LWORKL, RWORK, INFO )
+
+           call zneupd(rvarp,howarp,selarp,driarp(1,1),
+     $       vbasea,arna_ls,sigarp,workea,bmatarp,arna_ns,
      $       whicharp,arna_negv,tst_tol,resida,arna_nkrl,vbasea,
-     $       arna_ls,iparp,ipntarp,workda,workla,nwlarp,ierrarp)
+     $       arna_ls,iparp,ipntarp,workda,workla,nwlarp,workra,ierrarp)
          else
+!          From Documentation: 
+!          dneupd( RVEC, HOWMNY, SELECT, DR, DI, 
+!                  Z, LDZ, SIGMAR, SIGMAI, WORKEV, BMAT, N, 
+!                  WHICH, NEV, TOL, RESID, NCV, V, 
+!                  LDV, IPARAM, IPNTR, WORKD, WORKL, LWORKL, INFO )
+
            call dneupd(rvarp,howarp,selarp,driarp,driarp(1,2),
      $       vbasea,arna_ls,sigarp(1),sigarp(2),workea,bmatarp,arna_ns,
      $       whicharp,arna_negv,tst_tol,resida,arna_nkrl,vbasea,
@@ -720,6 +740,31 @@
 
             ierror=0
             do il=1,IPARP(5)
+               ! possible place to test error
+               ! get growth rate; get eigenvalues of Operator
+               if (arna_ifcomplex) then
+                 ritzr = real(driarp(il,1))
+                 ritzi = aimag(driarp(il,1))
+                 eigr  = log(abs(driarp(il,1)))*dumm
+                 eigi  = atan2(ritzi,ritzr)*dumm
+                 driarp(il,2) = complex(eigr,eigi)
+               else
+                 ritzr = driarp(il,1)
+                 ritzi = driarp(il,2)
+                 eigr = log(sqrt(ritzr**2 +
+     $              ritzi**2))*dumm
+                 eigi = atan2(ritzi,ritzr)*dumm
+                 driarp(il,3) = eigr
+                 driarp(il,4) = eigi
+               endif  
+
+!               if (NID.eq.0)  write(unit=iunit,fmt=*,iostat=ierror)
+!     $         il,driarp(il,1),driarp(il,2),driarp(il,3),driarp(il,4)
+               if (NID.eq.0)  write(unit=iunit,fmt=*,iostat=ierror)
+     $         il,ritzr,ritzi,eigr,eigi
+
+               istep = il
+               time  = eigi 
                !copy eigenvectors to perturbation variables
                if (arna_ifcomplex) then
                  i = 1
@@ -775,14 +820,6 @@
                  call outpost2(VXP,VYP,VZP,PRP,TP,nps,'egv')
                endif          ! arna_ifcomplex
 
-               ! possible place to test error
-               ! get growth rate; get eigenvalues of Operator
-               driarp(il,3) = log(sqrt(driarp(il,1)**2+
-     $              driarp(il,2)**2))*dumm
-               driarp(il,4) = atan2(driarp(il,2),driarp(il,1))*dumm
-
-               if (NID.eq.0)  write(unit=iunit,fmt=*,iostat=ierror)
-     $         il,driarp(il,1),driarp(il,2),driarp(il,3),driarp(il,4)
             enddo
             ! error check
             call  mntr_check_abort(arna_id,ierror,
@@ -841,7 +878,7 @@
       if (arna_ifcomplex) then
         call pznaupd(NEKCOMM,idoarp,bmatarp,arna_ns,whicharp,arna_negv,
      $    tst_tol,resida,arna_nkrl,vbasea,arna_ls,iparp,ipntarp,workda,
-     $    workla,nwlarp,infarp,nparp,rnmarp,ncarp)
+     $    workla,nwlarp,workra,infarp,nparp,rnmarp,ncarp)
       else
         call pdnaupd(NEKCOMM,idoarp,bmatarp,arna_ns,whicharp,arna_negv,
      $    tst_tol,resida,arna_nkrl,vbasea,arna_ls,iparp,ipntarp,workda,
@@ -849,10 +886,20 @@
       endif  
 #else
       if (arna_complex) then
+!     From Documentation:        
+!     znaupd(IDO, BMAT, N, WHICH, NEV, 
+!            TOL, RESID, NCV, V, LDV, IPARAM, IPNTR, WORKD, 
+!            WORKL, LWORKL, RWORK, INFO )
+       
         call znaupd(Idoarp,bmatarp,arna_ns,whicharp,arna_negv,
      $    tst_tol,resida,arna_nkrl,vbasea,arna_ls,iparp,ipntarp,workda,
-     $    workla,nwlarp,infarp)
+     $    workla,nwlarp,workra,infarp)
       else
+!     From Documentation:
+!     dnaupd( IDO, BMAT, N, WHICH, NEV, 
+!             TOL, RESID, NCV, V, LDV, IPARAM, IPNTR, WORKD, 
+!             WORKL, LWORKL, INFO )
+       
         call dnaupd(Idoarp,bmatarp,arna_ns,whicharp,arna_negv,
      $    tst_tol,resida,arna_nkrl,vbasea,arna_ls,iparp,ipntarp,workda,
      $    workla,nwlarp,infarp)
@@ -941,8 +988,8 @@
            if (arna_ifcomplex) then            
              call pznaupd(NEKCOMM,idoarp,bmatarp,arna_ns,whicharp,
      $         arna_negv,tst_tol,resida,arna_nkrl,vbasea,arna_ls,
-     $         iparp,ipntarp,workda,workla,nwlarp,infarp,nparp,rnmarp,
-     $         ncarp)
+     $         iparp,ipntarp,workda,workla,nwlarp,workra,infarp,
+     $         nparp,rnmarp,ncarp)
            else
              call pdnaupd(NEKCOMM,idoarp,bmatarp,arna_ns,whicharp,
      $         arna_negv,tst_tol,resida,arna_nkrl,vbasea,arna_ls,
@@ -953,7 +1000,7 @@
            if (arna_ifcomplex) then
              call znaupd(idoarp,bmatarp,arna_ns,whicharp,arna_negv,
      $         tst_tol,resida,arna_nkrl,vbasea,arna_ls,iparp,ipntarp,
-     $         workda,workla,nwlarp,infarp)
+     $         workda,workla,nwlarp,workra,infarp)
            else
              call dnaupd(idoarp,bmatarp,arna_ns,whicharp,arna_negv,
      $         tst_tol,resida,arna_nkrl,vbasea,arna_ls,iparp,ipntarp,
@@ -1005,7 +1052,7 @@
              call copy(VZP,workda(i),tst_nv)
              i = i + tst_nv
            endif
-!          Pressure            
+!          Pressure 
            if (arna_ifpr) then
              call copy(prp,workda(i),tst_np)
              i = i + tst_np
