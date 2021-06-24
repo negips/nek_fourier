@@ -109,6 +109,12 @@ c-----------------------------------------------------------------------
         call outpost(vx,vy,vz,pr,vz,'ini')
       endif
 
+!     for k_f3d=0, we seem to get squire modes
+      if (iff3d.and.(abs(k_f3d).lt.1.0e-12)) then
+        call rzero(vzp(1,1),ntot1)
+        call rzero(vzp(1,2),ntot1)
+      endif 
+
 !     Call time stepper      
       call tst_solve()
 
@@ -121,6 +127,18 @@ c-----------------------------------------------------------------------
         call outpost(vxp(1,i),vyp(1,i),vzp(1,i),
      $               prp(1,i),vzp(1,i),'pti')
       endif
+
+
+!      if (istep.eq.1) then
+!        call outpost(tmp1,tmp2,tmp3,
+!     $               tmp4,tmp3,'tmp')
+!        call outpost(tmp5,tmp6,tmp7,
+!     $               tmp8,tmp7,'tmp')
+!        call outpost(tmp9,tmp10,tmp11,
+!     $               tmp12,tmp11,'tmp')
+!
+!        call exitt
+!      endif  
 
 
       if (istep.eq.nsteps.or.lastep.eq.1) then

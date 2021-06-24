@@ -71,7 +71,7 @@ MODE                 = DIR                    # Simulation mode
 STEPS                = 80                     # Length of stepper phase
 MAXCYC               = 400                    # Max number of stepper cycles
 TOL                  = 1.00000000E-06         # Convergence threshold
-IFTST                = yes                    # If enable?
+IFTST                = no                     # If enable?
 #
 [_ARN_ARP]              # Runtime paramere section for Arnoldi ARPACK module
 NKRL                 = 50                    # Krylov space size

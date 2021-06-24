@@ -406,16 +406,24 @@ c
 
         ntot1 = lx1*ly1*lz1*nelv
 
+!!       prabal    
+!        call copy3(tmp1,tmp2,tmp3,bfxp(1,1),bfyp(1,1),bfzp(1,1),ntot1)
+!        call copy3(tmp5,tmp6,tmp7,bfxp(1,2),bfyp(1,2),bfzp(1,2),ntot1)
+
+
         intype = -1
         call sethlm_f3dp(h1,h2,intype)
         call cresvipp_cyl(resv1r,resv2r,resv3r,
      $                    resv1i,resv2i,resv3i,h1,h2)
 
+!       prabal    
+!        call copy3(tmp1,tmp2,tmp3,resv1r,resv2r,resv3r,ntot1)    
+!        call copy3(tmp5,tmp6,tmp7,resv1i,resv2i,resv3i,ntot1)
+
 !       Solve        
         call ophinv_cyl(dv1r,dv2r,dv3r,dv1i,dv2i,dv3i,
      $                  resv1r,resv2r,resv3r,resv1i,resv2i,resv3i,
      $                  h1,h2,tolhv,nmxv)
-
 
 !       Update Velocity (real)
         call add2_3(vxp(1,jpr),vyp(1,jpr),vzp(1,jpr),
@@ -1292,10 +1300,9 @@ c
      $                vxp(1,jpi),vyp(1,jpi),vzp(1,jpi),
      $                h1,h2)
 
-!!     prabal            
-!      call copy3(tmp1,tmp2,tmp3,resv1r,resv2r,resv3r,ntot1)
-!      call copy3(tmp4,tmp5,tmp6,resv1i,resv2i,resv3i,ntot1)
-
+!     prabal            
+      call copy3(tmp1,tmp2,tmp3,w1r,w2r,w3r,ntot1)
+      call copy3(tmp4,tmp5,tmp6,w1i,w2i,w3i,ntot1)
 
       call sub2(resv1r,w1r,ntot1)
       call sub2(resv2r,w2r,ntot1)
@@ -1306,8 +1313,9 @@ c
       call sub2(resv3i,w3i,ntot1)
 
 !!     prabal            
-!      call copy3(tmp1,tmp2,tmp3,w1r,w2r,w3r,ntot1)
-!      call copy3(tmp4,tmp5,tmp6,w1i,w2i,w3i,ntot1)
+!      call copy3(tmp1,tmp2,tmp3,resv1r,resv2r,resv3r,ntot1)
+!      call copy3(tmp4,tmp5,tmp6,resv1i,resv2i,resv3i,ntot1)
+
 
       
 

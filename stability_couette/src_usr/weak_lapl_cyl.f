@@ -181,7 +181,11 @@
 
       
 !     rinv = 1/R
-      call invers2(rinv,ym1,ntot1)
+      if (ifcyl_f3d) then
+        call invers2(rinv,ym1,ntot1)
+      else
+        call rone(rinv,ntot1)  
+      endif  
 
 !!    Er_xx 
 !     (Real)
@@ -214,7 +218,7 @@
 !!    Ei_\thetax
 !     (Imaginary) 
       call col3(eixt,u1r,rinv,ntot1)       ! u1/R
-      call cmult(eixt,k_f3d,ntot1)        ! k/R*u1
+      call cmult(eixt,k_f3d,ntot1)         ! k*u1/R
       call add2(eixt,ui3x,ntot1)           ! + du3(im)/dx
       call cmult(eixt,0.5,ntot1)           ! 1/2*[du3(im)/dx + k/R*u1]
 
@@ -236,7 +240,7 @@
         call sub2(errt,wk1,ntot1)          ! du3/dr - u3/R
       endif        
       call col3(wk2,u2i,rinv,ntot1)        ! u2(im)/R
-      call add2s2(errt,wk2,-k_f3d,ntot1)  ! du3/dr - u3/R - k/R*u2(im)
+      call add2s2(errt,wk2,-k_f3d,ntot1)   ! du3/dr - u3/R - k/R*u2(im)
       call cmult(errt,0.5,ntot1)           ! 0.5*[du3/dr - u3/R - k/R*u2(im)]
 
 !!    Ei_\thetaR
@@ -247,24 +251,24 @@
         call sub2(eirt,wk1,ntot1)          ! du3(im)/dr - u3(im)/R
       endif        
       call col3(wk2,u2r,rinv,ntot1)        ! u2/R
-      call add2s2(eirt,wk2,k_f3d,ntot1)   ! du3(im)/dr - u3(im)/R + k/R*u2
-      call cmult(eirt,0.5,ntot1)           ! 0.5*[du3(im)/dr - u3(im)/R + k/R*u2]
+      call add2s2(eirt,wk2,k_f3d,ntot1)    ! du3(im)/dr - u3(im)/R + k*u2/R
+      call cmult(eirt,0.5,ntot1)           ! 0.5*[du3(im)/dr - u3(im)/R + k*u2/R]
 
 
 !!    Er_\theta\theta
 !     (Real)      
       call col3(ertt,u3i,rinv,ntot1)       ! u3(im)/R      
-      call cmult(ertt,-k_f3d,ntot1)       ! -k/R*u3(im)
+      call cmult(ertt,-k_f3d,ntot1)        ! -k*u3(im)/R
       if (ifcyl_f3d) then
-        call xaddcol3(ertt,u2r,rinv,ntot1) ! -k/R*u3(im) + u2/R
+        call xaddcol3(ertt,u2r,rinv,ntot1) ! -k*u3(im)/R + u2/R
       endif  
 
 !!    Ei_\theta\theta
 !     (Imaginary)      
       call col3(eitt,u3r,rinv,ntot1)       ! u3/R      
-      call cmult(eitt,k_f3d,ntot1)        ! k/R*u3
+      call cmult(eitt,k_f3d,ntot1)         ! k*u3/R
       if (ifcyl_f3d) then
-        call xaddcol3(eitt,u2i,rinv,ntot1) ! k/R*u3 + u2(im)/R
+        call xaddcol3(eitt,u2i,rinv,ntot1) ! k*u3/R + u2(im)/R
       endif  
 
       return
@@ -422,8 +426,12 @@ c        newtonian fluids
 
       ntot1 = lx1*ly1*lz1*nel
 
-!     rinv = 1/R      
-      call invers2(rinv,ym1,ntot1)
+!     rinv = 1/R
+      if (ifcyl_f3d) then 
+        call invers2(rinv,ym1,ntot1)
+      else
+        call rone(rinv,ntot1)
+      endif  
       call col2c(rinv,bm1,k_f3d,ntot1)   ! rinv = k*BM1/R
 
 !     Real Variables      
