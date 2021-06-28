@@ -108,12 +108,16 @@ c
       include 'INPUT'
       include 'TSTEP'
       include 'ADJOINT'
+
  
                                               call makeufp
+      if (filterType.eq.2)                    call make_hpf
+
       if (ifnav.and.(.not.ifchar).and.(.not.ifadj))call advabp
       if (ifnav.and.(.not.ifchar).and.(     ifadj))call advabp_adjoint
       if (iftran)                              call makextp
                                                call makebdfp
+
 c
       return
       end
@@ -523,6 +527,9 @@ c     Also, subtract off best estimate of grad p
 c
       include 'SIZE'
       include 'TOTAL'
+
+      include 'TEST'
+
       real           resv1 (lx1,ly1,lz1,1)
       real           resv2 (lx1,ly1,lz1,1)
       real           resv3 (lx1,ly1,lz1,1)
@@ -541,6 +548,11 @@ c
       call extrapprp(prextr)
       call opgradt(resv1,resv2,resv3,prextr)
       call opadd2(resv1,resv2,resv3,bfxp(1,jp),bfyp(1,jp),bfzp(1,jp))
+
+!!     prabal            
+!      call copy3(tmp1,tmp2,tmp3,bfxp(1,jp),bfyp(1,jp),
+!     $           bfzp(1,jp),ntot1)
+
       call ophx  (w1,w2,w3,vxp(1,jp),vyp(1,jp),vzp(1,jp),h1,h2)
       call opsub2(resv1,resv2,resv3,w1,w2,w3)
 c

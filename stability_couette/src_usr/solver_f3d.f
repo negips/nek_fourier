@@ -387,12 +387,6 @@ c        if ( .not.ifprint )  goto 9999
 !     Setting it zero so we don't accumulate round off errors
       rpp1i = 0.      
 
-!!     prabal            
-!      n1 = lx1*ly1*lz1*lelv
-!      n2 = lx2*ly2*lz2*lelv
-!      call copy3(tmp1,tmp2,tmp3,r1r,r2r,r3r,n1)
-!      call copy3(tmp4,tmp5,tmp6,r1i,r2i,r3i,n1)
-
 !!     prabal
 !      call copy3(krylr(1,1,1),krylr(1,2,1),krylr(1,3,1)
 !     $          ,r1r,r2r,r3r,n)
@@ -410,14 +404,6 @@ c        if ( .not.ifprint )  goto 9999
 !     $          ,Ap1r,AP2r,Ap3r,n)
 !      call copy3(kryli(1,1,iter),kryli(1,2,iter),kryli(1,3,iter)
 !     $          ,Ap1i,Ap2i,Ap3i,n)
-
-
-!!       prabal            
-!         n1 = lx1*ly1*lz1*lelv
-!         n2 = lx2*ly2*lz2*lelv
-!         call copy3(tmp1,tmp2,tmp3,Ap1r,Ap2r,Ap3r,n1)
-!         call copy3(tmp4,tmp5,tmp6,Ap1i,Ap2i,Ap3i,n1)
-
 
 !        call col3(Ap1r,p1r,bm1,n)
 !        call col3(Ap2r,p2r,bm1,n)
@@ -438,15 +424,6 @@ c        if ( .not.ifprint )  goto 9999
          call opglsc2_wt_comp(pApr,pApi,p1r,p2r,p3r,p1i,p2i,p3i,
      $                        Ap1r,Ap2r,Ap3r,Ap1i,Ap2i,Ap3i,rmult,n)
 
-!!        prabal         
-!         write(6,*) 'pAp', pApr,pApi
-
-!!        prabal            
-!         n1 = lx1*ly1*lz1*lelv
-!         n2 = lx2*ly2*lz2*lelv
-!         call copy3(tmp1,tmp2,tmp3,Ap1r,Ap2r,Ap3r,n1)
-!         call copy3(tmp4,tmp5,tmp6,Ap1i,Ap2i,Ap3i,n1)
-        
 
 !        \alpha = (rn-1*rn-1)/(pn-1*Apn-1) 
          tmpval = (pApr*pApr + pApi*pApi)
@@ -553,12 +530,6 @@ c        if ( .not.ifprint )  goto 9999
          call copy3(p1i,p2i,p3i,Ap1i,Ap2i,Ap3i,n)
          call opadds_3(p1i,p2i,p3i,wk1i,wk2i,wk3i,betar,n,2)   
 !         call opadds_3(p1i,p2i,p3i,wk1r,wk2r,wk3r,betai,n,2)
-
-!!        prabal            
-!         n1 = lx1*ly1*lz1*lelv
-!         n2 = lx2*ly2*lz2*lelv
-!         call copy3(tmp1,tmp2,tmp3,p1r,p2r,p3r,n1)
-!         call copy3(tmp4,tmp5,tmp6,p1i,p2i,p3i,n1)
 
 !!     prabal
 !      call copy3(krylr(1,1,iter+1),krylr(1,2,iter+1),krylr(1,3,iter+1)

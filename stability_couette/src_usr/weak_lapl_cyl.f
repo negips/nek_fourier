@@ -18,8 +18,6 @@
       include 'TSTEP'   ! nelfld
       include 'MASS'
 
-      include 'TEST'
-
       real u1r(1),u2r(1),u3r(1),u1i(1),u2i(1),u3i(1)
       real Au1r(1),Au2r(1),Au3r(1),Au1i(1),Au2i(1),Au3i(1)
       real h1(1),h2(1)
@@ -28,6 +26,7 @@
 
       logical ifdfrm,iffast,ifh2,ifsolv
       common /fastmd/ ifdfrm(lelt), iffast(lelt), ifh2, ifsolv
+
 
       matmod = 0                ! Newtonian Fluids
       nel    = nelfld(ifield)   ! ifield should be already set
@@ -51,7 +50,7 @@
       call addcol4 (Au1i,bm1,h2,u1i,ntot1)
       call addcol4 (Au2i,bm1,h2,u2i,ntot1)
       call addcol4 (Au3i,bm1,h2,u3i,ntot1)
-        
+
       return
       end subroutine axhmsf_cyl             
 !-----------------------------------------------------------------------
@@ -269,7 +268,8 @@
       call cmult(eitt,k_f3d,ntot1)         ! k*u3/R
       if (ifcyl_f3d) then
         call xaddcol3(eitt,u2i,rinv,ntot1) ! k*u3/R + u2(im)/R
-      endif  
+      endif
+
 
       return
       end subroutine stnrate_cyl
@@ -364,6 +364,7 @@ c        newtonian fluids
 
       endif
 
+
       return
       end subroutine stress_cyl
 !-----------------------------------------------------------------------
@@ -376,8 +377,6 @@ c        newtonian fluids
       include 'GEOM'
 
       include 'F3D'
-
-      include 'TEST'
 
 !      common /ctmp1/ txx(lx1,ly1,lz1,lelt)
 !     $             , txy(lx1,ly1,lz1,lelt)
@@ -484,15 +483,6 @@ c        newtonian fluids
         call col2(wk1,bm1,ntot1)             ! BM1*v/R
         call Xaddcol3(Au3i,eitt,wk1,ntot1)   ! BM1*v/R*[eitt]
       endif        
-
-
-!!       prabal            
-!        ntot1 = lx1*ly1*lz1*lelv
-!        ntot2 = lx2*ly2*lz2*lelv
-!        call copy3(tmp1,tmp2,tmp3,Au1r,Au2r,Au3r,ntot1)
-!        call copy3(tmp4,tmp5,tmp6,Au1i,Au2i,Au3i,ntot1)
-!        call copy(tmp7,prp(1,jpr),ntot2)
-!        call copy(tmp8,prp(1,jpi),ntot2)
 
 
 !      if (ifaxis)    call axitzz (au2,tzz,nel)

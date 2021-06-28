@@ -1,0 +1,510 @@
+/----------------------------------------------------------\\
+|      _   __ ______ __ __  ______  ____   ____   ____     |
+|     / | / // ____// //_/ / ____/ / __ \\/ __ \\/ __ \\   |
+|    /  |/ // __/  / ,<   /___ \\ / / / // / / // / / /    |
+|   / /|  // /___ / /| | ____/ / / /_/ // /_/ // /_/ /     |
+|  /_/ |_//_____//_/ |_|/_____/  \\___/ \\___/ \\___/      |
+|                                                          |
+|----------------------------------------------------------|
+|                                                          |
+| COPYRIGHT (c) 2008-2019 UCHICAGO ARGONNE, LLC            |
+| Version:  19.0                                           |
+| Web:      https://nek5000.mcs.anl.gov                    |
+|                                                          |
+\\----------------------------------------------------------/
+
+ Number of MPI ranks :           2
+  
+ Reading /home/prabal/workstation/git/fourier_old/stability_couette/couette.par                                                              
+general = [(null)]
+general:minnumprocesses = [1]
+general:stopat = [numsteps]
+general:numsteps = [10000000]
+general:dt = [0.005]
+general:timestepper = [bdf3]
+general:extrapolation = [standard]
+general:variabledt = [no]
+general:targetcfl = [0.4]
+general:writecontrol = [TimeStep]
+general:writeinterval = [100]
+general:userparam01 = [1.0]
+general:userparam02 = [0]
+general:filtering = [none]
+general:filterweight = [10]
+general:filtermodes = [1]
+general:dealiasing = [yes]
+problemtype = [(null)]
+problemtype:equation = [incompLinNS]
+problemtype:numberofperturbations = [2]
+problemtype:solvebaseflow = [no]
+problemtype:stressformulation = [yes]
+problemtype:axisymmetry = [no]
+pressure = [(null)]
+pressure:preconditioner = [semg_xxt]
+pressure:residualtol = [1e-12]
+pressure:residualproj = [yes]
+velocity = [(null)]
+velocity:residualtol = [1e-12]
+velocity:density = [1]
+velocity:viscosity = [-1000]
+velocity:residualproj = [no]
+_f3d = [(null)]
+_f3d:iff3d = [yes]
+_f3d:ifcyl_f3d = [no]
+_f3d:k_f3d = [0.00]
+_tstepper = [(null)]
+_tstepper:mode = [DIR]
+_tstepper:steps = [80]
+_tstepper:maxcyc = [400]
+_tstepper:tol = [1.00000000E-06]
+_tstepper:iftst = [no]
+_arn_arp = [(null)]
+_arn_arp:nkrl = [50]
+_arn_arp:negv = [15]
+_arn_arp:ifpr = [yes]
+_arn_arp:ifcomplex = [yes]
+ Reading /home/prabal/workstation/git/fourier_old/stability_couette/couette.re2                                                              
+ nelgt/nelgv/lelt:         200         200         303
+ lx1  /lx2  /lx3 :          10           8          10
+
+ partioning elements to MPI ranks
+ Reading /home/prabal/workstation/git/fourier_old/stability_couette/couette.ma2                                                              
+ Max neighbors: 1 | Min neighbors: 1 | Avg neighbors: 1.000000
+ Max nvolume: 20 | Min nvolume: 20 | Avg nvolume: 20.000000
+ Max volume: 20 | Min volume: 20 | Avg volume: 20.000000
+ Max elements: 100 | Min elements: 100 | Balance: 1.000000
+  
+ done :: partioning   0.31979E-03 sec
+
+  preading mesh 
+  preading bc for ifld           1
+ done :: read .re2 file    0.29E-02 sec
+
+ setup mesh topology
+   Right-handed check complete for         200 elements. OK.
+   setvert2d:  10        3580       16380        3580        3580
+ call usrsetvert
+ done :: usrsetvert
+
+gs_setup: 180 unique labels shared
+   pairwise times (avg, min, max): 7.584e-07 7.575e-07 7.593e-07
+   crystal router                : 7.255e-07 7.134e-07 7.376e-07
+   all reduce                    : 1.3108e-06 1.2993e-06 1.3223e-06
+   used all_to_all method: crystal router
+   handle bytes (avg, min, max): 52084 52084 52084
+   buffer bytes (avg, min, max): 5760 5760 5760
+   setupds time 9.6978E-04 seconds   0 10        3580         200
+           4  max multiplicity
+ done :: setup mesh topology
+  
+         400         100         303
+ call usrdat
+         400         100         303
+ done :: usrdat
+
+ generate geometry data
+ NOTE: All elements deformed , param(59) ^=0
+ done :: generate geometry data
+  
+ call usrdat2
+ done :: usrdat2
+
+  0.0000E+00  0.0000E+00  0.0000E+00  0.0000E+00  0.0000E+00  0.0000E+00 xyz repair 1
+  0.0000E+00  0.0000E+00  0.0000E+00  0.0000E+00  0.0000E+00  0.0000E+00 xyz repair 2
+  0.0000E+00  0.0000E+00  0.0000E+00  0.0000E+00  0.0000E+00  0.0000E+00 xyz repair 3
+ regenerate geometry data           1
+ NOTE: All elements deformed , param(59) ^=0
+ done :: regenerate geometry data           1
+  
+ regenerate geometry data           1
+ NOTE: All elements deformed , param(59) ^=0
+ done :: regenerate geometry data           1
+  
+ verify mesh topology
+   0.0000000000000000        6.2831853071795862       Xrange
+  -1.0000000000000000        1.0000000000000000       Yrange
+   0.0000000000000000        0.0000000000000000       Zrange
+ done :: verify mesh topology
+  
+ mesh metrics:
+ GLL grid spacing min/max    : 8.05E-03-1.00E+00
+ scaled Jacobian  min/max/avg: 1.00E+00 1.00E+00 1.00E+00
+ aspect ratio     min/max/avg: 1.57E+00 1.57E+00 1.57E+00
+
+ IFTRAN    = T
+ IFFLOW    = T
+ IFHEAT    = F
+ IFSPLIT   = F
+ IFLOMACH  = F
+ IFUSERVP  = F
+ IFUSERMV  = F
+ IFPERT    = T
+ IFADJ     = F
+ IFSTRS    = T
+ IFCHAR    = F
+ IFCYCLIC  = F
+ IFAXIS    = F
+ IFMVBD    = F
+ IFMELT    = F
+ IFNEKNEK  = F
+ IFNEKNEKC = F
+ IFSYNC    = F
+   
+ IFVCOR    = T
+ IFINTQ    = F
+ IFGEOM    = F
+ IFSURT    = F
+ IFWCNO    = F
+   
+ IFTMSH for field           1    =  F
+ IFADVC for field           1    =  T
+ IFNONL for field           1    =  F
+   
+ Dealiasing enabled, lxd=          16
+  
+ Estimated eigenvalues
+ EIGAA =    1.3587005501361697     
+ EIGGA =    201437.43315600781     
+ EIGAE =   0.25000000000000000     
+ EIGAS =    2.2999917087593809E-002
+ EIGGE =    201437.43315600781     
+ EIGGS =    2.0000000000000000     
+  
+ initialize pressure solver
+ setup h1 coarse grid, nx_crs=           2
+ call usrsetvert
+ done :: usrsetvert
+
+gs_setup: 20 unique labels shared
+   pairwise times (avg, min, max): 5.2665e-07 5.244e-07 5.289e-07
+   crystal router                : 5.131e-07 5.102e-07 5.16e-07
+   all reduce                    : 1.5049e-06 1.5016e-06 1.5082e-06
+   used all_to_all method: crystal router
+   handle bytes (avg, min, max): 6004 6004 6004
+   buffer bytes (avg, min, max): 640 640 640
+ done :: setup h1 coarse grid    1.5464890000000016E-003  sec
+  
+ call usrdat3
+ done :: usrdat3
+
+ set initial conditions
+ nekuic (1) for ifld            1
+ nekuicP           2           1 F
+ nekuicP           2           2 F
+ call nekuic for vel  
+ ic vel pert: T           1
+ ic vel pert: T           2
+ xyz min     0.0000      -1.0000       0.0000    
+ uvwpt min  -1.0000       0.0000       0.0000       0.0000       0.0000    
+ xyz max     6.2832       1.0000       0.0000    
+ uvwpt max   1.0000       0.0000       0.0000       0.0000       0.0000    
+ done :: set initial conditions
+  
+ call userchk
+  [MONITOR] Registered module [FRAME]: Framework backbone
+  [MONITOR] Registered module [MONITOR]: Monitoring module
+  [MONITOR] Registered timer [FRM_TOT]: Total elapsed framework time
+  [MONITOR] Initial log threshold set to:  4
+  [MONITOR] Module [RUNPAR] not registered
+  [MONITOR] Registered module [RUNPAR]: Runtime parameters
+  [RUNPAR] Module [RUNPAR] registered section _RUNPAR: Runtime parameter section for rprm module
+  [RUNPAR] Section _RUNPAR registered parameter PARFWRITE: Do we write runtime parameter file
+  [RUNPAR] Section _RUNPAR registered parameter PARFNAME: Runtime parameter file name for output (without .par)
+  [RUNPAR] Module [MONITOR] registered section _MONITOR: Runtime parameter section for monitor module
+  [RUNPAR] Section _MONITOR registered parameter LOGLEVEL: Logging threshold for toolboxes
+  [RUNPAR] Section _MONITOR registered parameter IFTIMDSCR: Write timer description in the summary
+  [RUNPAR] Section _MONITOR registered parameter WALLTIME: Simulation wall time
+  [MONITOR] Module [IOTOOL] not registered
+  [MONITOR] Registered module [IOTOOL]: I/O TOOLS
+  [MONITOR] Module [CHKPOINT] not registered
+  [MONITOR] Registered module [CHKPOINT]: Checkpointing I/O
+  [MONITOR] Registered timer [CHP_TOT]: Checkpointing total time
+  [MONITOR] Registered timer [CHP_INI]: Checkpointing initialisation time
+  [RUNPAR] Module [CHKPOINT] registered section _CHKPOINT: Runtime paramere section for checkpoint module
+  [RUNPAR] Section _CHKPOINT registered parameter READCHKPT: Restat from checkpoint
+  [RUNPAR] Section _CHKPOINT registered parameter CHKPFNUMBER: Restart file number
+  [RUNPAR] Section _CHKPOINT registered parameter CHKPINTERVAL: Checkpiont saving frequency (number of time steps)
+  [MONITOR] Module [F3D] not registered
+  [MONITOR] Registered module [F3D]: Fourier 3D Solve.
+  [MONITOR] Registered timer [F3D_TOT]: F3D module total time
+  [MONITOR] Registered timer [F3D_INI]: F3D initialisation time
+  [RUNPAR] Module [F3D] registered section _F3D: Runtime parameter section for F3D module
+  [RUNPAR] Section _F3D registered parameter IFF3D: Enable F3D?
+  [RUNPAR] Section _F3D registered parameter IFCYL_F3D: Cylindrical Coordinates?
+  [RUNPAR] Section _F3D registered parameter K_F3D: F3D wavenumber
+  [MONITOR] Module [TSTEPPER] not registered
+  [MONITOR] Module [CONJHT] not registered
+  [MONITOR] Module [CONJHT] not registered
+  [MONITOR] Registered module [CONJHT]: Conjugated heat transfer tools
+  [RUNPAR] Module [CONJHT] registered section _CONJHT: Runtime paramere section for conj. heat trans. tool module
+  [RUNPAR] Section _CONJHT registered parameter SCLN: Norm scaling factor
+  [RUNPAR] Section _CONJHT registered parameter SCLV: Velocity scaling factor (Pareto curve)
+  [RUNPAR] Section _CONJHT registered parameter SCLT: Temperature scaling factor (Pareto curve)
+  [RUNPAR] Section _CONJHT registered parameter GRX: X component of gravitational field
+  [RUNPAR] Section _CONJHT registered parameter GRY: Y component of gravitational field
+  [MONITOR] Registered module [TSTEPPER]: Time stepper
+  [MONITOR] Registered timer [TST_TOT]: Time stepper total time
+  [MONITOR] Registered timer [TST_INI]: Time stepper initialisation time
+  [MONITOR] Registered timer [TST_EVL]: Time stepper evolution time
+  [RUNPAR] Module [TSTEPPER] registered section _TSTEPPER: Runtime paramere section for time stepper module
+  [RUNPAR] Section _TSTEPPER registered parameter MODE: Simulation mode
+  [RUNPAR] Section _TSTEPPER registered parameter STEPS: Length of stepper phase
+  [RUNPAR] Section _TSTEPPER registered parameter MAXCYC: Max number of stepper cycles
+  [RUNPAR] Section _TSTEPPER registered parameter TOL: Convergence threshold
+  [RUNPAR] Section _TSTEPPER registered parameter IFTST: If enable time stepper
+  [MONITOR] Module [ARN_ARP] not registered
+  [MONITOR] Registered module [ARN_ARP]: Arnoldi ARPACK spectra calculation
+  [MONITOR] Registered timer [ARNA_INI]: Arnoldi ARPACK initialisation time
+  [MONITOR] Registered timer [ARNA_EVL]: Arnoldi ARPACK evolution time
+  [RUNPAR] Module [ARN_ARP] registered section _ARN_ARP: Runtime paramere section for Arnoldi ARPACK module
+  [RUNPAR] Section _ARN_ARP registered parameter NKRL: Krylov space size
+  [RUNPAR] Section _ARN_ARP registered parameter NEGV: Number of eigenvalues
+  [RUNPAR] Section _ARN_ARP registered parameter IFPR: IF Pressure?
+  [RUNPAR] Section _ARN_ARP registered parameter IFCOMPLEX: IF Complex?
+  [MONITOR] Reseting log threshold to:  4
+  [MONITOR] Summary of registered modules
+    [FRAME     ] : Framework backbone                                                                                                                  
+        [MONITOR   ] : Monitoring module                                                                                                                   
+        [RUNPAR    ] : Runtime parameters                                                                                                                  
+        [IOTOOL    ] : I/O TOOLS                                                                                                                           
+        [CHKPOINT  ] : Checkpointing I/O                                                                                                                   
+        [F3D       ] : Fourier 3D Solve.                                                                                                                   
+        [CONJHT    ] : Conjugated heat transfer tools                                                                                                      
+        [TSTEPPER  ] : Time stepper                                                                                                                        
+            [ARN_ARP   ] : Arnoldi ARPACK spectra calculation                                                                                                  
+  [RUNPAR] Summary of registered runtime parameters for active sections
+#
+[_RUNPAR]               # Runtime parameter section for rprm module
+PARFWRITE            = no                     # Do we write runtime parameter file
+PARFNAME             = outparfile             # Runtime parameter file name for output (without .par)
+#
+[_MONITOR]              # Runtime parameter section for monitor module
+LOGLEVEL             = 4                      # Logging threshold for toolboxes
+IFTIMDSCR            = no                     # Write timer description in the summary
+WALLTIME             = 00:00                  # Simulation wall time
+#
+[_CHKPOINT]             # Runtime paramere section for checkpoint module
+READCHKPT            = no                     # Restat from checkpoint
+CHKPFNUMBER          = 1                      # Restart file number
+CHKPINTERVAL         = 500                    # Checkpiont saving frequency (number of time steps)
+#
+[_F3D]                  # Runtime parameter section for F3D module
+IFF3D                = yes                    # Enable F3D?
+IFCYL_F3D            = no                     # Cylindrical Coordinates?
+K_F3D                = 0.00000000E+00         # F3D wavenumber
+#
+[_CONJHT]               # Runtime paramere section for conj. heat trans. tool module
+SCLN                 = 0.33655800E+01         # Norm scaling factor
+SCLV                 = 0.50000000E+00         # Velocity scaling factor (Pareto curve)
+SCLT                 = 0.50000000E+00         # Temperature scaling factor (Pareto curve)
+GRX                  = 0.00000000E+00         # X component of gravitational field
+GRY                  = 0.10000000E+01         # Y component of gravitational field
+#
+[_TSTEPPER]             # Runtime paramere section for time stepper module
+MODE                 = DIR                    # Simulation mode
+STEPS                = 80                     # Length of stepper phase
+MAXCYC               = 400                    # Max number of stepper cycles
+TOL                  = 0.10000000E-05         # Convergence threshold
+IFTST                = no                     # If enable time stepper
+#
+[_ARN_ARP]              # Runtime paramere section for Arnoldi ARPACK module
+NKRL                 = 50                     # Krylov space size
+NEGV                 = 15                     # Number of eigenvalues
+IFPR                 = yes                    # IF Pressure?
+IFCOMPLEX            = yes                    # IF Complex?
+ 
+  [ARN_ARP] Restarting stepper
+  [ARN_ARP] ARPACK initialised
+  [ARN_ARP] Parameters:
+  [ARN_ARP] BMAT = G
+  [ARN_ARP] WHICH = LM
+  [ARN_ARP] TOL =  0.10000000E-05
+  [ARN_ARP] NEV =       15
+  [ARN_ARP] NCV =       50
+  [ARN_ARP] IPARAM(1) =        1
+  [ARN_ARP] IPARAM(3) =      400
+  [ARN_ARP] IPARAM(7) =        2
+  [ARN_ARP] RVEC =  T
+  [ARN_ARP] HOWMNY = A
+
+        0  0.0000E+00 Write checkpoint
+       FILE:/home/prabal/workstation/git/fourier_old/stability_couette/couette0.f00001                                                          
+ min/max:   0.0000       6.2832      -1.0000       1.0000       0.0000       0.0000    
+ min/max:  -1.0000       1.0000       0.0000       0.0000       0.0000       0.0000    
+ min/max:   0.0000       0.0000    
+ min/max:   0.0000       0.0000    
+
+        0  0.0000E+00 done :: Write checkpoint
+                              file size =     0.46    MB
+                              avg data-throughput =   327.2MB/s
+                              io-nodes =     2
+
+ F3D: Initializing
+ IFF3D: Wavenumber=   0.00    
+ IFF3D: T
+ IFCYL_F3D: F
+ IFAXIS initialization: F
+ IFAXIS: F
+ F3D: Initializion done.
+ Preconditioner Settings
+ Param(41)= 0: Additive Spectral-Element Multigrid (SEMG)
+ Param(42)= 1: PCG without weights
+ Param(43)= 1: Original two level scheme
+ Param(44)= 1: Top level Schwartz based on restrictions of A
+ set initial conditions
+ Checking restart options: egvcouette0.f00005                                                                                                                  
+ nekuic (1) for ifld            1
+ nekuicP           2           1 T
+ nekuicP           2           2 T
+ Reading checkpoint data 
+       FILE:/home/prabal/workstation/git/fourier_old/stability_couette/egvcouette0.f00005                                                       
+
+        0 -3.1704E-15 done :: Read checkpoint data
+                              avg data-throughput =   586.2MBps
+                              io-nodes =     2
+
+ ic vel pert: T           1
+ ic vel pert: T           2
+ xyz min     0.0000      -1.0000       0.0000    
+ uvwpt min   0.0000     -0.39120E-06   0.0000       0.0000       0.0000    
+ xyz max     6.2832       1.0000       0.0000    
+ uvwpt max  0.39738      0.46052E-06   0.0000       0.0000       0.0000    
+ Restart: recompute geom. factors.
+ regenerate geometry data           1
+ NOTE: All elements deformed , param(59) ^=0
+ done :: regenerate geometry data           1
+  
+ done :: set initial conditions
+  
+
+        0 -3.1704E-15 Write checkpoint
+       FILE:/home/prabal/workstation/git/fourier_old/stability_couette/inicouette0.f00001                                                       
+ min/max:   0.0000       6.2832      -1.0000       1.0000       0.0000       0.0000    
+ min/max:  -1.0000       1.0000       0.0000       0.0000       0.0000       0.0000    
+ min/max:   0.0000       0.0000    
+ min/max:   0.0000       0.0000    
+
+        0 -3.1704E-15 done :: Write checkpoint
+                              file size =     0.46    MB
+                              avg data-throughput =   516.9MB/s
+                              io-nodes =     2
+
+ GLNORM:  -3.1704283100790001E-015   39.738270804264978     
+ done :: userchk
+
+gridpoints unique/tot:         16380        20000
+dofs vel/pr:                   16020        12800
+  
+ Initial time:-0.3170428E-14
+ Initialization successfully completed   0.17388     sec
+
+Starting time loop ...
+
+     DT/DTCFL/DTFS/DTINIT   0.500E-02   0.464-309  -0.212E+47   0.500E-02
+Step      1, t= 5.0000000E-03, DT= 5.0000000E-03, C=  0.396 0.0000E+00 0.0000E+00
+        1 5.0000000E-03 Build RHS (Momentum):    1
+        1 5.0000000E-03 Build RHS (Momentum):    2
+        1 5.0000000E-03 Cylindrical Perturbation Solve (Momentum) jp:  1,  2
+          1  Helmh3 fluid       9   4.0049E-13   3.5970E-05   1.0000E-12
+        1 5.0000000E-03 Perturbation Solve (Pressure):    1
+    1 1.00000E-12 1.04132E-06 1.04132E-06 1.00000E+00       1 Divergence
+    2 1.00000E-12 7.73852E-07 1.04132E-06 7.43142E-01       1 Divergence
+    3 1.00000E-12 7.56668E-07 1.04132E-06 7.26640E-01       1 Divergence
+    4 1.00000E-12 4.20353E-07 1.04132E-06 4.03672E-01       1 Divergence
+    5 1.00000E-12 2.50332E-07 1.04132E-06 2.40398E-01       1 Divergence
+    6 1.00000E-12 2.08853E-07 1.04132E-06 2.00565E-01       1 Divergence
+    7 1.00000E-12 1.67275E-07 1.04132E-06 1.60637E-01       1 Divergence
+    8 1.00000E-12 1.16582E-07 1.04132E-06 1.11955E-01       1 Divergence
+    9 1.00000E-12 6.98619E-08 1.04132E-06 6.70895E-02       1 Divergence
+   10 1.00000E-12 4.81735E-08 1.04132E-06 4.62618E-02       1 Divergence
+   11 1.00000E-12 3.50645E-08 1.04132E-06 3.36730E-02       1 Divergence
+   12 1.00000E-12 2.12406E-08 1.04132E-06 2.03977E-02       1 Divergence
+   13 1.00000E-12 1.19675E-08 1.04132E-06 1.14925E-02       1 Divergence
+   14 1.00000E-12 7.86427E-09 1.04132E-06 7.55218E-03       1 Divergence
+   15 1.00000E-12 7.11615E-09 1.04132E-06 6.83375E-03       1 Divergence
+   16 1.00000E-12 5.88644E-09 1.04132E-06 5.65284E-03       1 Divergence
+   17 1.00000E-12 4.28758E-09 1.04132E-06 4.11743E-03       1 Divergence
+   18 1.00000E-12 3.04974E-09 1.04132E-06 2.92871E-03       1 Divergence
+   19 1.00000E-12 2.08920E-09 1.04132E-06 2.00629E-03       1 Divergence
+   20 1.00000E-12 1.44638E-09 1.04132E-06 1.38898E-03       1 Divergence
+   21 1.00000E-12 1.05605E-09 1.04132E-06 1.01414E-03       1 Divergence
+   22 1.00000E-12 8.05047E-10 1.04132E-06 7.73099E-04       1 Divergence
+   23 1.00000E-12 5.33468E-10 1.04132E-06 5.12297E-04       1 Divergence
+   24 1.00000E-12 3.60894E-10 1.04132E-06 3.46573E-04       1 Divergence
+   25 1.00000E-12 2.85518E-10 1.04132E-06 2.74188E-04       1 Divergence
+   26 1.00000E-12 2.01210E-10 1.04132E-06 1.93225E-04       1 Divergence
+   27 1.00000E-12 1.42048E-10 1.04132E-06 1.36411E-04       1 Divergence
+   28 1.00000E-12 9.79694E-11 1.04132E-06 9.40815E-05       1 Divergence
+   29 1.00000E-12 6.95878E-11 1.04132E-06 6.68263E-05       1 Divergence
+   30 1.00000E-12 5.30818E-11 1.04132E-06 5.09753E-05       1 Divergence
+   31 1.00000E-12 3.99322E-11 1.04132E-06 3.83476E-05       1 Divergence
+   32 1.00000E-12 2.67121E-11 1.04132E-06 2.56521E-05       1 Divergence
+   33 1.00000E-12 1.87477E-11 1.04132E-06 1.80037E-05       1 Divergence
+   34 1.00000E-12 1.28291E-11 1.04132E-06 1.23200E-05       1 Divergence
+   35 1.00000E-12 9.97685E-12 1.04132E-06 9.58093E-06       1 Divergence
+   36 1.00000E-12 7.68286E-12 1.04132E-06 7.37797E-06       1 Divergence
+   37 1.00000E-12 5.47330E-12 1.04132E-06 5.25610E-06       1 Divergence
+   38 1.00000E-12 3.87220E-12 1.04132E-06 3.71854E-06       1 Divergence
+   39 1.00000E-12 2.55989E-12 1.04132E-06 2.45830E-06       1 Divergence
+   40 1.00000E-12 1.82717E-12 1.04132E-06 1.75466E-06       1 Divergence
+   41 1.00000E-12 1.38807E-12 1.04132E-06 1.33298E-06       1 Divergence
+   42 1.00000E-12 1.02062E-12 1.04132E-06 9.80115E-07       1 Divergence
+   43 1.00000E-12 7.21261E-13 1.04132E-06 6.92638E-07       1 Divergence
+          1  U-Press std.      42   7.2126E-13   1.0413E-06   1.0000E-12   3.5488E-02
+        1 5.0000000E-03 Perturbation Solve (Pressure):    2
+
+        1  5.0000E-03 Write checkpoint
+       FILE:/home/prabal/workstation/git/fourier_old/stability_couette/ptrcouette0.f00001                                                       
+ min/max:   0.0000       6.2832      -1.0000       1.0000       0.0000       0.0000    
+ min/max:   0.0000      0.39738     -0.16333E-06  0.17697E-06   0.0000       0.0000    
+ min/max: -0.24617E-05  0.22767E-05
+ min/max:   0.0000       0.0000    
+
+        1  5.0000E-03 done :: Write checkpoint
+                              file size =     0.46    MB
+                              avg data-throughput =   527.4MB/s
+                              io-nodes =     2
+
+
+        1  5.0000E-03 Write checkpoint
+       FILE:/home/prabal/workstation/git/fourier_old/stability_couette/pticouette0.f00001                                                       
+ min/max:   0.0000       6.2832      -1.0000       1.0000       0.0000       0.0000    
+ min/max:   0.0000       0.0000       0.0000       0.0000       0.0000       0.0000    
+ min/max:   0.0000       0.0000    
+ min/max:   0.0000       0.0000    
+
+        1  5.0000E-03 done :: Write checkpoint
+                              file size =     0.46    MB
+                              avg data-throughput =   633.5MB/s
+                              io-nodes =     2
+
+ GLNORM:   4.9999999999968299E-003   39.737780545344435     
+
+        1  5.0000E-03 Write checkpoint
+       FILE:/home/prabal/workstation/git/fourier_old/stability_couette/tmpcouette0.f00001                                                       
+ min/max:   0.0000       6.2832      -1.0000       1.0000       0.0000       0.0000    
+ min/max: -0.96352E-08  0.75778E-08   0.0000       0.0000       0.0000       0.0000    
+ min/max:   0.0000       0.0000    
+ min/max:   0.0000       0.0000    
+
+        1  5.0000E-03 done :: Write checkpoint
+                              file size =     0.46    MB
+                              avg data-throughput =   687.5MB/s
+                              io-nodes =     2
+
+
+        1  5.0000E-03 Write checkpoint
+       FILE:/home/prabal/workstation/git/fourier_old/stability_couette/couette0.f00002                                                          
+ min/max:   0.0000       6.2832      -1.0000       1.0000       0.0000       0.0000    
+ min/max:  -1.0000       1.0000       0.0000       0.0000       0.0000       0.0000    
+ min/max:   0.0000       0.0000    
+ min/max:   0.0000       0.0000    
+
+        1  5.0000E-03 done :: Write checkpoint
+                              file size =     0.46    MB
+                              avg data-throughput =   698.2MB/s
+                              io-nodes =     2
+
+  
+an error occured: dying ...
+  

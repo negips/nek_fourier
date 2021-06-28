@@ -406,19 +406,11 @@ c
 
         ntot1 = lx1*ly1*lz1*nelv
 
-!!       prabal    
-!        call copy3(tmp1,tmp2,tmp3,bfxp(1,1),bfyp(1,1),bfzp(1,1),ntot1)
-!        call copy3(tmp5,tmp6,tmp7,bfxp(1,2),bfyp(1,2),bfzp(1,2),ntot1)
-
-
         intype = -1
         call sethlm_f3dp(h1,h2,intype)
+
         call cresvipp_cyl(resv1r,resv2r,resv3r,
      $                    resv1i,resv2i,resv3i,h1,h2)
-
-!       prabal    
-!        call copy3(tmp1,tmp2,tmp3,resv1r,resv2r,resv3r,ntot1)    
-!        call copy3(tmp5,tmp6,tmp7,resv1i,resv2i,resv3i,ntot1)
 
 !       Solve        
         call ophinv_cyl(dv1r,dv2r,dv3r,dv1i,dv2i,dv3i,
@@ -484,7 +476,6 @@ c
 
       include 'F3D'
 
-
       integer nxyz,ntot1
 
       real ta1,ta2,ta3
@@ -501,16 +492,16 @@ c
       call makeufp_f3d
       if3d = .false.
       if (filterType.eq.2) call make_hpf
+
       if (ifcyl_f3d) then
         call advabp_cyl_f3d
       else
         call advabp_f3d
       endif
-
 !      if (ifnav.and.(.not.ifchar).and.(ifadj)) call advabp_adjoint_f3dp
-
       if (iftran) call makextp_f3d
       call makebdfp_f3d
+
 
 
       return
@@ -611,8 +602,8 @@ c
 
 !        U <-- dU
          call copy  (vx,vxp(1,jp),ntot1)                   ! Save velocity
-         call copy  (vy,vxp(1,jp),ntot1)                   ! Save velocity
-         call copy  (vz,vxp(1,jp),ntot1)                   ! Save velocity
+         call copy  (vy,vyp(1,jp),ntot1)                   ! Save velocity
+         call copy  (vz,vzp(1,jp),ntot1)                   ! Save velocity
 
          call convop  (ta1,tb1)                                ! du.grad U
          call convop  (ta2,tb2)
@@ -748,8 +739,8 @@ c
 
 !       U <-- dU
         call copy  (vx,vxp(1,jp),ntot1)                   ! Save velocity
-        call copy  (vy,vxp(1,jp),ntot1)                   ! Save velocity
-        call copy  (vz,vxp(1,jp),ntot1)                   ! Save velocity
+        call copy  (vy,vyp(1,jp),ntot1)                   ! Save velocity
+        call copy  (vz,vzp(1,jp),ntot1)                   ! Save velocity
 
         call convop  (ta1,tb1)                                ! du.grad U
         call convop  (ta2,tb2)
@@ -781,8 +772,12 @@ c
 !       Add additional convection terms
 !       Assuming dU/dz, dV/dz, dW/dz = 0
 
-!       rinv = 1/R            
-        call invers2(rinv,ym1,ntot1)
+!       rinv = 1/R
+        if (ifcyl_f3d) then 
+          call invers2(rinv,ym1,ntot1)
+        else
+          call rone(rinv,ntot1) 
+        endif  
 
 !       rhom = \rho*BM1        
         call col3(rhom,bm1,vtrans(1,1,1,1,ifield),ntot1)
@@ -799,23 +794,29 @@ c
           enddo
 
 !         R component
-          call convect_w_f3d(ta1,vzp(1,jp),vz)    ! U\theta*u\theta'_r
-          call convect_w_f3d(ta2,vyp(1,jp+1),vz)  ! U\theta*uR'_i 
+          call convect_w_f3d(ta1,vyp(1,jp+1),vz)  ! U\theta*uR'_i
+          call convect_w_f3d(ta2,vzp(1,jp),vz)    ! U\theta*u\theta'_r
           do i=1,ntot1
-            tmp   = -2.*rinv(i)*rhom(i)
-            tmp2  = -k_f3d*rinv(i)*rhom(i)
-            bfyp(i,jp) = bfyp(i,jp)-tmp*ta1(i)-tmp2*ta2(i)
+            tmp  = -k_f3d*rinv(i)*rhom(i)
+            bfyp(i,jp) = bfyp(i,jp)-tmp*ta1(i)
+            if (ifcyl_f3d) then
+              tmp2       = -2.*rinv(i)*rhom(i)
+              bfyp(i,jp) = bfyp(i,jp)-tmp2*ta2(i)
+            endif
           enddo
 
 !         \theta component
-          call convect_w_f3d(ta1,vyp(1,jp),vz)    ! U\theta*uR'_r
-          call convect_w_f3d(ta2,vzp(1,jp),vy)    ! UR*u\theta'_r
-          call convect_w_f3d(ta3,vzp(1,jp+1),vz)  ! U\theta*u\theta'_i
+          call convect_w_f3d(ta1,vzp(1,jp+1),vz)  ! U\theta*u\theta'_i
+          call convect_w_f3d(ta2,vyp(1,jp),vz)    ! U\theta*uR'_r
+          call convect_w_f3d(ta3,vzp(1,jp),vy)    ! UR*u\theta'_r
 
           do i=1,ntot1
-            tmp   =  rinv(i)*rhom(i)
-            tmp2  = -k_f3d*rinv(i)*rhom(i)
-            bfzp(i,jp) = bfzp(i,jp)-tmp*ta1(i)-tmp*ta2(i)-tmp2*ta3(i)
+            tmp  = -k_f3d*rinv(i)*rhom(i)
+            bfzp(i,jp) = bfzp(i,jp)-tmp*ta1(i)
+            if (ifcyl_f3d) then
+              tmp2   =  rinv(i)*rhom(i)
+              bfzp(i,jp) = bfzp(i,jp)-tmp2*ta2(i)-tmp2*ta3(i)
+            endif
           enddo
           
         else
@@ -830,24 +831,30 @@ c
           enddo
 
 !         R component
-          call convect_w_f3d(ta1,vzp(1,jp),vz)    ! U\theta*u\theta'_i
-          call convect_w_f3d(ta2,vyp(1,jp-1),vz)  ! U\theta*uR'_r
+          call convect_w_f3d(ta1,vyp(1,jp-1),vz)  ! U\theta*uR'_r
+          call convect_w_f3d(ta2,vzp(1,jp),vz)    ! U\theta*u\theta'_i
 
           do i=1,ntot1
-            tmp   = -2.*rinv(i)*rhom(i)
-            tmp2  =  k_f3d*rinv(i)*rhom(i)
-            bfyp(i,jp) = bfyp(i,jp)-tmp*ta1(i)-tmp2*ta2(i)
+            tmp  =  k_f3d*rinv(i)*rhom(i)
+            bfyp(i,jp) = bfyp(i,jp)-tmp*ta1(i)
+            if (ifcyl_f3d) then
+              tmp2   = -2.*rinv(i)*rhom(i)
+              bfyp(i,jp) = bfyp(i,jp)-tmp2*ta2(i)
+            endif      
           enddo
 
 !         \theta component
-          call convect_w_f3d(ta1,vyp(1,jp),vz)    ! U\theta*uR'_i
-          call convect_w_f3d(ta2,vzp(1,jp),vy)    ! UR*u\theta'_i
-          call convect_w_f3d(ta3,vzp(1,jp-1),vz)  ! U\theta*u\theta'_r
+          call convect_w_f3d(ta1,vzp(1,jp-1),vz)  ! U\theta*u\theta'_r
+          call convect_w_f3d(ta2,vyp(1,jp),vz)    ! U\theta*uR'_i
+          call convect_w_f3d(ta3,vzp(1,jp),vy)    ! UR*u\theta'_i
 
           do i=1,ntot1
-            tmp   =  rinv(i)*rhom(i)
-            tmp2  =  k_f3d*rinv(i)*rhom(i)
-            bfzp(i,jp) = bfzp(i,jp)-tmp*ta1(i)-tmp*ta2(i)-tmp2*ta3(i)
+            tmp  =  k_f3d*rinv(i)*rhom(i)
+            bfzp(i,jp) = bfzp(i,jp)-tmp*ta1(i)
+            if (ifcyl_f3d) then
+              tmp2   =  rinv(i)*rhom(i)
+              bfzp(i,jp) = bfzp(i,jp)-tmp2*ta2(i)-tmp2*ta3(i)
+            endif
           enddo
 
         endif         ! ji.eq.1  
@@ -1218,7 +1225,7 @@ c
       real const
 
       integer jpr,jpi           ! jp for real and imaginary parts
-      
+
 
       jpr = jp
       jpi = jp + 1
@@ -1255,32 +1262,6 @@ c
       call extrapprp (prextr_f3d(1,2))
       jp = jpr
 
-!      call opgradt (resv1r,resv2r,resv3r,prextr_f3d(1,1))
-!
-!!     Map to velocity grid
-!      call map21_all_f3d(resv3r,prextr_f3d(1,2))
-!      const = k_f3d
-!      call cmult(resv3r,const,ntot1)
-!      call col2(resv3r,bm1,ntot1)
-!
-!      call add2(resv1r,bfxp(1,jpr),ntot1)
-!      call add2(resv2r,bfyp(1,jpr),ntot1)
-!      call add2(resv3r,bfzp(1,jpr),ntot1)
-
-!!     Imaginary part
-!      call opgradt (resv1i,resv2i,resv3i,prextr_f3d(1,2))
-!
-!!     Map to velocity grid
-!      call map21_all_f3d(resv3i,prextr_f3d(1,1))
-!      const = -k_f3d
-!      call cmult(resv3i,const,ntot1)
-!      call col2(resv3i,bm1,ntot1)
-!
-!      call add2(resv1i,bfxp(1,jpi),ntot1)
-!      call add2(resv2i,bfyp(1,jpi),ntot1)
-!      call add2(resv3i,bfzp(1,jpi),ntot1)
-
-
 !     Note: theta gradient goes to imaginary part      
       call opgradt_f3d(resv1r,resv2r,resv3i,prextr_f3d(1,1))
 !     Note: theta gradient goes to real part 
@@ -1294,15 +1275,12 @@ c
       call add2_3(resv1i,resv2i,resv3i,
      $            bfxp(1,jpi),bfyp(1,jpi),bfzp(1,jpi),ntot1)
 
+
 !     Ax
       call axhmsf_cyl(w1r,w2r,w3r,w1i,w2i,w3i,
      $                vxp(1,jpr),vyp(1,jpr),vzp(1,jpr),
      $                vxp(1,jpi),vyp(1,jpi),vzp(1,jpi),
      $                h1,h2)
-
-!     prabal            
-      call copy3(tmp1,tmp2,tmp3,w1r,w2r,w3r,ntot1)
-      call copy3(tmp4,tmp5,tmp6,w1i,w2i,w3i,ntot1)
 
       call sub2(resv1r,w1r,ntot1)
       call sub2(resv2r,w2r,ntot1)
@@ -1311,13 +1289,6 @@ c
       call sub2(resv1i,w1i,ntot1)
       call sub2(resv2i,w2i,ntot1)
       call sub2(resv3i,w3i,ntot1)
-
-!!     prabal            
-!      call copy3(tmp1,tmp2,tmp3,resv1r,resv2r,resv3r,ntot1)
-!      call copy3(tmp4,tmp5,tmp6,resv1i,resv2i,resv3i,ntot1)
-
-
-      
 
       return
       end subroutine cresvipp_cyl
@@ -1350,7 +1321,7 @@ c     INTYPE =      integration type
 
 !     For the cylindrical case we use the stress formulation.
 !     All relevant changes to the operators are handled during the
-!     matrix vector products      
+!     matrix vector products
 
       nel   = nelfld(ifield)
       ntot1 = lx1*ly1*lz1*nel
@@ -1365,10 +1336,10 @@ c     INTYPE =      integration type
          else
             call cmult2(h2,vtrans(1,1,1,1,ifield),dtbd,ntot1)
 
-            if (.not.ifcyl_f3d) then
-!             Add second derivative of the 3rd direction to the operator
-              call add2s2(h2,vdiff(1,1,1,1,ifield),k2,ntot1)
-            endif  
+!            if (.not.ifcyl_f3d) then
+!!             Add second derivative of the 3rd direction to the operator
+!              call add2s2(h2,vdiff(1,1,1,1,ifield),k2,ntot1)
+!            endif  
          endif
       else
          call copy  (h1,vdiff (1,1,1,1,ifield),ntot1)

@@ -1543,8 +1543,6 @@ C---------------------------------------------------------------
       include 'SOLN'
       include 'MASS'
       include 'TSTEP'
-
-      include 'TEST'
 C
       COMMON /SCRUZ/ TA1 (LX1,LY1,LZ1,LELV)
      $ ,             TA2 (LX1,LY1,LZ1,LELV)

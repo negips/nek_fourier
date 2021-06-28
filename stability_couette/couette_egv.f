@@ -113,9 +113,11 @@ c-----------------------------------------------------------------------
         call rzero3(vx,vy,vz,ntot1)
         call copy(vx,tmp1,ntot1)
 
-        if (.not.iff3d) then
-          call init_pertfld_f3d
-        endif  
+        call rzero3(tmp1,tmp2,tmp3,ntot1)
+
+!        if (.not.iff3d) then
+!          call init_pertfld_f3d
+!        endif  
 
         call rzero(zm1,ntot1)
         call outpost(vx,vy,vz,pr,vz,'ini')
@@ -130,8 +132,8 @@ c-----------------------------------------------------------------------
 !     Call time stepper      
 !      call tst_solve()
 
-      if (mod(istep,iostep).eq.0) then
-!      if (istep.le.10) then
+!      if (mod(istep,iostep).eq.0) then
+      if (istep.eq.1) then
         i = 1
         call outpost(vxp(1,i),vyp(1,i),vzp(1,i),
      $               prp(1,i),vzp(1,i),'ptr')
@@ -143,6 +145,19 @@ c-----------------------------------------------------------------------
       glnorm = sqrt(glsc2(vxp(1,1),vxp(1,1),ntot1))
 
       if (nio.eq.0) write(6,*) 'GLNORM:', time, glnorm
+
+      
+      if (istep.eq.1) then
+        call outpost(tmp1,tmp2,tmp3,
+     $               tmp4,tmp3,'tmp')
+!        call outpost(tmp5,tmp6,tmp7,
+!     $               tmp8,tmp7,'tmp')
+!        call outpost(tmp9,tmp10,tmp11,
+!     $               tmp12,tmp11,'tmp')
+
+        call outpost(vx,vy,vz,pr,t,'   ')
+        call exitt
+      endif  
 
       if (istep.eq.nsteps.or.lastep.eq.1) then
         call frame_end

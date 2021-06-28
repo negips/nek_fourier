@@ -1252,6 +1252,8 @@ C-----------------------------------------------------------------------
       include 'TSTEP'
       include 'CTIMER'
 
+      include 'TEST'
+
       common /fastmd/ ifdfrm(lelt), iffast(lelt), ifh2, ifsolv
       logical ifdfrm, iffast, ifh2, ifsolv
 C
@@ -1263,6 +1265,7 @@ C
      $        , u3 (lx1*ly1*lz1*1)
      $        , h1 (lx1,ly1,lz1,1)
      $        , h2 (lx1,ly1,lz1,1)
+
 
       naxhm = naxhm + 1
       etime1 = dnekclock()
@@ -1358,6 +1361,7 @@ C
          CALL INVCOL2 (EZZ,JACM1,NTOT1)
       endif
 C
+
       return
       end
 c-----------------------------------------------------------------------
@@ -1369,12 +1373,13 @@ C
 C     CAUTION : Stresses and strainrates share the same scratch commons
 C
       include 'SIZE'
+
+      common /ctmp0/ txz(lx1,ly1,lz1,lelt)
+     $             , tyz(lx1,ly1,lz1,lelt)
       common /ctmp1/ txx(lx1,ly1,lz1,lelt)
      $             , txy(lx1,ly1,lz1,lelt)
      $             , tyy(lx1,ly1,lz1,lelt)
      $             , tzz(lx1,ly1,lz1,lelt)
-      common /ctmp0/ txz(lx1,ly1,lz1,lelt)
-     $             , tyz(lx1,ly1,lz1,lelt)
       common /scrsf/ t11(lx1,ly1,lz1,lelt)
      $             , t22(lx1,ly1,lz1,lelt)
      $             , t33(lx1,ly1,lz1,lelt)
@@ -1427,19 +1432,20 @@ C
          endif
 C
       endif
-C
+
       return
       end
 c-----------------------------------------------------------------------
       subroutine aijuj (au1,au2,au3,nel,ifaxis)
 C
       include 'SIZE'
+
+      common /ctmp0/ txz(lx1,ly1,lz1,lelt)
+     $             , tyz(lx1,ly1,lz1,lelt)
       common /ctmp1/ txx(lx1,ly1,lz1,lelt)
      $             , txy(lx1,ly1,lz1,lelt)
      $             , tyy(lx1,ly1,lz1,lelt)
      $             , tzz(lx1,ly1,lz1,lelt)
-      common /ctmp0/ txz(lx1,ly1,lz1,lelt)
-     $             , tyz(lx1,ly1,lz1,lelt)
 C
       DIMENSION AU1(LX1,LY1,LZ1,1)
      $        , AU2(LX1,LY1,LZ1,1)
@@ -1451,6 +1457,7 @@ C
       IF (IFAXIS)    CALL AXITZZ (AU2,TZZ,NEL)
       IF (ldim.EQ.3) CALL TTXYZ  (AU3,TXZ,TYZ,TZZ,NEL)
 C
+
       return
       end
 c-----------------------------------------------------------------------
