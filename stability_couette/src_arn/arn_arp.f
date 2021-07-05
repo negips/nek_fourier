@@ -242,8 +242,10 @@
       if(IFHEAT) then
          arna_ns = arna_ns + tst_nt ! temperature
       endif
-      if (arna_ns.gt.arna_ls) call mntr_abort(arna_id,
+      if (arna_ns.gt.arna_ls) then
+        call mntr_abort(arna_id,
      $   'arna_ns too big; arna_ns > arna_ls')
+      endif  
 
       ! initialise arrays
       if (arna_ifcomplex) then
