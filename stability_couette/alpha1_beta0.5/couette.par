@@ -64,7 +64,7 @@ residualProj = no
 [_F3D]
 iff3d=yes
 ifcyl_f3d = no
-k_f3d = 0.25
+k_f3d = 0.50
 
 
 [_TSTEPPER]             # Runtime paramere section for time stepper module
