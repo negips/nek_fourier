@@ -967,7 +967,7 @@ c           CALL COL2        (RPCG,H2M2,NTOT2)
          else
             CALL EPREC2      (RPCG,RCG)
 c           CALL COL2        (RPCG,H2M2,NTOT2)
-         endif   
+         endif
       ELSE
          CALL COPY        (RPCG,RCG,NTOT2)
       ENDIF

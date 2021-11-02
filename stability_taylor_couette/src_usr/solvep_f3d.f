@@ -1564,7 +1564,7 @@ c
       ! Most likely, the following can be commented out. (pff, 1/6/2010)
       if (npert.gt.1.or.ifbase)            ifprjp=.false.
 
-      intype =  2             ! Changing integration type here.
+      intype =  1             ! Changing integration type here.
                               ! Need to modify cdabdtp accordingly
                               ! Also need to modify uzprec
 
@@ -1914,9 +1914,6 @@ c-----------------------------------------------------------------------
       include 'F3D'
       include 'GEOM'          ! YM2
 
-      include 'TEST'
-
-!      include 'TOTAL'
       real           ap    (lx2,ly2,lz2,lelv)
       real           wp    (lx2,ly2,lz2,lelv)
       real           h1    (lx1,ly1,lz1,lelv)
@@ -1936,6 +1933,7 @@ c-----------------------------------------------------------------------
       integer ntot1,ntot2,intype
 
       real const
+      logical ifaxis_old
 
       ntot1 = nx1*ny1*nz1*nelv
       ntot2 = nx2*ny2*nz2*nelv
@@ -1945,11 +1943,12 @@ c-----------------------------------------------------------------------
        call opgradt_f3d(ta1,ta2,ta3,wp)
 
 !!    ((B*beta/dt)^-1)*(D^T)P
-      if3d = .true.  ! Also do this for the third component      
+      if3d = .true.  ! Also do this for the third component
       call opbinv_f3d (tb1,tb2,tb3,ta1,ta2,ta3,h2inv)
       if3d = .false.
 
       call chsign(tb3,ntot1)  ! since we need i*i = -1
+
       call opdiv_f3d(ap,tb1,tb2,tb3)
 
       return
@@ -2139,14 +2138,20 @@ c
       common /scruz2/  divv (lx2,ly2,lz2,lelv)
      $ ,               bdivv(lx2,ly2,lz2,lelv)
 
+      logical ifaxis_old
 
 !      ifaxis = .true.
       ntot1 = lx1*ly1*lz1*nelv
       ntot2 = lx2*ly2*lz2*nelv
 
+!     The ifaxis operators need to be correctly set inside cdtp
+      ifaxis_old = ifaxis
+      if (ifcyl_f3d) ifaxis = .true.
+
       call cdtp (outx,inpfld,rxm2,sxm2,txm2,1)
       call cdtp (outy,inpfld,rym2,sym2,tym2,2)
 
+!     Note: This is done in cdtp if ifaxis==T      
 !     Outz is used as a work array      
 !     BM1*p/R
       if (ifcyl_f3d.and..not.ifaxis) then
@@ -2179,7 +2184,7 @@ c
       call map21_weak(outz,divv)
 
 
-!      ifaxis = .false.
+      ifaxis = ifaxis_old
 
       return
       end subroutine opgradt_f3d
@@ -2203,11 +2208,18 @@ c
       real dummy
       common /scrcg2/ dummy(lx1*ly1*lz1*lelt)    ! In principle I only need
                                                 ! the pressure sized mesh
-      integer ntot2                                                
+      integer ntot2
+      logical ifaxis_old      
 
       ntot2 = lx2*ly2*lz2*nelv
 
-!     2D Divergence 
+      ifaxis_old = ifaxis
+
+!     2D Divergence
+!     The ifaxis operators need to be correctly set 
+!     inside multd (called in opdiv)
+      if (ifcyl_f3d) ifaxis = .true.
+     
       call opdiv  (outfld,inx,iny,inz)
 
 !     1/R*B*(dp/dR)
@@ -2224,6 +2236,8 @@ c
       call cmult(dummy,k_f3d,ntot2)
       if (ifcyl_f3d) call invcol2(dummy,ym2,ntot2)     ! 1/R
       call Xaddcol3(outfld,dummy,bm2,ntot2)
+
+      ifaxis = ifaxis_old
 
       return
       end subroutine opdiv_f3d        
@@ -2302,11 +2316,12 @@ c
       nxyz2 = lx2*ly2*lz2
 
       do e=1,nelv
-         call col3    (y(1,1,1,e),x(1,1,1,e),bm2(1,1,1,e),nxyz2)
-!        I assume 1/R is already factored in x            
-!         call invcol2 (y(1,1,1,e),ym2(1,1,1,e),nxyz2)
-         call mxm     (ixtm12,lx1,y(1,1,1,e),lx2,wk1(1,1,1,e),ly2)
-         call mxm     (wk1(1,1,1,e),lx1,iym12,ly2,y(1,1,1,e),ly1)
+        call ifaxisop_f3d(e)
+        call col3    (y(1,1,1,e),x(1,1,1,e),bm2(1,1,1,e),nxyz2)
+!       I assume 1/R is already factored in x            
+!        call invcol2 (y(1,1,1,e),ym2(1,1,1,e),nxyz2)
+        call mxm     (ixtm12,lx1,y(1,1,1,e),lx2,wk1(1,1,1,e),ly2)
+        call mxm     (wk1(1,1,1,e),lx1,iym12,ly2,y(1,1,1,e),ly1)
       enddo
 
       return
@@ -2336,7 +2351,8 @@ c
 
       include 'CTIMER'
       real kwave2
-      real intype,icg
+      real icg
+      integer intype
 
       if (icalld.eq.0) teslv=0.0
 
@@ -2438,7 +2454,7 @@ c      ENDIF
       div0=0.
 C
       tolpss = tolps
-      DO 1000 ITER=1,8000 !NMXP
+      DO 1000 ITER=1,4000 !NMXP
 C
 C        CALL CONVPR  (RCG,tolpss,ICONV,RNORM)
          call convprn (iconv,rnorm,rrp1,rcg,rpcg,tolpss)
@@ -2462,7 +2478,7 @@ c        if (ratio.le.1.e-5) goto 9000
             CALL ADD2S1 (PCG,RPCG,BETA,NTOT2)
          ENDIF
 
-         CALL CDABDTP  (WP,PCG,H1,H2,H2INV,INTYPE)
+         call cdabdtp_f3d  (wp,pcg,h1,h2,h2inv,intype)
          PAP   = GLSC2 (PCG,WP,NTOT2)
          IF (PAP.NE.0.) THEN
             ALPHA = RRP1/PAP
@@ -2530,8 +2546,38 @@ C
       end subroutine uzawa_f3d
 !-----------------------------------------------------------------------
 
+      subroutine ifaxisop_f3d(e)
+
+      implicit none
+
+      include 'SIZE'
+      include 'WZ'
+      include 'DXYZ'
+      include 'IXYZ'
+      include 'INPUT'
+      include 'GEOM'    ! ifrzer
+
+      integer nxyz2,ly12
+      integer e               ! element no
+
+      nxyz2 = lx2*ly2*lz2
 
 
+      ly12   = ly1*ly2
+      if (ifrzer(e)) then
+         call copy (iym12,iam12,ly12)
+         call copy (dym12,dam12,ly12)
+         call copy (w3m2,w2am2,nxyz2)
+      else
+         call copy (iym12,icm12,ly12)
+         call copy (dym12,dcm12,ly12)
+         call copy (w3m2,w2cm2,nxyz2)
+      endif
+
+
+      return
+      end subroutine ifaxisop_f3d        
+!---------------------------------------------------------------------- 
 
 
 

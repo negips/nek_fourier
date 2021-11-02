@@ -128,6 +128,8 @@ c-----------------------------------------------------------------------
 !     Call time stepper      
       call tst_solve()
 
+      if (nio.eq.0) write(6,*) 'IFAXIS:', ifaxis
+
       if (istep.eq.nsteps.or.lastep.eq.1) then
         call frame_end
       endif
@@ -282,7 +284,7 @@ c-----------------------------------------------------------------------
 !      ifaxis = .true.   ! just for initialization
       param(42)=1       ! 0: GMRES (nonsymmetric), 1: PCG w/o weights
       param(43)=1       ! 0: Additive multilevel (param 42=0), 1: Original 2 level
-      param(44)=0       ! 0: E based Schwartz, 1: A based Schwartz
+      param(44)=1       ! 0: E based Schwartz, 1: A based Schwartz
 
       n = nelv * 2**ldim
 !      xmin = glmin(xc,n)
