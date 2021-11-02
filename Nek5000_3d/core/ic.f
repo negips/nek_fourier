@@ -2440,7 +2440,7 @@ c           if(nid.eq.0) write(6,*) 'Reading pressure field'
          offs = offs0 + iofldsr*stride + strideB
          call byte_set_view(offs,ifh_mbyte)
          if (ifgett) then
-c            if(nid.eq.0) write(6,*) 'Reading temperature field'
+!            if(nid.eq.0) write(6,*) 'Reading temperature field'
             call mfi_gets(t,wk,lwk,.false.)
          else
             call mfi_gets(t,wk,lwk,.true.)

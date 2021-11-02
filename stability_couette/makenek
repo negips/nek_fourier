@@ -21,7 +21,7 @@ CC="mpicc"
 #-------------------------------------------------------------------------------
 
 # optional compiler flags
-FFLAGS="-I./src_inc -g -fbacktrace"
+FFLAGS="-I./src_inc -mcmodel=medium"
 #CFLAGS=""
 
 # optional linking flags

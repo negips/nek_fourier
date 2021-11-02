@@ -192,14 +192,19 @@ c--------------------------------------------------------------------
       include 'DOMAIN'
       include 'FDMH1'
 
-      include '3DS'           ! k_3dsp
+      include 'F3D'           ! k_f3d
 
       include 'TEST'
 
+!     r?r,r?i           - Residuals
+!     p?r,p?i           - Search directions
+!     Ap?r, Ap?i        - A*p
+!     qq?               - Diagonal Preconditioner      
+
       real dpc,p1r,p2r,p3r
-      common /screv/  dpc(lx1*ly1*lz1*lelt)
+      common /screv11/  dpc(lx1*ly1*lz1*lelt)
      $     ,          p1r (lx1*ly1*lz1*lelt)
-      common /scrch/  p2r (lx1*ly1*lz1*lelt)
+      common /scrch11/  p2r (lx1*ly1*lz1*lelt)
      $     ,          p3r (lx1*ly1*lz1*lelt)
 
 !     This is not how its done in the original routines
@@ -208,35 +213,35 @@ c--------------------------------------------------------------------
 !     Originally it has been used for coarse grid solves.
 !     But we don't do any coarse grid solve.      
       real qq1,qq2,qq3
-      common /scrsl/  qq1(lx1*ly1*lz1*lelt)
+      common /scrsl11/  qq1(lx1*ly1*lz1*lelt)
      $     ,          qq2(lx1*ly1*lz1*lelt)
      $     ,          qq3(lx1*ly1*lz1*lelt)
 
-      real pp1r,pp2r,pp3r,wa
-      common /scrmg/  pp1r(lx1*ly1*lz1*lelt)
-     $     ,          pp2r(lx1*ly1*lz1*lelt)
-     $     ,          pp3r(lx1*ly1*lz1*lelt)
+      real Ap1r,Ap2r,Ap3r,wa
+      common /scrmg11/  Ap1r(lx1*ly1*lz1*lelt)
+     $     ,          Ap2r(lx1*ly1*lz1*lelt)
+     $     ,          Ap3r(lx1*ly1*lz1*lelt)
      $     ,          wa (lx1*ly1*lz1*lelt)
 
-      real p1i,p2i,p3i,pp1i,pp2i,pp3i
-      common /scruz/ p1i(lx1*ly1*lz1*lelt),
+      real p1i,p2i,p3i,Ap1i,Ap2i,Ap3i
+      common /scruz11/ p1i(lx1*ly1*lz1*lelt),
      $               p2i(lx1*ly1*lz1*lelt),
      $               p3i(lx1*ly1*lz1*lelt),
-     $               pp1i(lx1*ly1*lz1*lelt)
-      common /scrvh/ pp2i(lx1*ly1*lz1*lelt),
-     $               pp3i(lx1*ly1*lz1*lelt)
+     $               Ap1i(lx1*ly1*lz1*lelt)
+      common /scrvh11/ Ap2i(lx1*ly1*lz1*lelt),
+     $               Ap3i(lx1*ly1*lz1*lelt)
 
 
 
-      real Ap1r(1),Ap2r(1),Ap3r(1)
-      real Ap1i(1),Ap2i(1),Ap3i(1)
+!      real Ap1r(1),Ap2r(1),Ap3r(1)
+!      real Ap1i(1),Ap2i(1),Ap3i(1)
 !     Why do we do this equivalence?
-      equivalence (Ap1r,pp1r),(Ap2r,pp2r),(Ap3r,pp3r)
-      equivalence (Ap1i,pp1i),(Ap2i,pp2i),(Ap3i,pp3i)
+!      equivalence (Ap1r,pp1r),(Ap2r,pp2r),(Ap3r,pp3r)
+!      equivalence (Ap1i,pp1i),(Ap2i,pp2i),(Ap3i,pp3i)
 
+      logical ifdfrm, iffast, ifh2, ifsolv, ifprint
       common /fastmd/ ifdfrm(lelt), iffast(lelt), ifh2, ifsolv
       common /cprint/ ifprint
-      logical ifdfrm, iffast, ifh2, ifsolv, ifprint
 
       real u1r(1),u2r(1),u3r(1),u1i(1),u2i(1),u3i(1),
      $     r1r(1),r2r(1),r3r(1),r1i(1),r2i(1),r3i(1),
@@ -269,14 +274,13 @@ c--------------------------------------------------------------------
      $               , wk3i(lx1*ly1*lz1*lelt)
      $               , wk4(lx1*ly1*lz1*lelt) 
 
-
       logical ifjacobi        ! Apply Jacobi preconditioner?
 
-      integer n1,n2
+      integer n1,n2,i,j
 
 !     No Fast Diagonalization Method            
       iffdm  = .false.
-!     Jacobi preconditioner            
+!     Jacobi preconditioner 
       ifjacobi = .true.
 !     No Coarse grid
       ifcrsl = .false.
@@ -294,8 +298,10 @@ c--------------------------------------------------------------------
       if (ifcrsl) call set_up_h1_crs_strs(h1,h2,ifield,matmod)
 
       if ( .not.ifsolv ) then           !     Set logical flags
+         ifaxis = .true.
          call setfast (h1,h2,imesh)
          ifsolv = .true.
+         ifaxis = .false.
       endif
 
 !     call opdot (wa,r1r,r2r,r3r,r1r,r2r,r3r,n)
@@ -319,9 +325,15 @@ c        if ( .not.ifprint )  goto 9999
 !     prabal. Not sure why preconditioners were added together for
 !     different components.        
 !     Evaluate diagional pre-conidtioner for fluid solve
-      call setprec_cyl (qq1,h1,h2,k_3dsp,imesh,1)
-      call setprec_cyl (qq2,h1,h2,k_3dsp,imesh,2)
-      call setprec_cyl (qq3,h1,h2,k_3dsp,imesh,3)
+      if (ifjacobi) then
+        call setprec_cyl (qq1,h1,h2,k_f3d,imesh,1)
+        call setprec_cyl (qq2,h1,h2,k_f3d,imesh,2)
+        call setprec_cyl (qq3,h1,h2,k_f3d,imesh,3)
+      else
+        call rone(qq1,n)
+        call rone(qq2,n)
+        call rone(qq3,n)
+      endif  
 
       if (iffdm) then
 !         call set_fdm_prec_h1b(dpc,h1,h2,nel)
@@ -333,17 +345,17 @@ c        if ( .not.ifprint )  goto 9999
       elseif (ifjacobi) then
 !        Apply Diagonal preconditioners                     
 !        Real
-         call col3 (pp1r,qq1,r1r,n)
-         call col3 (pp2r,qq2,r2r,n)
-         call col3 (pp3r,qq3,r3r,n)
+         call col3 (Ap1r,qq1,r1r,n)
+         call col3 (Ap2r,qq2,r2r,n)
+         call col3 (Ap3r,qq3,r3r,n)
 
 !        Imaginary         
-         call col3 (pp1i,qq1,r1i,n)
-         call col3 (pp2i,qq2,r2i,n)
-         call col3 (pp3i,qq3,r3i,n)
+         call col3 (Ap1i,qq1,r1i,n)
+         call col3 (Ap2i,qq2,r2i,n)
+         call col3 (Ap3i,qq3,r3i,n)
       else
-         call copy3(pp1r,pp2r,pp3r,r1r,r2r,r3r,n) 
-         call copy3(pp1i,pp2i,pp3i,r1i,r2i,r3i,n) 
+         call copy3(Ap1r,Ap2r,Ap3r,r1r,r2r,r3r,n) 
+         call copy3(Ap1i,Ap2i,Ap3i,r1i,r2i,r3i,n) 
       endif
 
       if (ifcrsl) then
@@ -354,13 +366,12 @@ c        if ( .not.ifprint )  goto 9999
          call rzero3(p1i,p2i,p3i,n)
       endif
 
+      call add2_3(p1r,p2r,p3r,Ap1r,Ap2r,Ap3r,n)
+      call add2_3(p1i,p2i,p3i,Ap1i,Ap2i,Ap3i,n)
 
-      call add2_3(p1r,p2r,p3r,pp1r,pp2r,pp3r,n)
-      call add2_3(p1i,p2i,p3i,pp1i,pp2i,pp3i,n)
-
-!      rpp1 = (D*r)*rmult*r
-      call opglsc2_wt_comp(rpp1r,rpp1i,p1r,p2r,p3r,p1i,p2i,p3i,
-     $                        r1r,r2r,r3r,r1i,r2i,r3i,rmult,n)
+!      rpp1 = r*rmult*(D*r)
+      call opglsc2_wt_comp(rpp1r,rpp1i,r1r,r2r,r3r,r1i,r2i,r3i,
+     $                     Ap1r,Ap2r,Ap3r,Ap1i,Ap2i,Ap3i,rmult,n)
 
 !     Imaginary part must be zero.
 !     Otherwise the Diagonal is not purely real, which means 
@@ -369,13 +380,19 @@ c        if ( .not.ifprint )  goto 9999
 !     Setting it zero so we don't accumulate round off errors
       rpp1i = 0.      
 
-
-      maxit=20
+      maxit=200
       do 1000 iter=1,maxit
          call axhmsf_cyl(Ap1r,Ap2r,Ap3r,Ap1i,Ap2i,Ap3i,
      $                      p1r,p2r,p3r,p1i,p2i,p3i,h1,h2)
 
-!        prabal. Need to change rmask         
+!!        prabal. forgotten is this needs to be removed.            
+!        call col3(Ap1r,p1r,bm1,n)
+!        call col3(Ap2r,p2r,bm1,n)
+!        call col3(Ap3r,p3r,bm1,n)
+!        call col3(Ap1i,p1i,bm1,n)
+!        call col3(Ap2i,p2i,bm1,n)
+!        call col3(Ap3i,p3i,bm1,n)
+
 !         call rmask(ap1r,ap2r,ap3r,nel)
 !         call rmask(ap1i,ap2i,ap3i,nel)
          call col2_3(Ap1r,Ap2r,Ap3r,v1mask,v2mask,v3mask,n)
@@ -388,10 +405,11 @@ c        if ( .not.ifprint )  goto 9999
          call opglsc2_wt_comp(pApr,pApi,p1r,p2r,p3r,p1i,p2i,p3i,
      $                        Ap1r,Ap2r,Ap3r,Ap1i,Ap2i,Ap3i,rmult,n)
 
+
 !        \alpha = (rn-1*rn-1)/(pn-1*Apn-1) 
          tmpval = (pApr*pApr + pApi*pApi)
-         alphar = rpp1r*pApr/tmpval + rpp1i*pApi/tmpval
-         alphai = rpp1i*pApr/tmpval - rpp1r*pApi/tmpval
+         alphar = (rpp1r*pApr/tmpval + rpp1i*pApi/tmpval)
+         alphai = (rpp1i*pApr/tmpval - rpp1r*pApi/tmpval)
 
 !        Update Soln: u = u + \alpha*p
 !        ur = ur + \alphar*pr - \alphai*pi
@@ -411,7 +429,6 @@ c        if ( .not.ifprint )  goto 9999
 !        ri = ri - \alphar*Api - \alphai*Apr
          call opadds_3(r1i,r2i,r3i,Ap1i,Ap2i,Ap3i,-alphar,n,2)
          call opadds_3(r1i,r2i,r3i,Ap1r,Ap2r,Ap3r,-alphai,n,2)
-
 
 !        rbnorm = ||r||                
          call col3(wa,binv,rmult,n)
@@ -438,17 +455,17 @@ c        if ( .not.ifprint )  goto 9999
          elseif (ifjacobi) then
 !          Apply Diagonal preconditioners                     
 !          Real           
-           call col3 (pp1r,qq1,r1r,n)
-           call col3 (pp2r,qq2,r2r,n)
-           call col3 (pp3r,qq3,r3r,n)
+           call col3 (Ap1r,qq1,r1r,n)
+           call col3 (Ap2r,qq2,r2r,n)
+           call col3 (Ap3r,qq3,r3r,n)
 
 !          Imaginary         
-           call col3 (pp1i,qq1,r1i,n)
-           call col3 (pp2i,qq2,r2i,n)
-           call col3 (pp3i,qq3,r3i,n)
+           call col3 (Ap1i,qq1,r1i,n)
+           call col3 (Ap2i,qq2,r2i,n)
+           call col3 (Ap3i,qq3,r3i,n)
          else
-           call copy3(pp1r,pp2r,pp3r,r1r,r2r,r3r,n) 
-           call copy3(pp1i,pp2i,pp3i,r1i,r2i,r3i,n) 
+           call copy3(Ap1r,Ap2r,Ap3r,r1r,r2r,r3r,n) 
+           call copy3(Ap1i,Ap2i,Ap3i,r1i,r2i,r3i,n) 
          endif
 
          if (ifcrsl) then
@@ -462,15 +479,16 @@ c        if ( .not.ifprint )  goto 9999
          rpp2i = rpp1i
 
 !        New Residual         
-!        rpp1 = (D*r)*rmult*r
-         call opglsc2_wt_comp(rpp1r,rpp1i,pp1r,pp2r,pp3r,pp1i,pp2i,pp3i,
-     $                        r1r,r2r,r3r,r1i,r2i,r3i,rmult,n)
+!        rpp1 = r*rmult*(D*r)
+!        Here Ap == D*r            
+         call opglsc2_wt_comp(rpp1r,rpp1i,r1r,r2r,r3r,r1i,r2i,r3i,
+     $                        Ap1r,Ap2r,Ap3r,Ap1i,Ap2i,Ap3i,rmult,n)
 
 !        Again, imaginary part must be zero.
 !        Otherwise the Diagonal is not purely real, which means 
 !        the problem is not symmetric and PCG will not work.
 !        Setting it zero so we don't accumulate round off errors
-!         rpp1i = 0. 
+         rpp1i = 0. 
 
          tmpval = (rpp2r*rpp2r + rpp2i*rpp2i)
 
@@ -484,26 +502,16 @@ c        if ( .not.ifprint )  goto 9999
          call copy3(wk1r,wk2r,wk3r,p1r,p2r,p3r,n)
          call copy3(wk1i,wk2i,wk3i,p1i,p2i,p3i,n)
 
-
-!!       prabal            
-         n1 = lx1*ly1*lz1*lelv
-         n2 = lx2*ly2*lz2*lelv
-         call copy3(tmp1,tmp2,tmp3,wk1r,wk2r,wk3r,n1)
-         call copy3(tmp4,tmp5,tmp6,wk1i,wk2i,wk3i,n1)
-
-         write(6,*) 'Beta:', betar,rpp1r,rpp2r
-
-
-
-!        pr = ppr + \betar*pr - \betai*pi
-         call copy3(p1r,p2r,p3r,pp1r,pp2r,pp3r,n)
+!        pr = D*rr + \betar*pr - \betai*pi
+         call copy3(p1r,p2r,p3r,Ap1r,Ap2r,Ap3r,n)
          call opadds_3(p1r,p2r,p3r,wk1r,wk2r,wk3r,betar,n,2)   
 !         call opadds_3(p1r,p2r,p3r,wk1i,wk2i,wk3i,-betai,n,2)   
 
-!        pi = ppi + \betar*pi + \betai*pr
-         call copy3(p1i,p2i,p3i,pp1i,pp2i,pp3i,n)
+!        pi = D*ri + \betar*pi + \betai*pr
+         call copy3(p1i,p2i,p3i,Ap1i,Ap2i,Ap3i,n)
          call opadds_3(p1i,p2i,p3i,wk1i,wk2i,wk3i,betar,n,2)   
 !         call opadds_3(p1i,p2i,p3i,wk1r,wk2r,wk3r,betai,n,2)
+
 
  1000 continue
       if (matmod.ge.0.and.nio.eq.0) write (6,3001) 
@@ -519,6 +527,7 @@ c        if ( .not.ifprint )  goto 9999
  3010 format(i11,'  Helmh3 mesh   ',I6,1p3E13.4)
  3001 format(i11,'  Helmh3 fluid unconverged! ',I6,1p3E13.4)
  3011 format(i11,'  Helmh3 mesh unconverged! ',I6,1p3E13.4)
+
 
       return
       end subroutine cggosf_cyl
@@ -540,6 +549,7 @@ c        if ( .not.ifprint )  goto 9999
       real wt(n)
 
       real a1,a2,wk
+      real glsum
 
       a1 = 0.
       a2 = 0.
@@ -550,9 +560,9 @@ c        if ( .not.ifprint )  goto 9999
      
       wk = a1 + a2
 
-      call glsum(wk,1)
+      opnorm2_wt_comp = glsum(wk,1)
 
-      opnorm2_wt_comp = wk
+!      opnorm2_wt_comp = wk
 
       return
       end function opnorm2_wt_comp
@@ -575,6 +585,7 @@ c        if ( .not.ifprint )  goto 9999
       real wt(n)
 
       real scr,sci,a1,a2
+      real glsum
 
       a1 = 0.
       a2 = 0.
@@ -594,8 +605,10 @@ c        if ( .not.ifprint )  goto 9999
       sci = a2
 
 !     Sum over all processors 
-      call glsum(scr,1)
-      call glsum(sci,1)
+!      call glsum(scr,1)
+!      call glsum(sci,1)
+      scr = glsum(a1,1)
+      sci = glsum(a2,1)
 
 
       return
@@ -691,119 +704,7 @@ c        if ( .not.ifprint )  goto 9999
       return
       end subroutine col2_3
 !-----------------------------------------------------------------------
-
-      subroutine qmask_cyl (r1,r2,r3,r1mask,r2mask,r3mask,nel)
-
-      implicit none
-
-      INCLUDE 'SIZE'
-      INCLUDE 'GEOM'
-      INCLUDE 'TSTEP'
-
-      real s1,s2,s3
-      common /ctmp1/ s1(lx1,ly1,lz1,lelt)
-     $             , s2(lx1,ly1,lz1,lelt)
-     $             , s3(lx1,ly1,lz1,lelt)
-C
-      real      r1(lx1,ly1,lz1,1)
-     $        , r2(lx1,ly1,lz1,1)
-     $        , r3(lx1,ly1,lz1,1)
-     $        , r1mask(lx1,ly1,lz1,1)
-     $        , r2mask(lx1,ly1,lz1,1)
-     $        , r3mask(lx1,ly1,lz1,1)
-
-      integer nel,ntot1
-
-      ntot1 = lx1*ly1*lz1*nel
-c
-c     (0) collocate volume mask
-c
-      call copy  (s1,r1,ntot1)
-      call copy  (s2,r2,ntot1)
-      call col2  (r1,r1mask,ntot1)
-      call col2  (r2,r2mask,ntot1)
-      if (ldim.eq.3) then
-         call copy (s3,r3,ntot1)
-         call col2 (r3,r3mask,ntot1)
-      endif
-c
-c     (1) face mask
-c
-      if (iflmsf(ifield)) then
-         if (ldim.eq.2) then
-            call fcmsk2 (r1,r2,s1,s2,r1mask,r2mask,nel)
-         else
-            call fcmsk3 (r1,r2,r3,s1,s2,s3,r1mask,r2mask,r3mask,nel)
-         endif
-      endif
-c
-c     (2) edge mask  (3-d only)
-c
-      if (ldim.eq.3 .and. iflmse(ifield)) 
-     $   call egmask (r1,r2,r3,s1,s2,s3,r1mask,r2mask,r3mask,nel)
-c
-c     (3) corner mask
-c
-      if (iflmsc(ifield)) then
-         if (ldim.eq.2) then
-            call crmsk2 (r1,r2,s1,s2,r1mask,r2mask,nel)
-         else
-            call crmsk3 (r1,r2,r3,s1,s2,s3,r1mask,r2mask,r3mask,nel)
-         endif
-      endif
-
-      return
-      end
-!-----------------------------------------------------------------------
-
-      subroutine fcmsk2_cl (r1,r2,r3,s1,s2,s3,r1mask,r2mask,r3mask,nel)
-
-      implicit none  
-
-      INCLUDE 'SIZE'
-      INCLUDE 'GEOM'
-      INCLUDE 'TSTEP'
-
-
-      real      r1(lx1,ly1,lz1,1)
-     $        , r2(lx1,ly1,lz1,1)
-     $        , r3(lx1,ly1,lz1,1)     
-     $        , s1(lx1,ly1,lz1,1)
-     $        , s2(lx1,ly1,lz1,1)
-     $        , s3(lx1,ly1,lz1,1)     
-     $        , r1mask(lx1,ly1,lz1,1)
-     $        , r2mask(lx1,ly1,lz1,1)
-     $        , r3mask(lx1,ly1,lz1,1)     
-
-      integer nface,iel,ifc,nel
-      integer j1,js1,jf1,jskip1,j2,js2,jf2,jskip2
-      real rnor,rtn1
-
-      nface = 2*ldim
-
-      do 100 iel=1,nel
-      do 100 ifc=1,nface
-         if (.not.ifmsfc(ifc,iel,ifield)) go to 100
-         call facind2 (js1,jf1,jskip1,js2,jf2,jskip2,ifc)
-         do 120 j2=js2,jf2,jskip2
-         do 120 j1=js1,jf1,jskip1
-            rnor = ( s1(j1,j2,1,iel)*vnx(j1,j2,1,iel) +
-     $               s2(j1,j2,1,iel)*vny(j1,j2,1,iel) ) *
-     $               r1mask(j1,j2,1,iel)
-            rtn1 = ( s1(j1,j2,1,iel)*v1x(j1,j2,1,iel) +
-     $               s2(j1,j2,1,iel)*v1y(j1,j2,1,iel) ) *
-     $               r2mask(j1,j2,1,iel)
-            r1(j1,j2,1,iel) = rnor*vnx(j1,j2,1,iel) +
-     $                        rtn1*v1x(j1,j2,1,iel)
-            r2(j1,j2,1,iel) = rnor*vny(j1,j2,1,iel) +
-     $                        rtn1*v1y(j1,j2,1,iel)
-  120       continue
-  100    continue
-c
-      return
-      end
-c-----------------------------------------------------------------------
-      subroutine setprec_cyl (dpcm1,helm1,helm2,k_3ds,imsh,isd)
+      subroutine setprec_cyl (dpcm1,helm1,helm2,k_f3d,imsh,isd)
 
 !     Generate diagonal preconditioner for the Helmholtz operator.
 
@@ -828,7 +729,7 @@ c-----------------------------------------------------------------------
       integer nel,imsh,isd
       real term1,term2
 
-      real k_3ds                ! passed as argument
+      real k_f3d                ! passed as argument
       real const
 
       real rinv(lx1,ly1,lz1,lelv)
@@ -925,7 +826,7 @@ c
       call invers2(rinv,ym1,ntot)               ! rinv = 1/R
       call copy(rinv2,rinv,ntot)
       call invcol2(rinv2,rinv,ntot)             ! rinv2 = 1/R^2
-      const = k_3ds*k_3ds                       ! k^2
+      const = k_f3d*k_f3d                       ! k^2
 
       if (isd.eq.1) then
         call cmult(rinv2,const,ntot)            ! (k^2)/R^2
@@ -975,8 +876,383 @@ c
       end
 !---------------------------------------------------------------------- 
 
+      subroutine uzawa_f3d(rcgr,rcgi,h1,h2,h2inv,intype,iter)
+
+!     Solve the pressure equation by (nested) preconditioned 
+!     conjugate gradient iteration.
+!     INTYPE =  0  (steady)
+!     INTYPE =  1  (explicit)
+!     INTYPE = -1  (implicit)
+
+      implicit none
+
+      include 'SIZE'
+      include 'MASS'
+      include 'INPUT'
+      include 'TSTEP'
+
+!      include 'TOTAL'
+
+      real divex
+      common  /ctolpr/ divex
+
+      common  /cprint/ ifprint
+      logical          ifprint
+      real             rcgr (lx2,ly2,lz2,lelv)
+      real             rcgi (lx2,ly2,lz2,lelv)
+      real             h1   (lx1,ly1,lz1,lelv)
+      real             h2   (lx1,ly1,lz1,lelv)
+      real             h2inv(lx1,ly1,lz1,lelv)
+ 
+      real rpcgr,rpcgi,pcgr,pcgi,xcgr,xcgi 
+      common /scrpsn1/ rpcgr(lx2*ly2*lz2*lelt)
+     $               , rpcgi(lx2*ly2*lz2*lelt)
+     $               , pcgr(lx2*ly2*lz2*lelt)
+     $               , pcgi(lx2*ly2*lz2*lelt)
+     $               , xcgr(lx2*ly2*lz2*lelt)
+     $               , xcgi(lx2*ly2*lz2*lelt)
+
+      real Apr,Api,wpr,wpi,wk1,wk2
+      common /scrpsn2/   Apr(lx2,ly2,lz2,lelv)
+     $ ,                 Api(lx2,ly2,lz2,lelv)
+     $ ,                 wpr(lx2,ly2,lz2,lelv) 
+     $ ,                 wpi(lx2,ly2,lz2,lelv)
+     $ ,                 wk1(lx2,ly2,lz2,lelv)
+     $ ,                 wk2(lx2,ly2,lz2,lelv)
 
 
+      real*8 etime1,dnekclock
+      integer*8 ntotg,nxyz2
+
+      real div0,h1_mx,h2_mx,pap,pcgmx,ratio,rnorm
+      real rpx,rpy,tolpss,rnrm1,rrp1,rrp2,wp_mx
+      integer iter,iconv,nelgv,ntot1,ntot2
+      integer intype
+
+      real glsc2,glamax
+
+      real pApr,pApi
+      real alphar,alphai
+      real betar,betai
+      real rrp1r,rrp1i
+      real rrp2r,rrp2i
+      real const
+
+      logical ifprec
+
+      etime1 = dnekclock()
+      divex = 0.
+      iter  = 0
+
+      ifprec = .true.
+
+!      call chktcg2 (tolps,rcg,iconv)
+      if (param(21).gt.0.and.tolps.gt.abs(param(21))) 
+     $   tolps = abs(param(21))
+
+      nxyz2 = lx2*ly2*lz2
+      ntot2 = nxyz2*nelv
+      ntotg = nxyz2*nelgv
+
+!     x0 = 0.      
+      call rzero(xcgr,ntot2)
+      call rzero(xcgi,ntot2)
+
+!     r0 = b - Ax0 = b
+
+!     z0 = (M^-1)r0      ==> rpcg = (M^-1)r0
+      if (ifprec) then
+        call uzprec(rpcgr,rcgr,h1,h2,intype,wpr)
+        call uzprec(rpcgi,rcgi,h1,h2,intype,wpi)
+      else  
+        call copy(rpcgr,rcgr,ntot2)
+        call copy(rpcgi,rcgi,ntot2)
+      endif  
+
+!     p0 = z0 
+      call copy(pcgr,rpcgr,ntot2)
+      call copy(pcgi,rpcgi,ntot2)
+
+!     Check Convergence. Also calculate rrp1 = (r^T)*z
+      call convprn_f3d(iconv,rnorm,rrp1r,rrp1i,
+     $                 rcgr,rcgi,rpcgr,rpcgi,tolpss)
+      div0  = rnorm
+      betar = 0.
+      betai = 0.
+      if (param(21).lt.0) tolpss = abs(param(21))*div0
+
+      if (iconv.eq.1) goto 9000
+
+      rrp1 = sqrt(rrp1r*rrp1r + rrp1i*rrp1i)
+      if (rrp1.eq.0) return
+
+      tolpss = tolps
+      do 1000 iter=1,500 !nmxp
+
+!       rrp1 = (r^T)*z
+        call glsc2_comp(rrp1r,rrp1i,rcgr,rcgi,rpcgr,rpcgi,ntot2)
+
+!       Ap = A*p            
+        call cdabdtp_f3d(Apr,pcgr,h1,h2,h2inv,intype)
+        call cdabdtp_f3d(Api,pcgi,h1,h2,h2inv,intype)
+
+!       pAp = (p^T)*Ap         
+        call glsc2_comp(pApr,pApi,pcgr,pcgi,Apr,Api,ntot2)
+
+        pAp = pApr*pApr + pApi*pApi
+
+!       \alpha = ((r^T)*z)/((p^T)*Ap)
+        alphar = (rrp1r*pApr + rrp1i*pApi)/pAp
+        alphai = (rrp1i*pApr - rrp1r*pApi)/pAp
+        
+        if (pAp.eq.0) then
+           pcgmx = glamax(pcgr,ntot2)
+           wp_mx = glamax(Apr,ntot2)
+           ntot1 = lx1*ly1*lz1*nelv
+           h1_mx = glamax(h1 ,ntot1)
+           h2_mx = glamax(h2 ,ntot1)
+           if (nid.eq.0) write(6,*) 'error: pap=0 in uzawa.'
+     $     ,iter,pcgmx,wp_mx,h1_mx,h2_mx
+           call exitt
+        endif
+
+!        write(6,*) 'alpha', alphar,alphai
+        alphai = 0.
+
+!       x = x + \alpha*p
+!       xr = xr + \alpha_r*pr
+        call add2s2(xcgr,pcgr,alphar,ntot2)
+!       xr = xr - \alpha_i*pi
+        call add2s2(xcgr,pcgi,-alphai,ntot2)
+
+!       xi = xi + \alpha_r*pi
+        call add2s2(xcgi,pcgi,alphar,ntot2)
+!       xi = xi + \alpha_i*pr
+        call add2s2(xcgi,pcgr,alphai,ntot2)
+
+
+!       r = r - \alpha*Ap
+!       rr = rr - \alpha_r*Apr
+        const = -alphar
+        call add2s2(rcgr,Apr,const,ntot2)
+!       rr = rr + \alpha_i*Api
+        const = alphai
+        call add2s2(rcgr,Api,const,ntot2)
+
+!       ri = ri - \alpha_r*Api
+        const = -alphar
+        call add2s2(rcgi,Api,const,ntot2)
+!       ri = ri - \alpha_i*Apr
+        const = -alphai
+        call add2s2(rcgi,Apr,const,ntot2)
+
+        rrp2r = rrp1r
+        rrp2i = rrp1i
+        rrp2 = rrp2r*rrp2r + rrp2i*rrp2i
+
+!       Check Convergence        
+        call convprn_f3d(iconv,rnorm,rpx,rpy,
+     $                   rcgr,rcgi,rpcgr,rpcgi,tolpss)
+
+        ratio = rnorm/div0
+        if (ifprint.and.nio.eq.0) 
+     $  write (6,66) iter,tolpss,rnorm,div0,ratio,istep
+   66   format(i5,1p4e12.5,i8,' Divergence')
+        if (iconv.eq.1) goto 9000
+
+        call ortho(rcgr)
+        call ortho(rcgi)
+
+!        rrp2r = rrp1r
+!        rrp2i = rrp1i
+
+!       z = (M^-1)r
+        if (ifprec) then 
+          call uzprec(rpcgr,rcgr,h1,h2,intype,wpr)
+          call uzprec(rpcgi,rcgi,h1,h2,intype,wpi)
+        else
+          call copy(rpcgr,rcgr,ntot2)
+          call copy(rpcgi,rcgi,ntot2)
+        endif  
+
+!       rrp1 = (r^T)*z
+        call glsc2_comp(rrp1r,rrp1i,rcgr,rcgi,rpcgr,rpcgi,ntot2)
+
+!       \beta = rrp1/rrp2 
+        betar = (rrp1r*rrp2r + rrp1i*rrp2i)/rrp2
+        betai = (rrp1i*rrp2r - rrp1r*rrp2i)/rrp2
+        
+!        write(6,*) 'Beta', betar,betai   
+        betai = 0.
+
+        call copy(wk1,pcgr,ntot2)
+        call copy(wk2,pcgi,ntot2)
+
+!       p = z + \beta*p
+!       pr = zr + \beta_r*pr - \beta_i*pi
+        call copy(pcgr,rpcgr,ntot2)         ! pcgr = zr
+        const = betar
+        call add2s2(pcgr,wk1,const,ntot2)
+        const = -betai
+        call add2s2(pcgr,wk2,const,ntot2)
+
+!       pi = zi + \beta_r*pi + \beta_i*pr
+        call copy(pcgi,rpcgi,ntot2)         ! pcgi = zi
+        call add2s2(pcgi,wk2,betar,ntot2)
+        call add2s2(pcgi,wk1,betai,ntot2)
+
+ 1000 continue
+      if (nid.eq.0) write (6,3001) iter,rnorm,tolpss
+c     if (istep.gt.20) call emerxit
+ 3001 format(I6,' **ERROR**: Failed to converge in UZAWA:',6E13.4)
+ 9000 continue
+
+      divex = rnorm
+      iter  = iter-1
+
+      if (iter.gt.0) then
+        call copy (rcgr,xcgr,ntot2)
+        call copy (rcgi,xcgi,ntot2)
+      endif  
+
+      call ortho(rcgr)
+      call ortho(rcgi)
+
+      etime1 = dnekclock()-etime1
+      if (nio.eq.0) write(6,9999) istep, '  U-Press std. ',
+     &                            iter,divex,div0,tolpss,etime1
+ 9999 format(I11,a,I7,1p4E13.4)
+19999 format(I11,'  U-Press 1.e-5: ',I7,1p4E13.4)
+
+      return
+      end subroutine uzawa_f3d
+!-----------------------------------------------------------------------
+      subroutine convprn_f3d(iconv,rbnorm,rrptr,rrpti,
+     $                       resr,resi,zr,zi,tol)
+
+!                                               T
+!     Convergence test for the pressure step;  r z
+
+      implicit none
+
+      include 'SIZE'
+      include 'MASS'
+
+      real resr(1),resi(1)
+      real zr(1),zi(1)
+      real wrk1(4),wrk2(4)
+      real rrptr,rrpti,rbnorm
+      real tol
+
+      integer iconv
+      integer ntot2
+      real vlsc21
+      real vlsc2
+
+      ntot2   = lx2*ly2*lz2*nelv
+
+      wrk1(1) = vlsc21(resr,bm2inv,ntot2)  !  resr*bm2inv*resr
+      wrk1(2) = vlsc21(resi,bm2inv,ntot2)  !  resi*bm2inv*resi
+
+      call gop(wrk1,wrk2,'+  ',2)
+      rbnorm  = sqrt((wrk1(1)+wrk1(2))/volvm2) ! sqrt((rr² + ri²)/vol)
+      
+      call glsc2_comp(rrptr,rrpti,resr,resi,zr,zi,ntot2)
+
+!      wrk1(1) = vlsc2(resr,zr,ntot2)     !  resr*zr
+!      wrk1(2) = vlsc2(resi,zi,ntot2)     !  resi*zi
+!      wrk1(3) = vlsc2(resr,zi,ntot2)     !  resr*zi
+!      wrk1(4) = vlsc2(resi,zr,ntot2)     !  resi*zr
+!
+!      call gop(wrk1,wrk2,'+  ',4)
+!      rrptr = wrk1(1) + wrk1(2)
+!      rrpti = wrk1(3) - wrk1(4)
+
+      iconv  = 0
+      if (rbnorm.lt.tol) iconv=1
+      return
+      end subroutine convprn_f3d
+!---------------------------------------------------------------------- 
+
+      subroutine glsc2_comp(scr,sci,ur,ui,vr,vi,n)
+!                _       
+!     Calculate: u * v
+!     Assuming the Weight itself is real        
+
+      implicit none
+
+      integer i,n
+
+      real ur(n),ui(n)
+      real vr(n),vi(n)
+
+      real scr,sci,wk(2),wk2(2)
+      real glsum
+
+      wk(1) = 0.
+      wk(2) = 0.
+      do i=1,n
+        wk(1) = wk(1) + ur(i)*vr(i) + ui(i)*vi(i)
+        wk(2) = wk(2) + ur(i)*vi(i) - ui(i)*vr(i)
+      enddo
+
+!     Sum over all processors
+      call gop(wk,wk2,'+  ',2)
+      scr = wk(1)
+      sci = wk(2)
+
+      return
+      end subroutine glsc2_comp
+
+!-----------------------------------------------------------------------
+      subroutine esolver_f3d(resr,resi,h1,h2,h2inv,intype)
+
+!     Choose E-solver
+
+      implicit none        
+
+      include 'SIZE'
+      include 'ESOLV'
+      include 'INPUT'
+      include 'CTIMER'
+
+      real resr(lx2,ly2,lz2,lelv)
+      real resi(lx2,ly2,lz2,lelv)
+     
+      real h1(lx1,ly1,lz1,lelv)
+      real h2(lx1,ly1,lz1,lelv)
+      real h2inv(lx1,ly1,lz1,lelv)
+
+      integer intype
+      integer icg
+
+      if (icalld.eq.0) teslv=0.0
+
+      call ortho(resr) ! Ensure that residual is orthogonal to null space
+      call ortho(resi) ! Ensure that residual is orthogonal to null space
+
+      icalld=icalld+1
+      neslv=icalld
+      etime1=dnekclock()
+
+      if (.not. ifsplit) then
+        if (param(42).eq.1) then
+          call uzawa_f3d(resr,resi,h1,h2,h2inv,intype,icg)
+        else
+!          call uzawa_gmres(res,h1,h2,h2inv,intype,icg)
+          write(6,*) 'ERROR: E-solver (F3D) not implemented for GMRES'
+          call exitt
+        endif
+      else
+         write(6,*) 'ERROR: E-solver does not exist PnPn'
+         call exitt
+      endif
+
+      teslv=teslv+(dnekclock()-etime1)
+
+      return
+      end subroutine esolver_f3d
+!-----------------------------------------------------------------------
 
 
 

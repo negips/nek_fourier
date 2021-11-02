@@ -270,6 +270,7 @@
       ndigit = -3
       logfil = 6
 
+!     No Outputs from Arpack on all processes 
 !     Symmetric codes
       msgets = 0
       msaitr = 0
@@ -293,7 +294,8 @@
       mcaupd = 0
       mcaup2 = 0
       mceupd = 0
-      
+
+!     Only process 0 outputs 
       if (nio.eq.0) then
 !       Symmetric codes
         msgets = 0
@@ -783,7 +785,7 @@
                  endif  
                  if (arna_ifpr) then
                    call copytoreal(prp(1,1),prp(1,2),
-     $                             vbasea(i,il),tst_nv)
+     $                             vbasea(i,il),tst_np)
                    i = i + tst_np
                  endif  
 

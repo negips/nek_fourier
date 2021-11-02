@@ -1,0 +1,84 @@
+#
+# nek parameter file
+#
+[GENERAL] 
+#polynomialOrder = 7
+#PnPnFormulation = yes
+minNumProcesses = 1
+
+#startFrom = restart.fld
+#time=0 
+#stopAt = endTime
+#endTime = 400
+
+stopAt   = numsteps
+numSteps = 10000000
+
+dt = 0.10
+timeStepper = bdf3
+extrapolation = standard
+variableDt = no
+targetCFL = 0.4
+
+writeControl = TimeStep
+writeInterval = 10000
+
+userParam01 = 1.0    # Perturbation amplitude
+userParam02 = 0      # writeInterval 1D statistics 
+userParam03 = 1.00   # alpha ; Domain = 2*pi/alpha
+
+filtering = none #hpfrt
+filterWeight = 10
+filterModes  = 1
+
+dealiasing = yes
+
+[PROBLEMTYPE]
+#variableProperties = yes
+#equation = incompNS
+equation = incompLinNS
+numberOfPerturbations=2
+solveBaseFlow = no
+stressFormulation = yes
+axiSymmetry = no
+
+
+[PRESSURE]
+#preconditioner = semg_amg
+preconditioner = semg_xxt
+residualTol = 1e-12 
+residualProj = yes
+
+[VELOCITY]
+residualTol = 1e-12
+density = 1
+viscosity = -2
+residualProj = no
+
+#[TEMPERATURE]
+#rhoCp = 1.
+#conductivity = -10000
+#residualTol = 1e-6 
+#
+
+[_F3D]
+iff3d=yes
+ifcyl_f3d = no
+k_f3d = 0.25            # \beta
+
+
+[_TSTEPPER]             # Runtime paramere section for time stepper module
+MODE                 = DIR                    # Simulation mode
+STEPS                = 150                     # Length of stepper phase
+MAXCYC               = 1000                    # Max number of stepper cycles
+TOL                  = 1.00000000E-06         # Convergence threshold
+IFTST                = yes                     # If enable?
+#
+[_ARN_ARP]              # Runtime paramere section for Arnoldi ARPACK module
+NKRL                 = 60                    # Krylov space size
+NEGV                 = 20                     # Number of eigenvalues
+IFPR                 = yes                    # If pressure in arnoldi vector
+IFCOMPLEX            = yes                    # Use complex arithmetic (znaupd)
+
+
+
