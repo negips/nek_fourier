@@ -892,7 +892,6 @@ c
 
       endif       ! if3d .or. iff3d
 
-
       return
       end subroutine advabp_cyl_f3d
 !--------------------------------------------------------------------

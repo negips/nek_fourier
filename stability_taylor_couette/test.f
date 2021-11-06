@@ -73,48 +73,14 @@ c-----------------------------------------------------------------------
       include 'F3D'
 
       include 'TEST'
+      include 'WZ'
 
+      integer nxyz
       integer ntot1,ntot2
-      integer i,j
+      integer i,j,e
 
       integer igeom
 
-      real w1r,w2r,w3r
-      common /scruz/ w1r(lx1,ly1,lz1,lelv)
-     $ ,             w2r(lx1,ly1,lz1,lelv)
-     $ ,             w3r(lx1,ly1,lz1,lelv)
-
-      real w1i,w2i,w3i
-      common /scruz2/ w1i(lx1,ly1,lz1,lelv)
-     $ ,              w2i(lx1,ly1,lz1,lelv)
-     $ ,              w3i(lx1,ly1,lz1,lelv)
-
-      real h1(lx1,ly1,lz1,lelv)
-      real h2(lx1,ly1,lz1,lelv)
-
-      integer jpr,jpi
-
-!     Real Variables      
-      real erxt,errt,erxx,erxr,errr,ertt
-      common /ctmp0/ erxt(lx1*ly1*lz1*lelt)      ! Er_x\theta
-     $             , errt(lx1*ly1*lz1*lelt)      ! Er_Rt
-      common /ctmp1/ erxx(lx1*ly1*lz1*lelt)      ! Er_xx
-     $             , erxr(lx1*ly1*lz1*lelt)      ! Er_xR
-     $             , errr(lx1*ly1*lz1*lelt)      ! Er_RR
-     $             , ertt(lx1*ly1*lz1*lelt)      ! Er_\theta\theta
-
-!     Made a new scratch array here.      
-!     Imaginary Variables
-      real eixt,eirt,eixx,eixr,eirr,eitt,wk3
-      common /scrns/   eixt(lx1*ly1*lz1*lelt)      ! Ei_x\theta
-     $               , eirt(lx1*ly1*lz1*lelt)      ! Ei_Rt
-     $               , eixx(lx1*ly1*lz1*lelt)      ! Ei_xx
-     $               , eixr(lx1*ly1*lz1*lelt)      ! Ei_xR
-     $               , eirr(lx1*ly1*lz1*lelt)      ! Ei_RR
-     $               , eitt(lx1*ly1*lz1*lelt)      ! Ei_\theta\theta
-     $               , wk3(lx1*ly1*lz1*lelt)       ! work
-
-      real glmax
 
       if (istep.eq.0) then
         call frame_start
@@ -127,75 +93,96 @@ c-----------------------------------------------------------------------
 !      ifaxis = .false.
       ifto = .true.
 
+      nxyz  = lx1*ly1*lz1
       ntot1 = lx1*ly1*lz1*nelv
       ntot2 = lx2*ly2*lz2*lelv
       call copy(t,vz,ntot1)
 
-      call initp_f3d
+!      call outpost(tmp1,tmp2,tmp3,pr,tmp3,'tmp')
 
-!      call outpost(vx,vy,vz,pr,vz,'  ')
+      if (istep.eq.0) then
+        call outpost(vx,vy,vz,pr,t,'   ')
+        call initp_f3d
 
-      call rone(vzp(1,1),ntot1)
-      call rone(vzp(1,2),ntot1)
+        if (.not.iff3d) then
+          call init_pertfld_f3d
+        endif  
 
-!      call rone(vxp(1,1),ntot1)
-!      call rone(vxp(1,2),ntot1)
+        call rzero(zm1,ntot1)
+        call outpost(vx,vy,vz,pr,vz,'ini')
+      endif
 
-      call outpost(vxp(1,1),vyp(1,1),vzp(1,1),prp(1,1),vzp(1,1),'  ')
-      call outpost(vxp(1,2),vyp(1,2),vzp(1,2),prp(1,2),vzp(1,2),'  ')
-
+!     Call time stepper      
+!      call tst_solve()
 
       ifield = 1
       jp = 1
-!      call advabp_cyl_f3d
-!      call invcol2(bfzp(1,1),binvm1,ntot1)
-!      jp = 2
-!      call advabp_cyl_f3d
-!      call invcol2(bfzp(1,2),binvm1,ntot1)
+      call advabp_cyl_f3d
+      jp = 2
+      call advabp_cyl_f3d
 
-!      call convect_w_f3d(bfzp(1,1),vzp(1,2),vz)
-!      call invcol2(bfzp(1,1),bm1,ntot1)
-!      call convect_w_f3d(bfzp(1,2),vzp(1,1),vz)
-!      call invcol2(bfzp(1,2),bm1,ntot1)
+      i = 1
+      call invcol2(bfxp(1,i),bm1,ntot1)
+      call invcol2(bfyp(1,i),bm1,ntot1)
+      call invcol2(bfzp(1,i),bm1,ntot1)
 
-!      call outpost(bfxp(1,1),bfyp(1,1),bfzp(1,1),prp,bfzp(1,1),'  ')
-!      call outpost(bfxp(1,2),bfyp(1,2),bfzp(1,2),prp,bfzp(1,2),'  ')
-
-      call rzero3(w1r,w2r,w3r,ntot1)
-      call rzero3(w1i,w2i,w3i,ntot1)
-      call rone(h1,ntot1)
-      call rzero(h2,ntot1)
-
-      jpr = 1
-      jpi = 2
-
-!     Ax
-      call axhmsf_cyl(w1r,w2r,w3r,w1i,w2i,w3i,
-     $                vxp(1,jpr),vyp(1,jpr),vzp(1,jpr),
-     $                vxp(1,jpi),vyp(1,jpi),vzp(1,jpi),
-     $                h1,h2)
-
-      call invcol2(w1r,bm1,ntot1)
-      call invcol2(w2r,bm1,ntot1)
-      call invcol2(w3r,bm1,ntot1)
-      call invcol2(w1i,bm1,ntot1)
-      call invcol2(w2i,bm1,ntot1)
-      call invcol2(w3i,bm1,ntot1)
-
-      call copy3(tmp1,tmp2,tmp3,erxt,errt,ertt,ntot1)
-      call copy3(tmp5,tmp6,tmp7,eixt,eirt,eitt,ntot1)
+      i = 2
+      call invcol2(bfxp(1,i),bm1,ntot1)
+      call invcol2(bfyp(1,i),bm1,ntot1)
+      call invcol2(bfzp(1,i),bm1,ntot1)
 
 
-      call outpost(w1r,w2r,w3r,prp,w3r,'  ')
-      call outpost(w1i,w2i,w3i,prp,w3i,'  ')
+      if (mod(istep,iostep).eq.0) then
+        i = 1
+        call outpost(vxp(1,i),vyp(1,i),vzp(1,i),
+     $               prp(1,i),vzp(1,i),'ptr')
+        i = 2
+        call outpost(vxp(1,i),vyp(1,i),vzp(1,i),
+     $               prp(1,i),vzp(1,i),'pti')
 
-      call outpost(tmp1,tmp2,tmp3,prp,tmp3,'  ')
-      call outpost(tmp5,tmp6,tmp7,prp,tmp7,'  ')
+        i = 1
+        call outpost(bfxp(1,i),bfyp(1,i),bfzp(1,i),
+     $               prp(1,i),bfzp(1,i),'bfr')
+        i = 2
+        call outpost(bfxp(1,i),bfyp(1,i),bfzp(1,i),
+     $               prp(1,i),bfzp(1,i),'bfi')
 
-      write(6,*) 'glmax', glmax(tmp5,ntot1)
+
+        call rone(bfxp,ntot1)
+        call invcol2(bfxp,bm1,ntot1)
+
+        call copy(bfyp,bm1,ntot1)
+
+        call rone(vzp,ntot1)
+        call rone(vz,ntot1)
+        call convect_w_f3d(bfzp,vzp(1,1),vz)
+!        call invcol2(bfzp,ym1,ntot1)
+        call chsign(bfzp,ntot1)
+        call invcol2(bfzp,bm1,ntot1)
+       
+        call copy(bfyp,jacm1,ntot1)
+
+        i = 1
+        j = 1
+        do e=1,nelv
+          call setaxw1(ifrzer(e))
+          call copy(bfyp(j,1),w3m1,nxyz)
+          j = j + nxyz
+        enddo  
+
+        i = 1
+        call outpost(bfxp(1,i),bfyp(1,i),bfzp(1,i),
+     $               prp(1,i),bfzp(1,i),'bfr')
 
 
-      call exitt
+        if (nid.eq.0) then
+          write(6,*) 'ZGM1:', (zgm1(i,1), i=1,lx1)
+          write(6,*) 'ZAM1:', (zam1(i), i=1,lx1)
+        endif  
+
+        call exitt
+      endif
+
 
 
       if (istep.eq.nsteps.or.lastep.eq.1) then
@@ -224,8 +211,8 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'INPUT'         ! if3d
       include 'PARALLEL'
-!      include 'TOTAL'
       include 'NEKUSE'
+      include 'GEOM'
 
       include 'F3D'
 
@@ -239,65 +226,116 @@ c-----------------------------------------------------------------------
       real xl(3)
       real mth_ran_dst
 
+      logical ifcouette
+      logical ifpoiseuille
+      logical iftaylor
+      logical ifrand
+
+      real r1,r2,omega1,omega2
+      real a1,a2
+      save r1,r2,a1,a2,omega1,omega2
+
+      integer isave
+      save isave
+      data isave /0/
+
+      real glmin,glmax
+      integer n
+
+
+      ifcouette         = .false.
+      ifpoiseuille      = .false.
+      iftaylor          = .true.
+
+      ifrand            = .false.
+
       pi = 4.0*atan(1.0)
 
-      if (jp.eq.0) then
-        ux = 0.0 + 0.0*y
-        uy = 0.
-        uz = 1.0 + 0.0*y
-      else
-!        ux = 0.0 + (1.0e-0)*sin(x)*sin(2*pi*(y-1.0)/3)
-!        uy = 0.0 + (2.0e-1)*sin(2*pi*(y-1.0)/3)*sin(jp + x + y)
-!!        uz = -1.0 + (2.0e-0)*rand()
-!        uz = ux*sin(jp + x*y+0.)
+      if (isave.eq.0) then
+        n = lx1*ly1*lz1*nelv
+        r1 = glmin(ym1,n)
+        r2 = glmax(ym1,n)
+        omega1 = 1.0/r1
+        omega2 = 0.0
+        a1 = (omega2*(r2**2) - omega1*r1*r1)/(r2**2 - r1**2)
+        a2 = (omega1 - omega2)*(r1**2)*(r2**2)/(r2**2 - r1**2)
+        isave = 1
+      endif
 
-!       perturbation; white noise
-        xl(1) = X
-        xl(2) = Y
-        if (IF3D.or.iff3d) xl(3) = Y+X
-        
-        if (jp.eq.1) then
-          fcoeff(1)=  3.0e4
-          fcoeff(2)= -1.5e3
-          fcoeff(3)=  0.5e5
-        else
-          fcoeff(1)=  9.0e4
-          fcoeff(2)=  1.5e3
-          fcoeff(3)= -2.5e5
-        endif          
-        ux=UPARAM(1)*mth_ran_dst(ix,iy,iz,ieg,xl,fcoeff)
-        if (jp.eq.1) then
-          fcoeff(1)=  2.3e4
-          fcoeff(2)=  2.3e3
-          fcoeff(3)= -2.0e5
-        else
-          fcoeff(1)=  1.3e4
-          fcoeff(2)= -5.8e3
-          fcoeff(3)= -1.9e5
-        endif
-        uy=UPARAM(1)*mth_ran_dst(ix,iy,iz,ieg,xl,fcoeff)
-        if (IF3D.or.iff3d) then
-           if (jp.eq.1) then           
-             fcoeff(1)= 2.e4
-             fcoeff(2)= 1.e3
-             fcoeff(3)= 1.e5
-           else
-             fcoeff(1)= -1.9e4
-             fcoeff(2)= -8.0e3
-             fcoeff(3)=  3.2e5
-           endif 
-           uz=UPARAM(1)*mth_ran_dst(ix,iy,iz,ieg,xl,fcoeff)
-        else
-           uz = 0.0
-        endif
-!        ux = cos(x)
-!        uy = sin(y)
-!      
-!        if (jp.eq.1) then
-!          uz = 1.0/k_3dsp*(sin(x) - cos(y))
-!        elseif (jp.eq.2) then
-!          uz = 1.0/k_3dsp*(-sin(x) + cos(y))
-!        endif
+
+      if (jp.eq.0) then
+
+        if (ifpoiseuille) then
+          ux = 1.0 - y**2
+          uy = 0.
+          uz = 0.0 + 0.0
+        elseif (ifcouette) then
+          ux = 0.0 + 1.0*y
+          uy = 0.
+          uz = 0.0 + 0.0
+        elseif (iftaylor) then
+          ux = 0.0 + 0.0
+          uy = 0.
+          uz = a1*y + a2/y
+        endif  
+      else
+
+        if (.not.ifrand) then        
+!          ux = 1.0*exp(-(x/sig)**2)*exp(-(y/sig)**2)
+!          uy = 0.0*exp(-(x/sig)**2)*exp(-(y/sig)**2)
+!          uz = 0.0*exp(-(x/sig)**2)*exp(-(y/sig)**2)
+          if (jp.eq.1) then
+            ux = 0.0*cos(x)
+            uy = 0.0*cos(x)
+            uz = 1.0*sin(y)
+          elseif (jp.eq.2) then
+            ux = 0.0*cos(x)
+            uy = 0.0*cos(x)
+            uz = 1.0*sin(y)
+          endif
+
+        else  
+!         perturbation; white noise
+          xl(1) = X
+          xl(2) = Y
+          if (IF3D.or.iff3d) xl(3) = Y+X
+          
+          if (jp.eq.1) then
+            fcoeff(1)=  3.0e4
+            fcoeff(2)= -1.5e3
+            fcoeff(3)=  0.5e5
+          else
+            fcoeff(1)=  9.0e4
+            fcoeff(2)=  1.5e3
+            fcoeff(3)= -2.5e5
+          endif          
+          ux=UPARAM(1)*mth_ran_dst(ix,iy,iz,ieg,xl,fcoeff)
+          if (jp.eq.1) then
+            fcoeff(1)=  2.3e4
+            fcoeff(2)=  2.3e3
+            fcoeff(3)= -2.0e5
+          else
+            fcoeff(1)=  1.3e4
+            fcoeff(2)= -5.8e3
+            fcoeff(3)= -1.9e5
+          endif
+          uy=UPARAM(1)*mth_ran_dst(ix,iy,iz,ieg,xl,fcoeff)
+          if (IF3D.or.iff3d) then
+             if (jp.eq.1) then           
+               fcoeff(1)= 2.e4
+               fcoeff(2)= 1.e3
+               fcoeff(3)= 1.e5
+             else
+               fcoeff(1)= -1.9e4
+               fcoeff(2)= -8.0e3
+               fcoeff(3)=  3.2e5
+             endif 
+             uz=UPARAM(1)*mth_ran_dst(ix,iy,iz,ieg,xl,fcoeff)
+          else
+             uz = 0.0
+          endif
+
+        endif 
 
       endif
 
@@ -316,12 +354,12 @@ c-----------------------------------------------------------------------
 !      include 'TOTAL'     ! guarantees GLL mapping of mesh.
 
       integer n,i,j
-      real alpha,alphai
+      real r0
 
 !      ifaxis = .true.   ! just for initialization
       param(42)=1       ! 0: GMRES (nonsymmetric), 1: PCG w/o weights
       param(43)=1       ! 0: Additive multilevel (param 42=0), 1: Original 2 level
-      param(44)=0       ! 0: E based Schwartz, 1: A based Schwartz
+      param(44)=1       ! 0: E based Schwartz, 1: A based Schwartz
 
       n = nelv * 2**ldim
 !      xmin = glmin(xc,n)
@@ -337,20 +375,16 @@ c-----------------------------------------------------------------------
 
       pi = 4.*atan(1.0)
 
-      if (abs(uparam(3)).gt.1.0e-12) then
-        alpha  = abs(1.0/uparam(3))
-        alphai = abs(uparam(3))
-      else
-        alpha  = 1.0
-        alphai = 1.0
+      if (abs(uparam(3)).gt.1.0e-6) then
+        r0   = abs(uparam(3))+1
       endif
 
-      if (nio.eq.0) write(6,*) 'Alpha:', alpha, alphai 
+      if (nio.eq.0) write(6,*) 'R0:', r0
 
       do j=1,nelv
       do i=1,2**ldim
-         xc(i,j) = 2.0*(xc(i,j))
-!         yc(i,j) = yc(i,j) + 1.0
+!         xc(i,j) = 2.0*pi*(xc(i,j))*alphai
+         yc(i,j) = yc(i,j) + r0
 !         yc(i,1) = tanh(BETAM*(2*yc(i,1)-1))/tanh(BETAM)
 !         zc(i,1) = zscale*zc(i,1)
       enddo
@@ -366,6 +400,7 @@ c-----------------------------------------------------------------------
       include 'TOTAL'
 
 
+      call fix_geom
 !      call outpost(vx,vy,vz,pr,t,'   ')
 
 !      do iel=1,nelt

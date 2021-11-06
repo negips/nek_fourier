@@ -115,20 +115,20 @@ c-----------------------------------------------------------------------
 !        call rzero(vzp(1,2),ntot1)
 !      endif 
 
-!      if (mod(istep,iostep).eq.0) then
-!!      if (istep.le.10) then
-!        i = 1
-!        call outpost(vxp(1,i),vyp(1,i),vzp(1,i),
-!     $               prp(1,i),vzp(1,i),'ptr')
-!        i = 2
-!        call outpost(vxp(1,i),vyp(1,i),vzp(1,i),
-!     $               prp(1,i),vzp(1,i),'pti')
-!      endif
-
 !     Call time stepper      
       call tst_solve()
 
-      if (nio.eq.0) write(6,*) 'IFAXIS:', ifaxis
+      if (mod(istep,iostep).eq.0) then
+!      if (istep.le.10) then
+        i = 1
+        call outpost(vxp(1,i),vyp(1,i),vzp(1,i),
+     $               prp(1,i),vzp(1,i),'ptr')
+        i = 2
+        call outpost(vxp(1,i),vyp(1,i),vzp(1,i),
+     $               prp(1,i),vzp(1,i),'pti')
+      endif
+
+
 
       if (istep.eq.nsteps.or.lastep.eq.1) then
         call frame_end
@@ -301,7 +301,7 @@ c-----------------------------------------------------------------------
       pi = 4.*atan(1.0)
 
       if (abs(uparam(3)).gt.1.0e-6) then
-        r0   = abs(uparam(3))+1
+        r0   = abs(uparam(3))
       endif
 
       if (nio.eq.0) write(6,*) 'R0:', r0

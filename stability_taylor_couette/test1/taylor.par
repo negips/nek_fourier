@@ -27,8 +27,8 @@ userParam01 = 1.0    # Perturbation amplitude
 userParam02 = 0      # writeInterval 1D statistics 
 userParam03 = 1000.00   # r0
 
-filtering = hpfrt
-filterWeight = 2
+filtering = none #hpfrt
+filterWeight = 10
 filterModes  = 1
 
 dealiasing = yes
