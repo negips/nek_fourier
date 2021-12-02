@@ -12,20 +12,20 @@ minNumProcesses = 1
 #endTime = 400
 
 stopAt   = numsteps
-numSteps = 10000
+numSteps = 1
 
-dt = 0.005
+dt = 0.001
 timeStepper = bdf3
 extrapolation = standard
 variableDt = no
 targetCFL = 0.4
 
 writeControl = TimeStep
-writeInterval = 10000
+writeInterval = 100
 
 userParam01 = 1.0    # Perturbation amplitude
 userParam02 = 0      # writeInterval 1D statistics 
-userParam03 = 1000.00   # r0
+userParam03 = 2.00   # r0
 
 filtering = hpfrt
 filterWeight = 2
@@ -35,12 +35,13 @@ dealiasing = yes
 
 [PROBLEMTYPE]
 #variableProperties = yes
-#equation = incompNS
-equation = incompLinNS
-numberOfPerturbations=2
-solveBaseFlow = no
+equation = incompNS
+#equation = incompLinNS
+#numberOfPerturbations=2
+#solveBaseFlow = no
 stressFormulation = yes
 axiSymmetry = yes
+swirl       = yes
 
 
 [PRESSURE]
@@ -50,19 +51,19 @@ residualTol = 1e-08
 residualProj = yes
 
 [VELOCITY]
-residualTol = 1e-11
+residualTol = 1e-10
 density = 1
 viscosity = -100.00
 residualProj = no
 
-#[TEMPERATURE]
-#rhoCp = 1.
-#conductivity = -10000
-#residualTol = 1e-6 
+[TEMPERATURE]
+rhoCp = 1.
+conductivity = -100.00
+residualTol = 1e-10 
 #
 
 [_F3D]
-iff3d=yes
+iff3d=no
 ifcyl_f3d = yes
 k_f3d = 2.00            # \beta
 
@@ -72,7 +73,7 @@ MODE                 = DIR                    # Simulation mode
 STEPS                = 250                   # Length of stepper phase
 MAXCYC               = 2000                    # Max number of stepper cycles
 TOL                  = 1.00000000E-06         # Convergence threshold
-IFTST                = yes                     # If enable?
+IFTST                = no                     # If enable?
 #
 [_ARN_ARP]              # Runtime paramere section for Arnoldi ARPACK module
 NKRL                 = 30                    # Krylov space size

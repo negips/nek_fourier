@@ -169,21 +169,24 @@
       tst_iftst = ltmp
 
 
-      ! check simulation parameters
-      if (.not.IFTRAN) call mntr_abort(tst_id,
-     $   'time stepper requres transient simulation; IFTRAN=.T.')
+!     Check simulation parameters
+!     Only if Time stepper is enabled.          ! prabal
+      if (tst_iftst) then
+        if (.not.IFTRAN) call mntr_abort(tst_id,
+     $     'time stepper requres transient simulation; IFTRAN=.T.')
 
-      if (NSTEPS.eq.0) call mntr_abort(tst_id,
-     $   'time stepper requres NSTEPS>0')
+        if (NSTEPS.eq.0) call mntr_abort(tst_id,
+     $     'time stepper requres NSTEPS>0')
 
-      if (PARAM(12).ge.0) call mntr_abort(tst_id,
-     $   'time stepper assumes constant dt')
+        if (PARAM(12).ge.0) call mntr_abort(tst_id,
+     $     'time stepper assumes constant dt')
 
-      if (.not.IFPERT) call mntr_abort(tst_id,
-     $   'time stepper has to be run in perturbation mode')
+        if (.not.IFPERT) call mntr_abort(tst_id,
+     $     'time stepper has to be run in perturbation mode')
 
-      if (IFBASE)  call mntr_abort(tst_id,
-     $   'time stepper assumes constatnt base flow')
+        if (IFBASE)  call mntr_abort(tst_id,
+     $     'time stepper assumes constatnt base flow')
+      endif 
 
 !      if (NPERT.ne.1) call mntr_abort(tst_id,
 !     $   'time stepper requires NPERT=1')

@@ -771,8 +771,8 @@ C
             if (.not.iftmsh(ifield)) imesh = 1
             if (     iftmsh(ifield)) imesh = 2
             call unorm
-            call settolt
-            call cdscal(igeom)
+            call settolt            ! set tolerance for temp/ps
+            call cdscal(igeom)      ! everything is done here.
          endif
       enddo
 

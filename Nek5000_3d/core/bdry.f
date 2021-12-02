@@ -115,6 +115,7 @@ C
          WRITE (6,*) 'IFCHAR    =',IFCHAR
          WRITE (6,*) 'IFCYCLIC  =',IFCYCLIC
          WRITE (6,*) 'IFAXIS    =',IFAXIS
+         WRITE (6,*) 'IFAZIV    =',IFAZIV       ! prabal
          WRITE (6,*) 'IFMVBD    =',IFMVBD
          WRITE (6,*) 'IFMELT    =',IFMELT
          WRITE (6,*) 'IFNEKNEK  =',IFNEKNEK
