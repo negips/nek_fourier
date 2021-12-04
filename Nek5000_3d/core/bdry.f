@@ -850,6 +850,7 @@ C
                   ENDIF
                   IF (CB.EQ.'r  ' .OR. CB.EQ.'R  ') 
      $               HC = HRAD * (TINF**2 + TS**2) * (TINF + TS)
+
                   S(IX,IY,IZ,IE) = S(IX,IY,IZ,IE) +
      $               HC*AREA(IA,1,IFACE,IE)/BM1(IX,IY,IZ,IE)
   100          CONTINUE

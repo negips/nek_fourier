@@ -1,0 +1,15 @@
+!----------------------------------------------------------------------
+!     Author: Prabal Negi
+!     Description: Include file for Free-surface ALE
+!
+!----------------------------------------------------------------------
+!----------------------------------------------------------------------
+
+      integer*8 fs_gl_num(lx1*ly1*lz1*lelv)  ! final global numbers
+      integer fs_gs_handle    ! free surface gather-scatter handle
+      real fs_vmult(lx1,ly1,lz1,lelv)
+      real fs_mask(lx1,ly1,lz1,lelv)
+      common /fs_gsh/ fs_gl_num, fs_gs_handle
+      common /fs_rv/  fs_vmult, fs_mask   
+
+

@@ -141,8 +141,10 @@ C---------------------------------------------------------------------
 !      call opzero(vx,vy,vz)   ! zero out velocity field
 !                              ! (before BCs are applied).
 
+
       CALL BCDIRVC (VX,VY,VZ,v1mask,v2mask,v3mask)
       CALL BCNEUTR
+
 
       call extrapp (pr,prlag)
       call opgradt (resv1,resv2,resv3,pr)

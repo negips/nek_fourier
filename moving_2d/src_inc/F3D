@@ -1,0 +1,53 @@
+!     Include file for solve_3d routines
+
+
+      real bfz_f3d(lx1,ly1,lz1,lelv)          ! Forcing for z-component. Possibly not needed
+      real prextr_f3d(lx2*ly2*lz2*lelv,2)     ! Need to save two extrapolated pressures
+      real prcorr_f3d(lx2*ly2*lz2*lelv,2)     ! Need to save Pressure correction as well
+
+      common /solv_f3drv/ bfz_f3d,
+     $                    prextr_f3d,
+     $                    prcorr_f3d
+                       
+
+      logical iff3d                           ! Main logical flag to enable module
+      logical ifcyl_f3d                       ! if we are doing cylindrical coordinates
+
+      common /solv_f3dl/ iff3d,
+     $                   ifcyl_f3d
+
+
+      real k_f3d
+      common /solv_f3dpr/ k_f3d
+
+
+      
+!     Variables needed for the KTH Framework
+!---------------------------------------------------------------------- 
+      integer f3d_id                ! Module id
+      integer f3d_sec_id            ! Section id
+      integer f3d_tmr_tot_id        ! total time id
+      integer f3d_tmr_ini_id        ! initialisation time id
+      integer f3d_k_id              ! wavenumber id
+      integer f3d_iff3d_id          ! If Fourier 3D id
+      integer f3d_ifcyl_id          ! If cylindrical id
+
+
+      common /f3d_frame_id/ f3d_id, f3d_sec_id, f3d_tmr_tot_id,
+     $                      f3d_tmr_ini_id,f3d_k_id,f3d_iff3d_id,
+     $                      f3d_ifcyl_id 
+
+      character*(3) f3d_name
+      parameter (f3d_name='F3D')
+      
+
+
+
+
+
+
+
+
+
+
+
