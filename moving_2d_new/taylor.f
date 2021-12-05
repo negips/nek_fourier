@@ -65,14 +65,12 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'GEOM'
       include 'SOLN'
-      include 'MVGEOM'
       include 'INPUT'
       include 'TSTEP'
 !      include 'TOTAL'
       include 'MASS'
 
       include 'F3D'
-      include 'FS_ALE'
 
       include 'TEST'
 
@@ -80,11 +78,6 @@ c-----------------------------------------------------------------------
       integer i,j
 
       integer igeom
-      character cb*3
-      integer ie,iface,nfaces
-
-      real x,x0,mu
-      real dampw(lx1,ly1,lz1,lelv)
 
 
       if (istep.eq.0) then
@@ -95,30 +88,47 @@ c-----------------------------------------------------------------------
 
 !      call slp_mark_faces()
 
+!      ifaxis = .false.
       ifto = .true.
 
       ntot1 = lx1*ly1*lz1*nelv
       ntot2 = lx2*ly2*lz2*lelv
+      call copy(t,vz,ntot1)
 
+!      call outpost(tmp1,tmp2,tmp3,pr,tmp3,'tmp')
 
       if (istep.eq.0) then
-
-        call gen_mapping_mvb
-
-        call outpost(vx,vy,vz,pr,tmp1,'ini')
+        call outpost(vx,vy,vz,pr,t,'   ')
         call initp_f3d
 
-        call col2(vx,v1mask,ntot1)
-        call col2(vy,v2mask,ntot1)
-        
+        if (.not.iff3d) then
+          call init_pertfld_f3d
+        endif  
+
+        call rzero(zm1,ntot1)
+        call outpost(vx,vy,vz,pr,vz,'ini')
       endif
 
-      call test_random
-
-      call fs_mvmesh()
+!!     for k_f3d=0, we seem to get squire modes
+!      if (iff3d.and.(abs(k_f3d).lt.1.0e-12)) then
+!        call rzero(vzp(1,1),ntot1)
+!        call rzero(vzp(1,2),ntot1)
+!      endif 
 
 !     Call time stepper      
       call tst_solve()
+
+      if (mod(istep,iostep).eq.0) then
+!      if (istep.le.10) then
+        i = 1
+        call outpost(vxp(1,i),vyp(1,i),vzp(1,i),
+     $               prp(1,i),vzp(1,i),'ptr')
+        i = 2
+        call outpost(vxp(1,i),vyp(1,i),vzp(1,i),
+     $               prp(1,i),vzp(1,i),'pti')
+      endif
+
+
 
       if (istep.eq.nsteps.or.lastep.eq.1) then
         call frame_end
@@ -128,55 +138,13 @@ c-----------------------------------------------------------------------
       end
 c-----------------------------------------------------------------------
       subroutine userbc (ix,iy,iz,iside,ieg)
-
-      implicit none
-
       include 'SIZE'
-!      include 'TOTAL'
+      include 'TOTAL'
       include 'NEKUSE'
-      include 'GEOM'
 
-      integer ix,iy,iz,iside,ieg
-      real pi
-
-      integer jp
-      common /ppointr/ jp
-
-      real r1,r2,omega1,omega2
-      real a1,a2
-      save r1,r2,a1,a2,omega1,omega2
-
-      integer isave
-      save isave
-      data isave /0/
-
-      real glmin,glmax
-      integer n
-
-      
-      if (isave.eq.0) then
-        n = lx1*ly1*lz1*nelv
-        r1 = glmin(ym1,n)
-        r2 = glmax(ym1,n)
-        omega1 = 1.0/r1
-        omega2 = 0.0
-        a1 = (omega2*(r2**2) - omega1*r1*r1)/(r2**2 - r1**2)
-        a2 = (omega1 - omega2)*(r1**2)*(r2**2)/(r2**2 - r1**2)
-        isave = 1
-      endif
-
-      if (jp.eq.0) then
-        ux   = 0.0
-        uy   = 0.0
-!        uz   = 0.0
-!        temp = 0.0
-        temp = a1*y + a2/y
-      else
-        ux   = 0.0
-        uy   = 0.0
-        uz   = 0.0
-        temp = 0.0
-      endif  
+      ux = 0.0
+      uy = 0.0
+      uz = 0.0
 
       return
       end
@@ -206,7 +174,6 @@ c-----------------------------------------------------------------------
       logical ifcouette
       logical ifpoiseuille
       logical iftaylor
-      logical iftestmvb
 
       real r1,r2,omega1,omega2
       real a1,a2
@@ -222,8 +189,7 @@ c-----------------------------------------------------------------------
 
       ifcouette         = .false.
       ifpoiseuille      = .false.
-      iftaylor          = .false.
-      iftestmvb         = .true.
+      iftaylor          = .true.
 
       pi = 4.0*atan(1.0)
 
@@ -250,17 +216,9 @@ c-----------------------------------------------------------------------
           uy = 0.
           uz = 0.0 + 0.0
         elseif (iftaylor) then
-!          ux = 0.0 + 0.0
-!          uy = 0.
-!          uz = a1*y + a2/y
-!         Testing  
-          temp = 0.01*(a2*y + a1/y)   ! just testing
-          ux   = temp
-          uy   = temp
-        elseif (iftestmvb) then
-          ux   = -0.001*exp(-((y-r1)/0.25)**2)
-          uy   = 0.
-          temp = 0.01*(a1*y + a2/y)   ! just testing
+          ux = 0.0 + 0.0
+          uy = 0.
+          uz = a1*y + a2/y
         endif  
       else
 
@@ -475,76 +433,6 @@ c-----------------------------------------------------------------------
       return
       endsubroutine check_vbasea
 !---------------------------------------------------------------------- 
-
-      subroutine test_random
-
-      implicit none
-
-      include 'SIZE'
-      include 'GEOM'
-      include 'SOLN'
-      include 'INPUT'
-      include 'TSTEP'
-      include 'MASS'
-
-      include 'F3D'
-
-      include 'TEST'
-
-      integer ntot1,ntot2
-      integer i,j
-
-      integer igeom
-      character cb*3
-      integer ie,iface,nfaces
-
-      real dampw(lx1,ly1,lz1,lelv)
-      real x,x0,mu
-
-
-      ntot1 = lx1*ly1*lz1*nelv
-
-      if (istep.eq.0) then
-
-        x0 = -1.0
-        mu = 0.25
-        do i=1,ntot1
-          x              = xm1(i,1,1,1)
-          dampw(i,1,1,1) = exp(-((x-x0)/mu)**2)
-        enddo  
-
-        call col2(dampw,v1mask,ntot1)
-        call outpost(v1mask,v2mask,v3mask,pr,dampw,'msk')
-
-!         nfaces = 2*ndim
-!         do ie=1,nelv
-!         do iface=1,nfaces
-!            cb  = cbc(iface,ie,ifield)
-! !           bc1 = bc(1,iface,ie,ifield)
-! !           bc2 = bc(2,iface,ie,ifield)
-! !           bc3 = bc(3,iface,ie,ifield)
-! 
-!            if (cb.ne.'E  ') then
-!              write(6,*) ie,iface,cb
-!            endif
-! 
-!         enddo
-!         enddo
-
-        ntot1 = lx1*ly1*lz1*nelv
-        call opcopy(tmp1,tmp2,tmp3,vx,vy,vz)
-        call opdsop(tmp1,tmp2,tmp3,'MXA')    
-
-        if (nio.eq.0) write(6,*) 'NFIELD', nfield
-        if (nio.eq.0) write(6,*) 'IFADVC', (ifadvc(i),i=1,nfield)
-      endif  
-
-
-
-      return
-      end subroutine test_random
-!---------------------------------------------------------------------- 
-
 
 
 
