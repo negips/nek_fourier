@@ -65,7 +65,7 @@
       ntot1 = nxyz*nelv
 
       if (.not.iff3d) then
-        call rzero(bfz_f3d,ntot1)    
+        call rzero(bfz,ntot1)    
         return
       endif
 

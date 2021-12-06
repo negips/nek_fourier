@@ -103,9 +103,8 @@ c-----------------------------------------------------------------------
 
       if (istep.eq.0) then
 
-        call gen_mapping_mvb
 
-        call outpost(vx,vy,vz,pr,tmp1,'ini')
+!        call outpost(vx,vy,vz,pr,tmp1,'ini')
         call initp_f3d
 
         call col2(vx,v1mask,ntot1)
@@ -388,6 +387,8 @@ c-----------------------------------------------------------------------
                       ! flow direction is given by (1=x, 2=y, 3=z) 
 !      param(55) = 1.0 ! flowrate/bulk-velocity 
 
+      call gen_mapping_mvb
+
       return
       end
 c-----------------------------------------------------------------------
@@ -497,6 +498,7 @@ c-----------------------------------------------------------------------
       integer igeom
       character cb*3
       integer ie,iface,nfaces
+      integer iel,ifc,nface
 
       real dampw(lx1,ly1,lz1,lelv)
       real x,x0,mu
@@ -516,6 +518,11 @@ c-----------------------------------------------------------------------
         call col2(dampw,v1mask,ntot1)
         call outpost(v1mask,v2mask,v3mask,pr,dampw,'msk')
 
+        call outpost(vnx,vny,vnz,pr,dampw,'msk')
+        call outpost(v1x,v1y,v1z,pr,dampw,'msk')
+        call outpost(v2x,v2y,v2z,pr,dampw,'msk')
+
+
 !         nfaces = 2*ndim
 !         do ie=1,nelv
 !         do iface=1,nfaces
@@ -532,14 +539,35 @@ c-----------------------------------------------------------------------
 !         enddo
 
         ntot1 = lx1*ly1*lz1*nelv
-        call opcopy(tmp1,tmp2,tmp3,vx,vy,vz)
-        call opdsop(tmp1,tmp2,tmp3,'MXA')    
+!        call opcopy(tmp1,tmp2,tmp3,vx,vy,vz)
+!        call opdsop(tmp1,tmp2,tmp3,'MXA')    
 
         if (nio.eq.0) write(6,*) 'NFIELD', nfield
         if (nio.eq.0) write(6,*) 'IFADVC', (ifadvc(i),i=1,nfield)
       endif  
 
+      if (istep.eq.5000) then
+        call outpost(vnx,vny,vnz,pr,dampw,'msk')
+        call outpost(v1x,v1y,v1z,pr,dampw,'msk')
+        call outpost(v2x,v2y,v2z,pr,dampw,'msk')
+      endif
 
+      call outpost(vx,vy,vz,pr,t,'  ')
+      ifield = 1
+      call rmask(vx,vy,vz,nelv)
+      call outpost(tmp1,vy,vz,pr,t,'  ')
+        
+      write(6,*) 'LMSF,LMSE,LMSC',IFLMSF(1),IFLMSE(1),IFLMSC(1)
+
+      nface = 2*ndim
+      do 100 iel=1,nelv
+      do 100 ifc=1,nface
+        write(6,*) iel, ifc,ifmsfc(ifc,iel,ifield),
+     $             ifmseg(ifc,iel,ifield),
+     $             ifmscr(ifc,iel,ifield) 
+
+ 100  continue
+      call exitt
 
       return
       end subroutine test_random

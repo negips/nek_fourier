@@ -33,7 +33,7 @@
 
       ifaxis_init = ifaxis
 
-      if (iff3d.and.npert.ne.2) then
+      if (iff3d.and.mod(npert,1).eq.1) then
         if (nio.eq.0) then
           write(6,'(A7,1x,I2)') 'NPERT =', npert
           write(6,*) 'Need both real and imaginary parts'
@@ -41,6 +41,9 @@
         endif  
         call exitt
       endif
+
+!     Only Homogeneous nonlinear solver implemented.
+      if (npert.eq.0) k_f3d = 0.0
 
       nxyz  = lx1*ly1*lz1
       ntot1 = nxyz*nelv
@@ -1351,11 +1354,6 @@ c     INTYPE =      integration type
       else
          call copy  (h1,vdiff (1,1,1,1,ifield),ntot1)
          call rzero (h2,ntot1)
-
-         if (.not.ifcyl_f3d) then
-!          Add second derivative of the 3rd direction to the operator
-           call add2s2(h2,vdiff(1,1,1,1,ifield),k2,ntot1)
-         endif  
       endif
 
 
@@ -1994,6 +1992,8 @@ c
 
       integer nfaces,nxyz,nel,ntot,ie,iface,isweep
       real bc1,bc2,bc3
+
+      real tmpl1(lx1,ly1,lz1),tmpl2(lx1,ly1,lz1),tmpl3(lx1,ly1,lz1)
 c
       ifonbc = .false.
 c
@@ -2049,6 +2049,16 @@ c
                 if ( ifqinp(iface,ie) )
      $          call globrot (tmp1(1,1,1,ie),tmp2(1,1,1,ie),
      $                        tmp3(1,1,1,ie),ie,iface)
+            endif
+
+!           In case of Symmetry, the amimuthal velocity needs to
+!           be specified. tmpl1 and tmpl2 are placeholder arrays to be
+!           discarded. The wall-normal component is zero (set via
+!           application of masks) and the tangential component is
+!           evaluated.
+            if (cb.eq.'SYM') then
+                call faceiv (' dd',tmp1(1,1,1,ie),tmp2(1,1,1,ie),
+     $            tmp3(1,1,1,ie),ie,iface,lx1,ly1,lz1)
             endif
 
             IF (CB.EQ.'ON ' .OR. CB.EQ.'on ') then   ! 5/21/01 pff
@@ -2150,6 +2160,7 @@ c
       call cdtp (outx,inpfld,rxm2,sxm2,txm2,1)
       call cdtp (outy,inpfld,rym2,sym2,tym2,2)
 
+
 !     Note: This is done in cdtp if ifaxis==T      
 !     Outz is used as a work array      
 !     BM1*p/R
@@ -2166,6 +2177,7 @@ c
         call add2(outy,outz,ntot1)
       endif  
 
+
 !     In principle the third component comes from the imaginary part
 !     Or from the real part if the other two components are imaginary      
 !     I assume this is handled outside the routine      
@@ -2181,7 +2193,6 @@ c
       call cmult(divv,const,ntot2)
       if (ifcyl_f3d) call invcol2(divv,ym2,ntot2)     ! 1/R
       call map21_weak(outz,divv)
-
 
       ifaxis = ifaxis_old
 
@@ -2303,6 +2314,8 @@ c
       include 'MASS'
       include 'IXYZ'
 
+      include 'F3D'
+
       real x(lx2,ly2,lz2,lelv)
       real y(lx1,ly1,lz1,lelv)
       real wk1,wk2
@@ -2315,7 +2328,7 @@ c
       nxyz2 = lx2*ly2*lz2
 
       do e=1,nelv
-        call ifaxisop_f3d(e)
+       if (ifcyl_f3d) call ifaxisop_f3d(e)
         call col3    (y(1,1,1,e),x(1,1,1,e),bm2(1,1,1,e),nxyz2)
 !       I assume 1/R is already factored in x            
 !        call invcol2 (y(1,1,1,e),ym2(1,1,1,e),nxyz2)
@@ -2556,11 +2569,12 @@ C
       include 'INPUT'
       include 'GEOM'    ! ifrzer
 
+      include 'F3D'
+
       integer nxyz2,ly12
       integer e               ! element no
 
       nxyz2 = lx2*ly2*lz2
-
 
       ly12   = ly1*ly2
       if (ifrzer(e)) then

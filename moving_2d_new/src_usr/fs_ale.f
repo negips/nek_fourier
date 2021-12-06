@@ -177,17 +177,17 @@
       call col2(temp1,fs_vmult,n)
 
       ifto = .true.
-      do i=1,n
-        tmp1(i,1,1,1) = fs_gl_num(i)+0.0
-        tmp2(i,1,1,1) = fs_vmult(i,1,1,1)+0.0
-      enddo  
+!      do i=1,n
+!        tmp1(i,1,1,1) = fs_gl_num(i)+0.0
+!        tmp2(i,1,1,1) = fs_vmult(i,1,1,1)+0.0
+!      enddo  
 
 
 !     Create damping function      
       x0 = -1.0
       mu = 0.80
       do i=1,n
-        x              = xm1(i,1,1,1)
+        x                = xm1(i,1,1,1)
         fs_damp(i,1,1,1) = exp(-((x-x0)/mu)**2)
       enddo
 
@@ -244,9 +244,13 @@ c
       include 'SOLN'
       include 'GEOM'
       include 'MVGEOM'
+      include 'INPUT'
       include 'FS_ALE'
 
       integer i,ntot1
+
+      if (.not.ifmvbd) return
+      if (.not.ifusermv) return
 
       ntot1 = lx1*ly1*lz1*nelv
 

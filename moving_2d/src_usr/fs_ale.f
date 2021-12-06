@@ -177,10 +177,10 @@
       call col2(temp1,fs_vmult,n)
 
       ifto = .true.
-      do i=1,n
-        tmp1(i,1,1,1) = fs_gl_num(i)+0.0
-        tmp2(i,1,1,1) = fs_vmult(i,1,1,1)+0.0
-      enddo  
+!      do i=1,n
+!        tmp1(i,1,1,1) = fs_gl_num(i)+0.0
+!        tmp2(i,1,1,1) = fs_vmult(i,1,1,1)+0.0
+!      enddo  
 
 
 !     Create damping function      

@@ -1261,6 +1261,384 @@ c     if (istep.gt.20) call emerxit
       return
       end subroutine esolver_f3d
 !-----------------------------------------------------------------------
+      subroutine ophinv_real(o1,o2,o3,i1,i2,i3,h1,h2,tolh,nmxhi)
+C
+C     Ok = (H1*A+H2*B)-1 * Ik  (implicit)
+C
+      implicit none
 
+      include 'SIZE'
+      include 'INPUT'
+      include 'MASS'
+      include 'SOLN'
+      include 'VPROJ'
+      include 'TSTEP'
+c      logical ifproj
+ 
+      real o1 (lx1,ly1,lz1,1) , o2 (lx1,ly1,lz1,1) , o3 (lx1,ly1,lz1,1)
+      real i1 (lx1,ly1,lz1,1) , i2 (lx1,ly1,lz1,1) , i3 (lx1,ly1,lz1,1)
+      real h1 (lx1,ly1,lz1,1) , h2 (lx1,ly1,lz1,1)
+      
+      integer mtmp,i,matmod,nmxhi
+      real tolh
+
+      mtmp = param(93)
+      do i=1,2*ldim
+         ivproj(1,i) = min(mxprev,mtmp) - 1
+      enddo
+ 
+      imesh = 1
+ 
+      if (ifstrs) then
+         matmod = 0
+         call hmhzsf_real ('NOMG',o1,o2,o3,i1,i2,i3,h1,h2,
+     $                  v1mask,v2mask,v3mask,vmult,
+     $                  tolh,nmxhi,matmod)
+      else
+
+        if (ifield.eq.1) then
+          if (nid.eq.0) then 
+            write(6,*) 'IFSTRS = ', ifstrs
+            write(6,*) 'Cylindrical Solver needs coupled solve'
+            write(6,*) 'Set IFSTRS = TRUE'
+          endif  
+
+          call exitt
+        endif  
+
+      endif
+C
+      return
+      end subroutine ophinv_real
+!----------------------------------------------------------------------
+      subroutine hmhzsf_real (name,u1,u2,u3,r1,r2,r3,h1,h2,
+     $                   rmask1,rmask2,rmask3,rmult,
+     $                   tol,maxit,matmod)
+
+c     Solve coupled Helmholtz equations (stress formulation)
+
+      implicit none
+
+      include 'SIZE'
+      include 'INPUT'
+      include 'MASS'
+      include 'SOLN'   ! For outpost diagnostic call
+      include 'TSTEP'
+      include 'ORTHOSTRS'
+      include 'CTIMER'
+
+      real u1(1),u2(1),u3(1),r1(1),r2(1),r3(1),h1(1),h2(1)
+      real rmask1(1),rmask2(1),rmask3(1),rmult(1)
+      character name*4
+
+      integer iproj,nel,n,maxit,matmod
+      real tol
+      real vol
+
+#ifdef TIMER
+      nhmhz = nhmhz + 1
+      etime1 = dnekclock()
+#endif
+
+      nel = nelfld(ifield)
+      vol = volfld(ifield)
+      n   = lx1*ly1*lz1*nel
+
+      napproxstrs(1) = 0
+      iproj = 0
+      if (ifprojfld(ifield)) iproj = param(94)
+      if (iproj.gt.0.and.istep.ge.iproj) napproxstrs(1)=param(93)
+      napproxstrs(1)=min(napproxstrs(1),mxprev)
+
+!      call rmask   (r1,r2,r3,nel)
+!      call opdssum (r1,r2,r3)
+      call col2_3  (r1,r2,r3,v1mask,v2mask,v3mask,n)
+      call dssum3  (r1,r2,r3)
+
+      call rzero3  (u1,u2,u3,n)
+
+      if (imesh.eq.1) then
+!         call chktcgs (r1,r2,r3,rmask1,rmask2,rmask3,rmult,binvm1
+!     $                ,vol,tol,nel)
+
+!         call strs_project_a(r1,r2,r3,h1,h2,rmult,ifield,ierr,matmod)
+
+         call cggosf_real(u1,u2,u3,r1,r2,r3,h1,h2,rmult,binvm1
+     $                ,vol,tol,maxit,matmod)
+
+!         call strs_project_b(u1,u2,u3,h1,h2,rmult,ifield,ierr)
+
+      else
+
+      endif
+
+#ifdef TIMER
+      thmhz=thmhz+(dnekclock()-etime1)
+#endif
+
+      return
+      end subroutine hmhzsf_real
+
+!--------------------------------------------------------------------
+
+      subroutine cggosf_real (u1,u2,u3,r1,r2,r3,h1,h2,rmult,binv,
+     $                   vol,tin,maxit,matmod)
+
+C     Conjugate gradient iteration for solution of coupled 
+C     Helmholtz equations 
+
+      implicit none
+
+      include 'SIZE'
+      include 'TOTAL'
+      include 'DOMAIN'
+      include 'FDMH1'
+      include 'F3D'
+
+      include 'TEST'    ! just testing
+
+      real dpc,p1,p2,p3
+      common /screv11/  dpc(lx1*ly1*lz1*lelt)
+     $     ,            p1 (lx1*ly1*lz1*lelt)
+      common /scrch11/  p2 (lx1*ly1*lz1*lelt)
+     $     ,            p3 (lx1*ly1*lz1*lelt)
+      real qq1,qq2,qq3
+      common /scrsl11/  qq1(lx1*ly1*lz1*lelt)
+     $     ,            qq2(lx1*ly1*lz1*lelt)
+     $     ,            qq3(lx1*ly1*lz1*lelt)
+      real pp1,pp2,pp3,wa
+      common /scrmg11/  pp1(lx1*ly1*lz1*lelt)
+     $     ,            pp2(lx1*ly1*lz1*lelt)
+     $     ,            pp3(lx1*ly1*lz1*lelt)
+     $     ,            wa (lx1*ly1*lz1*lelt)
+      real ap1(1),ap2(1),ap3(1)
+      equivalence (ap1,pp1),(ap2,pp2),(ap3,pp3)
+
+      common /fastmd/ ifdfrm(lelt), iffast(lelt), ifh2, ifsolv
+      common /cprint/ ifprint
+      logical ifdfrm, iffast, ifh2, ifsolv, ifprint
+
+      real u1(1),u2(1),u3(1),
+     $     r1(1),r2(1),r3(1),h1(1),h2(1),rmult(1),binv(1)
+
+      logical iffdm,ifcrsl,ifjacobi
+
+      integer maxit,matmod,nel,nxyz,n,iter,ifin
+
+      real tin,tol,vol
+      real alpha,beta,pap
+      real rpp1,rpp2
+
+      real tmpval
+
+      real r0,rbnorm
+
+      real glsc2,glsc3,op_glsc2_wt
+      real opnorm2_wt_comp
+
+!     No Fast Diagonalization Method            
+      iffdm  = .false.
+!     Jacobi preconditioner 
+      ifjacobi = .false.
+!     No Coarse grid
+      ifcrsl = .false.
+
+      if (istep.eq.1) ifprint = .true.
+
+      nel   = nelfld(ifield)
+      nxyz  = lx1*ly1*lz1
+      n     = nxyz*nel
+
+      if (istep.le.1.and.iffdm) call set_fdm_prec_h1A
+
+      tol  = tin
+
+c     overrule input tolerance
+      if (restol(ifield).ne.0) tol=restol(ifield)
+
+      if (ifcrsl) call set_up_h1_crs_strs(h1,h2,ifield,matmod)
+
+      if ( .not.ifsolv ) then           !     Set logical flags
+         call setfast (h1,h2,imesh)
+         ifsolv = .true.
+      endif
+
+!      call opdot (wa,r1,r2,r3,r1,r2,r3,n)
+      if (iff3d) then
+        call vdot3 (wa,r1,r2,r3,r1,r2,r3,n)
+      else
+        call opdot (wa,r1,r2,r3,r1,r2,r3,n)
+      endif  
+
+      rbnorm = glsc3(wa,binv,rmult,n)
+      rbnorm = sqrt ( rbnorm / vol )
+      if (rbnorm .lt. tol**2) then
+         iter = 0
+         r0 = rbnorm
+c        if ( .not.ifprint )  goto 9999
+         if (matmod.ge.0.and.nio.eq.0) write (6,3000) 
+     $                                 istep,iter,rbnorm,r0,tol
+         if (matmod.lt.0.and.nio.eq.0) write (6,3010) 
+     $                                 istep,iter,rbnorm,r0,tol
+         goto 9999
+      endif
+
+C     Evaluate diagional pre-conidtioner for fluid solve
+      if (ifjacobi) then
+        if (ifcyl_f3d) then
+          call setprec_cyl (qq1,h1,h2,k_f3d,imesh,1)
+          call setprec_cyl (qq2,h1,h2,k_f3d,imesh,2)
+          call setprec_cyl (qq3,h1,h2,k_f3d,imesh,3)
+        else
+          call setprec (qq1,h1,h2,imesh,1)
+          call setprec (qq2,h1,h2,imesh,1)
+          call setprec (qq3,h1,h2,imesh,1)
+        endif
+      else
+        call rone(qq1,n)
+        call rone(qq2,n)
+        call rone(qq3,n)
+      endif
+  
+!      call setprec (dpc,h1,h2,imesh,1)
+!      call setprec (wa ,h1,h2,imesh,2)
+!      call add2    (dpc,wa,n)
+!      if (iff3d) then
+!         call setprec (wa,h1,h2,imesh,3)
+!         call add2    (dpc,wa,n)
+!      endif
+
+      if (iffdm) then
+!         call set_fdm_prec_h1b(dpc,h1,h2,nel)
+!         call fdm_h1a (pp1,r1,dpc,nel,ktype(1,1,1),wa)
+!         call fdm_h1a (pp2,r2,dpc,nel,ktype(1,1,2),wa)
+!         call fdm_h1a (pp3,r3,dpc,nel,ktype(1,1,3),wa)
+!         call rmask   (pp1,pp2,pp3,nel)
+!         call opdssum (pp1,pp2,pp3)
+      elseif (ifjacobi) then
+         call col3 (pp1,qq1,r1,n)
+         call col3 (pp2,qq2,r2,n)
+         call col3 (pp3,qq3,r3,n)
+      else
+         call copy3(pp1,pp2,pp3,r1,r2,r3,n)   
+      endif
+
+      if (ifcrsl) then
+!         call crs_strs(p1,p2,p3,r1,r2,r3)
+!         call rmask   (p1,p2,p3,nel)
+      else
+         call rzero3(p1,p2,p3,n)
+      endif
+!      call opadd2       (p1,p2,p3,pp1,pp2,pp3)
+      call add2_3(p1,p2,p3,pp1,pp2,pp3,n)
+      if3d = .true.
+      rpp1 = op_glsc2_wt(p1,p2,p3,r1,r2,r3,rmult)
+      if3d = .false.
+
+      maxit=200
+      do 1000 iter=1,maxit
+         call axhmsf_cyl_real(ap1,ap2,ap3,p1,p2,p3,h1,h2)
+!         call axhmsf(ap1,ap2,ap3,p1,p2,p3,h1,h2,matmod)
+
+!         call rzero3(tmp1,tmp2,tmp3,n)
+!         call rzero3(tmp5,tmp6,tmp7,n)   
+!         call axhmsf_cyl(ap1,ap2,ap3,tmp1,tmp2,tmp3,
+!     $                   p1,p2,p3,tmp5,tmp6,tmp7,h1,h2)
+
+!         call rmask   (ap1,ap2,ap3,nel)
+!         call opdssum (ap1,ap2,ap3)
+         call col2_3(ap1,ap2,ap3,v1mask,v2mask,v3mask,n)
+         call dssum3 (ap1,ap2,ap3)
+
+         if3d  = .true.
+         pap   = op_glsc2_wt(p1,p2,p3,ap1,ap2,ap3,rmult)
+         if3d  = .false.
+         alpha = rpp1 / pap
+
+!         call opadds (u1,u2,u3,p1 ,p2 ,p3 , alpha,n,2)
+!         call opadds (r1,r2,r3,ap1,ap2,ap3,-alpha,n,2)
+         call opadds_3 (u1,u2,u3,p1,p2,p3,alpha,n,2)
+         call opadds_3 (r1,r2,r3,ap1,ap2,ap3,-alpha,n,2)
+
+!         call opdot  (wa,r1,r2,r3,r1,r2,r3,n)
+         if (iff3d) then
+           call vdot3 (wa,r1,r2,r3,r1,r2,r3,n)
+         else
+           call opdot (wa,r1,r2,r3,r1,r2,r3,n)
+         endif  
+
+         rbnorm = glsc3(wa,binv,rmult,n)
+         rbnorm = sqrt (rbnorm/vol)
+
+         if (iter.eq.1) r0 = rbnorm
+
+         if (rbnorm.lt.tol) then
+            ifin = iter
+            if (nio.eq.0) then
+               if (matmod.ge.0) write(6,3000) istep,ifin,rbnorm,r0,tol
+               if (matmod.lt.0) write(6,3010) istep,ifin,rbnorm,r0,tol
+            endif
+            goto 9999
+         elseif (ifprint) then
+            if (matmod.ge.0) write(6,3000) istep,iter,rbnorm,r0,tol
+         endif
+
+         if (iffdm) then
+!            call fdm_h1a (pp1,r1,dpc,nel,ktype(1,1,1),wa)
+!            call fdm_h1a (pp2,r2,dpc,nel,ktype(1,1,2),wa)
+!            call fdm_h1a (pp3,r3,dpc,nel,ktype(1,1,3),wa)
+!            call rmask   (pp1,pp2,pp3,nel)
+!            call opdssum (pp1,pp2,pp3)
+         elseif (ifjacobi) then
+           call col3 (pp1,qq1,r1,n)
+           call col3 (pp2,qq2,r2,n)
+           call col3 (pp3,qq3,r3,n)
+         else  
+           call copy3 (pp1,pp2,pp3,r1,r2,r3,n)
+         
+!            call col3 (pp1,dpc,r1,n)
+!            call col3 (pp2,dpc,r2,n)
+!            if (iff3d) call col3 (pp3,dpc,r3,n)
+         endif
+
+         if (ifcrsl) then
+!           call crs_strs(qq1,qq2,qq3,r1,r2,r3)
+!           call rmask   (qq1,qq2,qq3,nel)
+!           call opadd2  (pp1,pp2,pp3,qq1,qq2,qq3)
+         endif
+
+!         call opdot (wa,r1,r2,r3,pp1,pp2,pp3,n)
+         if (iff3d) then
+           call vdot3 (wa,r1,r2,r3,pp1,pp2,pp3,n)
+         else
+           call opdot (wa,r1,r2,r3,pp1,pp2,pp3,n)
+         endif  
+
+         rpp2 = rpp1
+         rpp1 = glsc2(wa,rmult,n)
+         beta = rpp1/rpp2
+!         call opadds (p1,p2,p3,pp1,pp2,pp3,beta,n,1)
+         call opadds_3 (p1,p2,p3,pp1,pp2,pp3,beta,n,1)
+
+ 1000 continue
+      if (matmod.ge.0.and.nio.eq.0) write (6,3001) 
+     $                              istep,iter,rbnorm,r0,tol
+      if (matmod.lt.0.and.nio.eq.0) write (6,3011) 
+     $                              istep,iter,rbnorm,r0,tol
+
+ 9999 continue
+      ifsolv = .false.
+
+
+ 3000 format(i11,'  Helmh3 fluid  ',I6,1p3E13.4)
+ 3002 format(i11,a,1x,I7,1p4E13.4,l4)
+ 3010 format(i11,'  Helmh3 mesh   ',I6,1p3E13.4)
+ 3001 format(i11,'  Helmh3 fluid unconverged! ',I6,1p3E13.4)
+ 3011 format(i11,'  Helmh3 mesh unconverged! ',I6,1p3E13.4)
+
+      return
+      end subroutine cggosf_real
+c-----------------------------------------------------------------------
+c-----------------------------------------------------------------------
 
 

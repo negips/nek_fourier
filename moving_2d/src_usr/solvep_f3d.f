@@ -33,7 +33,7 @@
 
       ifaxis_init = ifaxis
 
-      if (iff3d.and.npert.ne.2) then
+      if (iff3d.and.mod(npert,2).eq.1) then
         if (nio.eq.0) then
           write(6,'(A7,1x,I2)') 'NPERT =', npert
           write(6,*) 'Need both real and imaginary parts'
@@ -49,7 +49,7 @@
 
 !     Need to initialize some variables
 !     V3MASK
-      call copy(v3mask,v1mask,ntot1)
+      call copy(v3mask,v2mask,ntot1)
 
 !     Velocities can be initialized from useric. 
 

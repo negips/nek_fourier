@@ -514,22 +514,24 @@ c-----------------------------------------------------------------------
         enddo  
 
         call col2(dampw,v1mask,ntot1)
-        call outpost(v1mask,v2mask,v3mask,pr,dampw,'msk')
+        call outpost(v1mask,v2mask,v3mask,pr,v3mask,'msk')
 
-!         nfaces = 2*ndim
-!         do ie=1,nelv
-!         do iface=1,nfaces
-!            cb  = cbc(iface,ie,ifield)
-! !           bc1 = bc(1,iface,ie,ifield)
-! !           bc2 = bc(2,iface,ie,ifield)
-! !           bc3 = bc(3,iface,ie,ifield)
-! 
-!            if (cb.ne.'E  ') then
-!              write(6,*) ie,iface,cb
-!            endif
-! 
-!         enddo
-!         enddo
+        write(6,*) IFLMSF(1),IFLMSE(1),IFLMSC(1)
+
+         nfaces = 2*ndim
+         do ie=1,nelv
+         do iface=1,nfaces
+            cb  = cbc(iface,ie,ifield)
+!            bc1 = bc(1,iface,ie,ifield)
+!            bc2 = bc(2,iface,ie,ifield)
+!            bc3 = bc(3,iface,ie,ifield)
+ 
+            if (cb.ne.'E  ') then
+              write(6,*)ie,iface,cb,IFMSFC(iface,ie,1),
+     $            IFMSEG(iface,ie,1),IFMSCR(iface,ie,1)
+            endif
+         enddo
+         enddo
 
         ntot1 = lx1*ly1*lz1*nelv
         call opcopy(tmp1,tmp2,tmp3,vx,vy,vz)
