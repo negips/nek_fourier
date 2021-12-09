@@ -12,7 +12,7 @@ minNumProcesses = 1
 #endTime = 400
 
 stopAt   = numsteps
-numSteps = 50000
+numSteps = 20000
 
 dt = 0.04
 timeStepper = bdf3

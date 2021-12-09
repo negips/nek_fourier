@@ -612,11 +612,10 @@ c-----------------------------------------------------------------------
         call col2(ta2,fs_vmult,ntot1)
 
         ifield = 1
-
         call bcneusc_f3d(ta1,-1)
         call outpost(ta1,ta2,ta3,pr,ta3,'tst') 
 
-        call exitt
+!        call exitt
       endif  
 
 

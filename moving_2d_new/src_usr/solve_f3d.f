@@ -456,19 +456,18 @@ c-----------------------------------------------------------------------
       common /cgeom/ igeom
 
       integer ntot1,ntot2
+      integer intype
 
       ntot1 = lx1*ly1*lz1*nelv
       ntot2 = lx2*ly2*lz2*nelv
 
 !     for 3d solve
-      if (igeom.eq.2) call lagvel_f3d
+
+      intype = -1
+      call bcneusc_f3d(w1,intype)
+      call add2(h2,w1,ntot1)
 
       call bcdirvc_cyl(vx,vy,vz,v1mask,v2mask,v3mask)
-
-!     prabal. We don't care about traction conditions for now.
-!     Maybe need to look at it if added stiffness terms are needed
-!     Or if surface tension is needed
-!      call bcneutr
 
       call extrapp (pr,prlag)
       
@@ -516,22 +515,10 @@ c-----------------------------------------------------------------------
       common /scrvh/  h1    (lx1,ly1,lz1,lelv)
      $ ,              h2    (lx1,ly1,lz1,lelv)
 
-      real ut1(lx1,ly1,lz1,lelt)
-      real ut2(lx1,ly1,lz1,lelt)
-      real ut3(lx1,ly1,lz1,lelt)
-      integer flowtype(lelt)
-      common /testvel1/ ut1,ut2,ut3,flowtype
-
-      real ut4(lx1,ly1,lz1,lelt)
-      real ut5(lx1,ly1,lz1,lelt)
-      real ut6(lx1,ly1,lz1,lelt)
-
-      common /testvel2/ ut4,ut5,ut6
-
       integer intype
       integer igeom
       integer ntot1
-
+      integer i,nit
 
 
       ntot1 = lx1*ly1*lz1*nelv   
@@ -545,17 +532,25 @@ c-----------------------------------------------------------------------
 
       else
 
+         if (igeom.eq.2) call lagvel_f3d
+
 !        new geometry, new b.c.
-
-         intype = -1
-         call sethlm  (h1,h2,intype)
-
-         call cresvif_f3d (resv1,resv2,resv3,h1,h2)
-
-         call ophinv_real(dv1,dv2,dv3,resv1,resv2,resv3,
-     $                    h1,h2,tolhv,nmxv)
-
-         call add2_3(vx,vy,vz,dv1,dv2,dv3,ntot1)
+         nit = 1
+         do i = 1,nit
+           intype = -1
+           call sethlm  (h1,h2,intype)
+           call cresvif_f3d (resv1,resv2,resv3,h1,h2)
+           call ophinv_real(dv1,dv2,dv3,resv1,resv2,resv3,
+     $                      h1,h2,tolhv,nmxv)
+           if (i.eq.nit) then
+             call add2_3(vx,vy,vz,dv1,dv2,dv3,ntot1)
+           else
+             call cmult(dv1,0.5,ntot1)
+             call cmult(dv2,0.5,ntot1)
+             call cmult(dv3,0.5,ntot1)
+             call add2_3(vx,vy,vz,dv1,dv2,dv3,ntot1)
+           endif 
+         enddo  
 
          call incomprn_real(igeom)
 
@@ -877,11 +872,10 @@ c----------------------------------------------------------------------
       call fgslib_gs_op(fs_gs_handle,dummy,1,1,0)     ! 1 ==> +
       call col2(dummy,fs_vmult,ntot)
 
-      tol = 1.0e-10
+      tol = 1.0e-12
       if (itype.eq.-1) then
 
 !        Compute diagonal contributions to accomodate Robin boundary conditions
-
          do 1000 ie=1,nel
          do 1000 iface=1,nfaces
             ieg=lglel(ie)
@@ -903,16 +897,20 @@ c----------------------------------------------------------------------
                   xs = dummy(ix,iy,iz,ie)
                   xf = xs+0.5
                   alpha = ((x-xs)/(xf-xs))**n
-                  if (abs(alpha-1.0).lt.tol) then
+                  if (x.le.xf) then
+                    if (abs(alpha-1.0).lt.tol) then
+                      alpha = 1.0-tol
+                      beta  = tol
+                    else
+                      beta  = 1.0-alpha
+                    endif
+                  else
                     alpha = 1.0-tol
                     beta  = tol
-                  else
-                    beta  = 1.0-alpha
-                  endif
+                  endif  
                   hc      = alpha/beta
-
-!                  hc = hrad * (tinf**2 + v**2) * (tinf + v)
-
+!                 We have inverse bm1 since this is just added to h2
+!                 Which gets multiplied by bm1 later                  
                   s(ix,iy,iz,ie) = s(ix,iy,iz,ie) +
      $               hc*area(ia,1,iface,ie)/bm1(ix,iy,iz,ie)
   100          continue
@@ -927,21 +925,9 @@ c----------------------------------------------------------------------
          do 2000 iface=1,nfaces
             ieg=lglel(ie)
             cb =cbc(iface,ie,ifield)
-            if (cb.eq.'F  ' .or. cb.eq.'f  ' .or.
-     $          cb.eq.'C  ' .or. cb.eq.'c  ' .or. 
-     $          cb.eq.'R  ' .or. cb.eq.'r  ' ) then
-
-                if (cb.eq.'F  ') flux=bc(1,iface,ie,ifield)
-                if (cb.eq.'C  ') flux=bc(1,iface,ie,ifield)
-     $                               *bc(2,iface,ie,ifield)
-                if (cb.eq.'R  ') then
-                                 tinf=bc(1,iface,ie,ifield)
-                                 hrad=bc(2,iface,ie,ifield)
-                endif
-
+            if (cb.eq.'SYM') then
 !              Add local weighted flux values to rhs, S.
-
-!              IA is area counter, assumes advancing fastest index first. (IX...IY...IZ)
+!              ia is area counter, assumes advancing fastest index first. (IX...IY...IZ)
                ia=0
                call facind (kx1,kx2,ky1,ky2,kz1,kz2,lx1,ly1,lz1,iface)
                do 200 iz=kz1,kz2
@@ -949,26 +935,9 @@ c----------------------------------------------------------------------
                do 200 ix=kx1,kx2
                   ia = ia + 1
                   v = vx(ix,iy,iz,ie)
-                  if (cb.eq.'f  ') then
-                     if (optlevel.le.2) call nekasgn (ix,iy,iz,ie)
-                     call userbc  (ix,iy,iz,iface,ieg)
-                  endif
-                  if (cb.eq.'c  ') then
-                     if (optlevel.le.2) call nekasgn (ix,iy,iz,ie)
-                     call userbc  (ix,iy,iz,iface,ieg)
-                     flux = tinf*hc
-                  endif
-                  if (cb.eq.'r  ') then
-                     if (optlevel.le.2) call nekasgn (ix,iy,iz,ie)
-                     call userbc  (ix,iy,iz,iface,ieg)
-                  endif
-                  if (cb.eq.'R  ' .or. cb.eq.'r  ') 
-     $               flux = hrad*(tinf**2 + v**2)*(tinf + v) * tinf
-
 !                 Add computed fluxes to boundary surfaces:
-
-                  s(ix,iy,iz,ie) = s(ix,iy,iz,ie)
-     $                           + flux*area(ia,1,iface,ie)
+!                  s(ix,iy,iz,ie) = s(ix,iy,iz,ie)
+!     $                           + flux*area(ia,1,iface,ie)
   200          continue
             endif
  2000    continue
@@ -996,5 +965,33 @@ c      COMMON /SCRCH/ DUMMY7(LX1,LY1,LZ1,LELT,2)
 c      COMMON /SCRSF/ DUMMY8(LX1,LY1,LZ1,LELT,3)
 c      COMMON /SCRCG/ DUMM10(LX1,LY1,LZ1,LELT,1)
 
+C       X             X-coordinate
+C       Y             Y-coordinate
+C       Z             Z-coordinate
+C       UX            X-velocity
+C       UY            Y-velocity
+C       UZ            Z-velocity
+C       TEMP          Temperature
+C       PS1           Passive scalar No. 1
+C       PS2           Passive scalar No. 2
+C        .             .
+C        .             .
+C       PS9           Passive scalar No. 9
+C       SI2           Strainrate invariant II
+C       SI3           Strainrate invariant III
+C
+C     Variables to be defined by user for imposition of
+C     boundary conditions :
+C
+C       SH1           Shear component No. 1
+C       SH2           Shear component No. 2
+C       TRX           X-traction
+C       TRY           Y-traction
+C       TRZ           Z-traction
+C       SIGMA         Surface-tension coefficient
+C       FLUX          Flux
+C       HC            Convection heat transfer coefficient
+C       HRAD          Radiation  heat transfer coefficient
+C       TINF          Temperature at infinity
 
 

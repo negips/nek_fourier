@@ -266,7 +266,7 @@ c
 
 !     Zero out everything except the free surface      
       call opcopy(wx,wy,wz,vx,vy,vz)
-      call fs_mvmeshn(wx,wy,wz)
+!      call fs_mvmeshn(wx,wy,wz)
 !      call col2(wy,v2mask,ntot1)          ! normal vel at 'SYM' = 0.0
 
       call col2(wx,fs_mask,ntot1)
