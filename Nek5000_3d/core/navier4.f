@@ -288,7 +288,7 @@ C
      $ ,              BDIVV(LX2,LY2,LZ2,LELV)
 C
       if (ifsplit) return
-!      IF (param(102).eq.0.and.(TOLPDF.NE.0. .OR. ISTEP.LE.5)) return
+      IF (param(102).eq.0.and.(TOLPDF.NE.0. .OR. ISTEP.LE.5)) return
       five = 5.0
       if (param(102).ne.0.0) five=param(102)
 C

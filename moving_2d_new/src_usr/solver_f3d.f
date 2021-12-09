@@ -387,7 +387,7 @@ c        if ( .not.ifprint )  goto 9999
 !     Setting it zero so we don't accumulate round off errors
       rpp1i = 0.      
 
-      maxit=200
+      maxit=500
       do 1000 iter=1,maxit
          call axhmsf_cyl(Ap1r,Ap2r,Ap3r,Ap1i,Ap2i,Ap3i,
      $                      p1r,p2r,p3r,p1i,p2i,p3i,h1,h2)
@@ -1439,7 +1439,7 @@ C     Helmholtz equations
 !     No Fast Diagonalization Method            
       iffdm  = .false.
 !     Jacobi preconditioner 
-      ifjacobi = .false.
+      ifjacobi = .true.
 !     No Coarse grid
       ifcrsl = .false.
 
@@ -1535,7 +1535,7 @@ C     Evaluate diagional pre-conidtioner for fluid solve
       rpp1 = op_glsc2_wt(p1,p2,p3,r1,r2,r3,rmult)
       if3d = .false.
 
-      maxit=200
+      maxit=500
       do 1000 iter=1,maxit
          call axhmsf_cyl_real(ap1,ap2,ap3,p1,p2,p3,h1,h2)
 !         call axhmsf(ap1,ap2,ap3,p1,p2,p3,h1,h2,matmod)

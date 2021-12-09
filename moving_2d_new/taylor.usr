@@ -41,7 +41,7 @@ c-----------------------------------------------------------------------
       include 'TOTAL'
       include 'NEKUSE'
 
-      ffx = 0.0 
+      ffx = 0.01
       ffy = 0.0
       ffz = 0.0
 
@@ -89,8 +89,6 @@ c-----------------------------------------------------------------------
 
       call frame_monitor
 
-!      call slp_mark_faces()
-
       ifto = .true.
 
       ntot1 = lx1*ly1*lz1*nelv
@@ -98,14 +96,17 @@ c-----------------------------------------------------------------------
 
 
       if (istep.eq.0) then
-
+!        call outpost(tmp1,tmp2,tmp3,pr,tmp3,'ini')
+!        call copy(vz,t,ntot1)
+       
         call initp_f3d
-        call rzero(tmp4,ntot2)
+        ifheat = .false.
 
       endif
 
-      call copy(t,vz,ntot1)
-      call copy(pr,tmp4,ntot2)
+      if (istep.gt.0) then
+        call copy(t,vz,ntot1)
+      endif  
 
       call test_random
 
@@ -253,7 +254,7 @@ c-----------------------------------------------------------------------
           ux   = temp
           uy   = temp
         elseif (iftestmvb) then
-          ux   = -0.01*exp(-((y-r1)/0.25)**2)
+          ux   = -0.05*exp(-((y-r1)/0.25)**2)
           uy   = -0.01*exp(-((y-r1)/0.25)**2)
           uz   = 0.1*(a1*y + a2/y)   ! just testing
 !          temp = 0.01*(a1*y + a2/y)   ! just testing
@@ -377,15 +378,20 @@ c-----------------------------------------------------------------------
       end
 c-----------------------------------------------------------------------
       subroutine usrdat3
+
+      implicit none        
       include 'SIZE'
-      include 'TOTAL'
+      include 'SOLN'    ! tmult
+      include 'INPUT'
+!      include 'TOTAL'
 
 !      param(54) = -1  ! use >0 for const flowrate or <0 bulk vel
                       ! flow direction is given by (1=x, 2=y, 3=z) 
 !      param(55) = 1.0 ! flowrate/bulk-velocity 
 
       call gen_mapping_mvb
-
+!      call copy(tmult,vmult,lx1*ly1*lz1*nelv)
+!      ifheat = .true.
       return
       end
 c-----------------------------------------------------------------------
@@ -491,6 +497,9 @@ c-----------------------------------------------------------------------
       include 'IXYZ'
       include 'DXYZ'
       include 'WZ'
+      include 'PARALLEL'
+
+      include 'FS_ALE'
 
       integer ntot1,ntot2
       integer i,j
@@ -502,12 +511,13 @@ c-----------------------------------------------------------------------
       integer nface,nedge,ncrnr
       integer ntotf,ntots,ntotc
 
+      integer nxyz
       integer nyz1,nxy2,nxyz1,nxyz2,n1,n2
 
       real ta1,ta2,ta3
-      common /ctmp1/ ta1 (lx1*ly1*lz1)
-     $ ,             ta2 (lx1*ly1*lz1)
-     $ ,             ta3 (lx1*ly1*lz1)
+      common /scrns/ ta1 (lx1*ly1*lz1,lelv)
+     $ ,             ta2 (lx1*ly1*lz1,lelv)
+     $ ,             ta3 (lx1*ly1*lz1,lelv)
 
       real           dx   (lx2*ly2*lz2,lelv)
       real           dy   (lx2*ly2*lz2,lelv)
@@ -517,8 +527,10 @@ c-----------------------------------------------------------------------
       real           tm2  (lx2*ly2*lz2,lelv)
 
       integer e
+      real iegr
 
-      ntot1 = lx1*ly1*lz1*nelv
+      nxyz  = lx1*ly1*lz1
+      ntot1 = nxyz*nelv
       ntot2 = lx2*ly2*lz2*nelv
 
       if (istep.eq.0) then
@@ -540,7 +552,6 @@ c-----------------------------------------------------------------------
 !         enddo
 !         enddo
 
-        ntot1 = lx1*ly1*lz1*nelv
 !        call opcopy(tmp1,tmp2,tmp3,vx,vy,vz)
 !        call opdsop(tmp1,tmp2,tmp3,'MXA')    
 
@@ -580,19 +591,33 @@ c-----------------------------------------------------------------------
        
         call outpost(vx,vy,vz,pr,vz,'   ')
 
+        call fs_gen_damping
+
+        call rzero(ta1,ntot1)
+        call rzero(ta2,ntot1)
+        call rzero(ta3,ntot1)
+        do i=1,nelv
+          iegr = lglel(i)+0.0
+          call cfill(ta1(1,i),iegr,nxyz)
+        enddo
+        call outpost(ta1,ta2,ta3,pr,ta3,'eln') 
+
+        call rzero3(ta1,ta2,ta3,ntot1)
+
+!       Broadcast location of the free surface
+!       At the moment we only need x coord for now      
+        call copy(ta2,xm1,ntot1)
+        call col2(ta2,fs_mask,ntot1)
+        call fgslib_gs_op(fs_gs_handle,ta2,1,1,0)     ! 1 ==> +
+        call col2(ta2,fs_vmult,ntot1)
+
+        ifield = 1
+
+        call bcneusc_f3d(ta1,-1)
+        call outpost(ta1,ta2,ta3,pr,ta3,'tst') 
+
+        call exitt
       endif  
-
-!      if (istep.eq.1) then
-
-!      endif  
-
-
-!      if (istep.eq.1) then
-!        call outpost(tmp1,tmp2,tmp3,pr,tmp3,'sol')
-!        call outpost(tmp5,tmp6,tmp7,pr,tmp7,'sol')
-!        call exitt
-!      endif  
-
 
 
       return
