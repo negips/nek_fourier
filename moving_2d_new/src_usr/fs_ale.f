@@ -18,8 +18,6 @@
 
       include 'FS_ALE'
 
-      include 'TEST'
-
       real xsort(lx1*ly1*lz1*lelv)
       real xlocal_u(lx1*nelv)
       integer local_num(lx1*ly1*lz1*lelv) ! local numbering

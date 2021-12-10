@@ -456,19 +456,18 @@ c-----------------------------------------------------------------------
       common /cgeom/ igeom
 
       integer ntot1,ntot2
+      integer intype
 
       ntot1 = lx1*ly1*lz1*nelv
       ntot2 = lx2*ly2*lz2*nelv
 
 !     for 3d solve
-      if (igeom.eq.2) call lagvel_f3d
+
+      intype = -1
+      call bcneusc_f3d(w1,intype)
+      call add2(h2,w1,ntot1)
 
       call bcdirvc_cyl(vx,vy,vz,v1mask,v2mask,v3mask)
-
-!     prabal. We don't care about traction conditions for now.
-!     Maybe need to look at it if added stiffness terms are needed
-!     Or if surface tension is needed
-!      call bcneutr
 
       call extrapp (pr,prlag)
       
@@ -478,23 +477,11 @@ c-----------------------------------------------------------------------
 
       call add2_3(resv1,resv2,resv3,bfx,bfy,bfz,ntot1)
 
-!!     prabal      
-!      call copy3(tmp1,tmp2,tmp3,resv1,resv2,resv3,ntot1)
-
-!     prabal
-!      call ophx_f3d(w1,w2,w3,vx,vy,vz,h1,h2)
-!      call opsub2(resv1,resv2,resv3,w1,w2,w3)
-!      call sub2(resv3,w3,ntot1)
-
 !     Ax
       call axhmsf_cyl_real(w1,w2,w3,vx,vy,vz,h1,h2)
       call sub2(resv1,w1,ntot1)
       call sub2(resv2,w2,ntot1)
       call sub2(resv3,w3,ntot1)
-
-!!     prabal      
-!      call copy3(tmp5,tmp6,tmp7,w1,w2,w3,ntot1)
-
 
       return
       end subroutine cresvif_f3d
@@ -528,22 +515,10 @@ c-----------------------------------------------------------------------
       common /scrvh/  h1    (lx1,ly1,lz1,lelv)
      $ ,              h2    (lx1,ly1,lz1,lelv)
 
-      real ut1(lx1,ly1,lz1,lelt)
-      real ut2(lx1,ly1,lz1,lelt)
-      real ut3(lx1,ly1,lz1,lelt)
-      integer flowtype(lelt)
-      common /testvel1/ ut1,ut2,ut3,flowtype
-
-      real ut4(lx1,ly1,lz1,lelt)
-      real ut5(lx1,ly1,lz1,lelt)
-      real ut6(lx1,ly1,lz1,lelt)
-
-      common /testvel2/ ut4,ut5,ut6
-
       integer intype
       integer igeom
       integer ntot1
-
+      integer i,nit
 
 
       ntot1 = lx1*ly1*lz1*nelv   
@@ -557,17 +532,25 @@ c-----------------------------------------------------------------------
 
       else
 
+         if (igeom.eq.2) call lagvel_f3d
+
 !        new geometry, new b.c.
-
-         intype = -1
-         call sethlm  (h1,h2,intype)
-
-         call cresvif_f3d (resv1,resv2,resv3,h1,h2)
-
-         call ophinv_real(dv1,dv2,dv3,resv1,resv2,resv3,
-     $                    h1,h2,tolhv,nmxv)
-
-         call add2_3(vx,vy,vz,dv1,dv2,dv3,ntot1)
+         nit = 1
+         do i = 1,nit
+           intype = -1
+           call sethlm  (h1,h2,intype)
+           call cresvif_f3d (resv1,resv2,resv3,h1,h2)
+           call ophinv_real(dv1,dv2,dv3,resv1,resv2,resv3,
+     $                      h1,h2,tolhv,nmxv)
+           if (i.eq.nit) then
+             call add2_3(vx,vy,vz,dv1,dv2,dv3,ntot1)
+           else
+             call cmult(dv1,0.5,ntot1)
+             call cmult(dv2,0.5,ntot1)
+             call cmult(dv3,0.5,ntot1)
+             call add2_3(vx,vy,vz,dv1,dv2,dv3,ntot1)
+           endif 
+         enddo  
 
          call incomprn_real(igeom)
 
@@ -824,11 +807,191 @@ c         and add to source term
 
 c----------------------------------------------------------------------
 
+      subroutine bcneusc_f3d(s,itype)
+
+!     Apply Neumann boundary conditions to surface of SYM boundary
+!     Use IFIELD as a guide to which boundary conditions are to be applied.
+!
+!     If ITYPE = 1, then S is returned as the rhs contribution to the 
+!                   volumetric flux.
+!
+!     If ITYPE =-1, then S is returned as the lhs contribution to the 
+!                   diagonal of A.
+
+      implicit none
+
+      include 'SIZE'
+      include 'INPUT'
+      include 'TSTEP'
+      include 'SOLN'
+      include 'GEOM'
+      include 'PARALLEL'
+      include 'MASS'
+
+      include 'CTIMER'
+      include 'NEKUSE'
+
+      include 'FS_ALE'
+
+      real s(lx1,ly1,lz1,lelt)
+      real v
+      common  /nekcb/ cb
+      character cb*3
+
+      integer itype
+      integer kx1,kx2,ky1,ky2,kz1,kz2
+      integer iface,ie,nfaces,nxyz,nel,ntot
+      integer ia,ix,iy,iz,ieg
+      real alpha,beta
+
+      real dummy
+      common /scrcg/ dummy(lx1,ly1,lz1,lelt)
+
+      real xs,xf
+      integer n
+      real tol
+
+      if (icalld.eq.0) then
+         tusbc=0.0
+         nusbc=0
+         icalld=icalld+1
+      endif
+      nusbc=nusbc+1
+      etime1=dnekclock()
+
+      nfaces = 2*ldim
+      nxyz   = lx1*ly1*lz1
+      nel    = nelfld(ifield)
+      ntot   = nxyz*nel
+      call rzero(s,ntot)
+
+!     Broadcast location of the free surface
+!     At the moment we only need x coord for now      
+      call copy(dummy,xm1,ntot)
+      call col2(dummy,fs_mask,ntot)
+      call fgslib_gs_op(fs_gs_handle,dummy,1,1,0)     ! 1 ==> +
+      call col2(dummy,fs_vmult,ntot)
+
+      tol = 1.0e-12
+      if (itype.eq.-1) then
+
+!        Compute diagonal contributions to accomodate Robin boundary conditions
+         do 1000 ie=1,nel
+         do 1000 iface=1,nfaces
+            ieg=lglel(ie)
+            cb =cbc(iface,ie,ifield)
+!            if (cb.eq.'C  ' .or. cb.eq.'C  ' .or.
+!     $          cb.eq.'R  ' .or. cb.eq.'R  ') then
+            if (cb.eq.'SYM') then
+               ia=0
+!              ia is area counter, assumes advancing fastest index first. (ix...iy...iz)
+               call facind (kx1,kx2,ky1,ky2,kz1,kz2,lx1,ly1,lz1,iface)
+               do 100 iz=kz1,kz2
+               do 100 iy=ky1,ky2
+               do 100 ix=kx1,kx2
+                  ia = ia + 1
+                  v  = vx(ix,iy,iz,ie)
+                  if (optlevel.le.2) call nekasgn (ix,iy,iz,ie)
+!                  call userbc  (ix,iy,iz,iface,ieg)
+                  n  = 2
+                  xs = dummy(ix,iy,iz,ie)
+                  xf = xs+0.5
+                  alpha = ((x-xs)/(xf-xs))**n
+                  if (x.le.xf) then
+                    if (abs(alpha-1.0).lt.tol) then
+                      alpha = 1.0-tol
+                      beta  = tol
+                    else
+                      beta  = 1.0-alpha
+                    endif
+                  else
+                    alpha = 1.0-tol
+                    beta  = tol
+                  endif  
+                  hc      = alpha/beta
+!                 We have inverse bm1 since this is just added to h2
+!                 Which gets multiplied by bm1 later                  
+                  s(ix,iy,iz,ie) = s(ix,iy,iz,ie) +
+     $               hc*area(ia,1,iface,ie)/bm1(ix,iy,iz,ie)
+  100          continue
+            endif
+ 1000    continue
+      endif
+      if (itype.eq.1) then
+
+!        add passive scalar fluxes to rhs
+
+         do 2000 ie=1,nel
+         do 2000 iface=1,nfaces
+            ieg=lglel(ie)
+            cb =cbc(iface,ie,ifield)
+            if (cb.eq.'SYM') then
+!              Add local weighted flux values to rhs, S.
+!              ia is area counter, assumes advancing fastest index first. (IX...IY...IZ)
+               ia=0
+               call facind (kx1,kx2,ky1,ky2,kz1,kz2,lx1,ly1,lz1,iface)
+               do 200 iz=kz1,kz2
+               do 200 iy=ky1,ky2
+               do 200 ix=kx1,kx2
+                  ia = ia + 1
+                  v = vx(ix,iy,iz,ie)
+!                 Add computed fluxes to boundary surfaces:
+!                  s(ix,iy,iz,ie) = s(ix,iy,iz,ie)
+!     $                           + flux*area(ia,1,iface,ie)
+  200          continue
+            endif
+ 2000    continue
+      endif
+
+      tusbc=tusbc+(dnekclock()-etime1)
+
+      return
+      end subroutine bcneusc_f3d
+c-----------------------------------------------------------------------
 
 
 !----------------------------------------------------------------------
 
 
+c      COMMON /CTMP1/ DUMMY1(LCTMP1)
+c      COMMON /CTMP0/ DUMMY0(LCTMP0)
+c
+c      COMMON /SCRNS/ DUMMY2(LX1,LY1,LZ1,LELT,7)
+c      COMMON /SCRUZ/ DUMMY3(LX1,LY1,LZ1,LELT,4)
+c      COMMON /SCREV/ DUMMY4(LX1,LY1,LZ1,LELT,2)
+c      COMMON /SCRVH/ DUMMY5(LX1,LY1,LZ1,LELT,2)
+c      COMMON /SCRMG/ DUMMY6(LX1,LY1,LZ1,LELT,4)
+c      COMMON /SCRCH/ DUMMY7(LX1,LY1,LZ1,LELT,2)
+c      COMMON /SCRSF/ DUMMY8(LX1,LY1,LZ1,LELT,3)
+c      COMMON /SCRCG/ DUMM10(LX1,LY1,LZ1,LELT,1)
 
+C       X             X-coordinate
+C       Y             Y-coordinate
+C       Z             Z-coordinate
+C       UX            X-velocity
+C       UY            Y-velocity
+C       UZ            Z-velocity
+C       TEMP          Temperature
+C       PS1           Passive scalar No. 1
+C       PS2           Passive scalar No. 2
+C        .             .
+C        .             .
+C       PS9           Passive scalar No. 9
+C       SI2           Strainrate invariant II
+C       SI3           Strainrate invariant III
+C
+C     Variables to be defined by user for imposition of
+C     boundary conditions :
+C
+C       SH1           Shear component No. 1
+C       SH2           Shear component No. 2
+C       TRX           X-traction
+C       TRY           Y-traction
+C       TRZ           Z-traction
+C       SIGMA         Surface-tension coefficient
+C       FLUX          Flux
+C       HC            Convection heat transfer coefficient
+C       HRAD          Radiation  heat transfer coefficient
+C       TINF          Temperature at infinity
 
 

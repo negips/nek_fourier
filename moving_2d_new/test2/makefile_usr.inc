@@ -27,5 +27,7 @@ $(OBJDIR)/chkpoint.o            :$(SRC_ARN)/chkpoint.f;                 $(F77) -
 $(OBJDIR)/chkptd.o              :$(SRC_ARN)/chkptd.f;                   $(F77) -c $(FL2) -I$(SRC_INC)/ $< -o $@
 $(OBJDIR)/arn_cmath.o           :$(SRC_ARN)/arn_cmath.f;                $(F77) -c $(FL2) -I$(SRC_INC)/ $< -o $@
 $(OBJDIR)/fs_ale.o              :$(SRC_USR)/fs_ale.f;                   $(F77) -c $(FL2) -I$(SRC_INC)/ $< -o $@
+$(OBJDIR)/fs_global_surf.o      :$(SRC_USR)/fs_global_surf.f;           $(F77) -c $(FL2) -I$(SRC_INC)/ $< -o $@
+
 
 

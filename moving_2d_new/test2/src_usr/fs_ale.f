@@ -27,7 +27,7 @@
       integer i,j,k,n,n1
 
       integer nelxx
-      parameter (nelxx=10)
+      parameter (nelxx=50)
       real gxsort1(lx1*nelxx),gxsort2(lx1*nelxx)
       integer gind(lx1*nelxx),gind2(lx1*nelxx),gind3(lx1*nelxx)
       integer gl_num_u(lx1*nelxx)         ! unique global numbers
@@ -60,7 +60,7 @@
 !     Local unique elements      
       xlast = -9999.0
       nunq  = 0
-      tol   = 1.0e-08         ! This is arbitrary. 
+      tol   = 1.0e-12         ! This is arbitrary. 
                               ! Should use a better measure
       do i=1,n
         if (abs(xsort(i)-xlast).gt.tol) then
@@ -266,7 +266,7 @@ c
 
 !     Zero out everything except the free surface      
       call opcopy(wx,wy,wz,vx,vy,vz)
-      call fs_mvmeshn(wx,wy,wz)
+!      call fs_mvmeshn(wx,wy,wz)
 !      call col2(wy,v2mask,ntot1)          ! normal vel at 'SYM' = 0.0
 
       call col2(wx,fs_mask,ntot1)
@@ -293,7 +293,9 @@ c
 !       We don't move mesh along Z
         call rzero(wz,ntot1)
       endif  
-     
+   
+!     prabal      
+!      call rzero3(wx,wy,wz,ntot1) 
 
       return
       end subroutine fs_mvmesh        

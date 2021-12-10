@@ -615,6 +615,8 @@ c-----------------------------------------------------------------------
         call bcneusc_f3d(ta1,-1)
         call outpost(ta1,ta2,ta3,pr,ta3,'tst') 
 
+
+        call gen_global_basis
 !        call exitt
       endif  
 

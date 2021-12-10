@@ -89,8 +89,6 @@ c-----------------------------------------------------------------------
 
       call frame_monitor
 
-!      call slp_mark_faces()
-
       ifto = .true.
 
       ntot1 = lx1*ly1*lz1*nelv
@@ -98,17 +96,15 @@ c-----------------------------------------------------------------------
 
 
       if (istep.eq.0) then
-        call outpost(tmp1,tmp2,tmp3,pr,tmult,'ini')
+!        call outpost(tmp1,tmp2,tmp3,pr,tmp3,'ini')
+!        call copy(vz,t,ntot1)
+       
         call initp_f3d
-        call rzero(tmp4,ntot2)
-
         ifheat = .false.
 
       endif
 
-      if (istep.eq.0) then
-        call copy(vz,t,ntot1)
-      else
+      if (istep.gt.0) then
         call copy(t,vz,ntot1)
       endif  
 
@@ -394,8 +390,7 @@ c-----------------------------------------------------------------------
 !      param(55) = 1.0 ! flowrate/bulk-velocity 
 
       call gen_mapping_mvb
-      call rone(tmult,lx1*ly1*lz1*nelv)
-
+!      call copy(tmult,vmult,lx1*ly1*lz1*nelv)
 !      ifheat = .true.
       return
       end
@@ -504,6 +499,8 @@ c-----------------------------------------------------------------------
       include 'WZ'
       include 'PARALLEL'
 
+      include 'FS_ALE'
+
       integer ntot1,ntot2
       integer i,j
 
@@ -605,20 +602,21 @@ c-----------------------------------------------------------------------
         enddo
         call outpost(ta1,ta2,ta3,pr,ta3,'eln') 
 
+        call rzero3(ta1,ta2,ta3,ntot1)
+
+!       Broadcast location of the free surface
+!       At the moment we only need x coord for now      
+        call copy(ta2,xm1,ntot1)
+        call col2(ta2,fs_mask,ntot1)
+        call fgslib_gs_op(fs_gs_handle,ta2,1,1,0)     ! 1 ==> +
+        call col2(ta2,fs_vmult,ntot1)
+
+        ifield = 1
+        call bcneusc_f3d(ta1,-1)
+        call outpost(ta1,ta2,ta3,pr,ta3,'tst') 
+
 !        call exitt
       endif  
-
-!      if (istep.eq.1) then
-
-!      endif  
-
-
-!      if (istep.eq.1) then
-!        call outpost(tmp1,tmp2,tmp3,pr,tmp3,'sol')
-!        call outpost(tmp5,tmp6,tmp7,pr,tmp7,'sol')
-!        call exitt
-!      endif  
-
 
 
       return

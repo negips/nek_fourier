@@ -14,7 +14,7 @@ minNumProcesses = 1
 stopAt   = numsteps
 numSteps = 20000
 
-dt = 0.01
+dt = 0.04
 timeStepper = bdf3
 extrapolation = standard
 variableDt = no
@@ -62,8 +62,8 @@ residualProj = no
 #residualTol = 1e-10 
 #
 
-#[MESH]
-#MOTION=user
+[MESH]
+MOTION=user
 
 
 [_F3D]

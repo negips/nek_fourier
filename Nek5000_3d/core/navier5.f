@@ -95,12 +95,15 @@ c        decay in wave space
       if ( ifmhd                    ) if_fltv = .true.
       if ( .not.ifbase              ) if_fltv = .false. ! base-flow frozen
       if ( .not. iffilter(1)        ) if_fltv = .false. 
+      if ( ifpert                   ) if_fltv = .true.
 
       if ( if_fltv ) then
-         call filterq(vx,intv,lx1,lz1,wk1,wk2,intt,if3d,umax)
-         call filterq(vy,intv,lx1,lz1,wk1,wk2,intt,if3d,vmax)
-         if (if3d)
-     $   call filterq(vz,intv,lx1,lz1,wk1,wk2,intt,if3d,wmax)
+        if (ifbase) then
+          call filterq(vx,intv,lx1,lz1,wk1,wk2,intt,if3d,umax)
+          call filterq(vy,intv,lx1,lz1,wk1,wk2,intt,if3d,vmax)
+          if (if3d)
+     $    call filterq(vz,intv,lx1,lz1,wk1,wk2,intt,if3d,wmax)
+        endif  
 
          if (ifsplit.and..not.iflomach) 
      $      call filterq(pr,intv,lx1,lz1,wk1,wk2,intt,if3d,pmax)
