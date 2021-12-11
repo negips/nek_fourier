@@ -131,6 +131,7 @@
       nx     = lx1
       ny     = ly1
       nz     = lz1
+      fs_nel = 0
       do ie=1,nelv
         call copy(temp0,xm1(1,1,1,ie),nxyz)
         call col2(temp0,bm1(1,1,1,ie),nxyz)
@@ -149,6 +150,7 @@
           fs_cbc(iface,ie) = '   '
 !         Change these conditions for actual case            
           if (cb.eq.'O  '.and.(xmean.lt.0.0)) then
+             fs_nel = fs_nel + 1
              fs_cbc(iface,ie) = 'INT'
              do iz=kz1,kz2
              do iy=ky1,ky2

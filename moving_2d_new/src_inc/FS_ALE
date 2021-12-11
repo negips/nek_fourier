@@ -15,7 +15,41 @@
 
       character*3 fs_cbc(6,lelv)                ! mark the interface
 
-      common /fs_gsh/ fs_gl_num, fs_gs_handle
+      integer fs_nel                            ! No of free surface elements
+
+      common /fs_gsh/ fs_gl_num, fs_nel, fs_gs_handle
       common /fs_rv/  fs_vmult, fs_mask, fs_damp 
 
       common /fs_cv/  fs_cbc
+
+!     For interpolation onto smooth global element
+!----------------------------------------------------------------------
+      integer lxfs,lyfs
+      parameter (lxfs = 3)          ! Global no. of points along x
+      parameter (lyfs = 3)          ! Global no. of points along y
+
+      real zx_fs(lxfs),wx_fs(lxfs)  ! x GLL and weights
+      real zy_fs(lyfs),wy_fs(lyfs)  ! y GLL and weights
+      real w2_fs(lxfs,lyfs)         ! 2D weights
+
+
+!     Coordinates of the single global element      
+      real xg_fs(lxfs,lyfs)
+      real yg_fs(lxfs,lyfs)
+      real fld_fs(lxfs,lyfs)
+
+      common /fs_globzw/ zx_fs,wx_fs,zy_fs,wy_fs,w2_fs
+      common /fs_globxy/ xg_fs,yg_fs
+
+
+!     2D spectral elements at the interface
+      real xm1_fs(lx1,ly1,lelv)
+      real ym1_fs(lx1,ly1,lelv)
+      real zm1_fs(lx1,ly1,lelv)
+
+      common /fs_locxy/ xm1_fs,ym1_fs,zm1_fs
+
+      integer intgh_fs,intlh_fs
+      common /fs_intpi/ intgh_fs, intlh_fs
+
+
