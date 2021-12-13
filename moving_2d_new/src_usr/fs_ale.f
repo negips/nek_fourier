@@ -172,6 +172,8 @@
       call col2(temp1,fs_vmult,n)
 
 
+      if (nio.eq.0) write(6,*) 'FS: Mapping: Done'
+
       return
       end subroutine gen_mapping_mvb
 !----------------------------------------------------------------------

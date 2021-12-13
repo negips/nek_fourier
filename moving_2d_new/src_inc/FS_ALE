@@ -24,9 +24,10 @@
 
 !     For interpolation onto smooth global element
 !----------------------------------------------------------------------
-      integer lxfs,lyfs
-      parameter (lxfs = 3)          ! Global no. of points along x
-      parameter (lyfs = 3)          ! Global no. of points along y
+      integer lxfs,lyfs,lzfs
+      parameter (lxfs = 4)          ! Global no. of points along x
+      parameter (lyfs = 4)          ! Global no. of points along y
+      parameter (lzfs = 1)          ! Global no. of points along y
 
       real zx_fs(lxfs),wx_fs(lxfs)  ! x GLL and weights
       real zy_fs(lyfs),wy_fs(lyfs)  ! y GLL and weights
@@ -34,12 +35,13 @@
 
 
 !     Coordinates of the single global element      
-      real xg_fs(lxfs,lyfs)
-      real yg_fs(lxfs,lyfs)
-      real fld_fs(lxfs,lyfs)
+      real xg_fs(lxfs,lyfs,2)
+      real yg_fs(lxfs,lyfs,2)
+      real zg_fs(lxfs,lyfs,2)
+      real fld_fs(lxfs,lyfs,2)
 
       common /fs_globzw/ zx_fs,wx_fs,zy_fs,wy_fs,w2_fs
-      common /fs_globxy/ xg_fs,yg_fs
+      common /fs_globxy/ xg_fs,yg_fs,fld_fs
 
 
 !     2D spectral elements at the interface
@@ -49,7 +51,16 @@
 
       common /fs_locxy/ xm1_fs,ym1_fs,zm1_fs
 
-      integer intgh_fs,intlh_fs
-      common /fs_intpi/ intgh_fs, intlh_fs
+      integer intgh_fs        ! Global mesh interpolation handle
+      integer intlh_fs        ! SEM surface mesh interpolation handle
+
+      common /fs_intpi/ intgh_fs,intlh_fs
+
+      real fs_gfldout(lx1*ly1*lelv)
+      real fs_lfldout(lxfs*lyfs) 
+      common /fs_intpr/ fs_gfldout,fs_lfldout 
+
+
+
 
 

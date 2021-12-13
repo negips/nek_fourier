@@ -615,9 +615,12 @@ c-----------------------------------------------------------------------
         call bcneusc_f3d(ta1,-1)
         call outpost(ta1,ta2,ta3,pr,ta3,'tst') 
 
-
         call gen_global_basis
-!        call exitt
+        call fs_intp_setup
+        call fs_getpts
+        call fs_restore_int
+
+        call exitt
       endif  
 
 
