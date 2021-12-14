@@ -268,7 +268,10 @@ c
 
 !     Zero out everything except the free surface      
       call opcopy(wx,wy,wz,vx,vy,vz)
-!      call fs_mvmeshn(wx,wy,wz)
+      call fs_mvmeshn(wx,wy,wz)
+
+      call fs_smooth_meshmv(wx,wy,wz)
+
 !      call col2(wy,v2mask,ntot1)          ! normal vel at 'SYM' = 0.0
 
       call col2(wx,fs_mask,ntot1)
@@ -405,10 +408,10 @@ c      COMMON /SCRCG/ DUMM10(LX1,LY1,LZ1,LELT,1)
                rtn1 = ( ux(j1,j2,1,e)*v1x(j1,j2,1,e) +
      $                  uy(j1,j2,1,e)*v1y(j1,j2,1,e) )
 !              remove tangential component
-               ux(j1,j2,1,e) = ux(j1,j2,1,e) - rtn1*v1x(j1,j2,1,e)
-               uy(j1,j2,1,e) = uy(j1,j2,1,e) - rtn1*v1y(j1,j2,1,e)
-!               ux(j1,j2,1,e) = rnor*vnx(j1,j2,1,e)
-!               uy(j1,j2,1,e) = rnor*vny(j1,j2,1,e)
+!               ux(j1,j2,1,e) = ux(j1,j2,1,e) - rtn1*v1x(j1,j2,1,e)
+!               uy(j1,j2,1,e) = uy(j1,j2,1,e) - rtn1*v1y(j1,j2,1,e)
+               ux(j1,j2,1,e) = rnor*vnx(j1,j2,1,e)
+               uy(j1,j2,1,e) = rnor*vny(j1,j2,1,e)
               
   220        continue
           endif                 

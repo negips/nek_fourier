@@ -38,10 +38,11 @@
       real xg_fs(lxfs,lyfs,2)
       real yg_fs(lxfs,lyfs,2)
       real zg_fs(lxfs,lyfs,2)
-      real fld_fs(lxfs,lyfs,2)
+      real fld_fs(lxfs,lyfs,3)
+      real lfld_fs(lx1,ly1,lelv,3)
 
       common /fs_globzw/ zx_fs,wx_fs,zy_fs,wy_fs,w2_fs
-      common /fs_globxy/ xg_fs,yg_fs,fld_fs
+      common /fs_globxy/ xg_fs,yg_fs,fld_fs,lfld_fs
 
 
 !     2D spectral elements at the interface
@@ -49,15 +50,19 @@
       real ym1_fs(lx1,ly1,lelv)
       real zm1_fs(lx1,ly1,lelv)
 
-      common /fs_locxy/ xm1_fs,ym1_fs,zm1_fs
+      real xi_fs(lx1*ly1*lelv)
+      real yi_fs(lx1*ly1*lelv)
+      real zi_fs(lx1*ly1*lelv)
+
+      common /fs_locxy/ xm1_fs,ym1_fs,zm1_fs,xi_fs,yi_fs,zi_fs
 
       integer intgh_fs        ! Global mesh interpolation handle
       integer intlh_fs        ! SEM surface mesh interpolation handle
 
       common /fs_intpi/ intgh_fs,intlh_fs
 
-      real fs_gfldout(lx1*ly1*lelv)
-      real fs_lfldout(lxfs*lyfs) 
+      real fs_gfldout(lx1,ly1,lelv,3)
+      real fs_lfldout(lxfs,lyfs,3) 
       common /fs_intpr/ fs_gfldout,fs_lfldout 
 
 

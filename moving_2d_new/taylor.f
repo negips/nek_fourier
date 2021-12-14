@@ -498,6 +498,7 @@ c-----------------------------------------------------------------------
       include 'DXYZ'
       include 'WZ'
       include 'PARALLEL'
+      include 'MVGEOM'
 
       include 'FS_ALE'
 
@@ -615,10 +616,19 @@ c-----------------------------------------------------------------------
         call bcneusc_f3d(ta1,-1)
         call outpost(ta1,ta2,ta3,pr,ta3,'tst') 
 
-        call gen_global_basis
-        call fs_intp_setup
-        call fs_getpts
-        call fs_restore_int
+        call opcopy(wx,wy,wz,vx,vy,vz)
+        call outpost(wx,wy,wz,pr,t,'wxy')
+        call fs_mvmesh
+!        call fs_mvmeshn(wx,wy,wz)
+!        call fs_smooth_meshmv(wx,wy,wz)
+        call outpost(wx,wy,wz,pr,t,'wxy')
+
+!        call fs_global_basis
+!        call fs_gllo_flds(wx,wy,wz)
+!        call fs_intp_setup
+!        call fs_get_localpts
+!        call fs_get_globalpts
+!        call fs_restore_int
 
         call exitt
       endif  
