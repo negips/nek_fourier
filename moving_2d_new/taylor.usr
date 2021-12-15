@@ -111,6 +111,7 @@ c-----------------------------------------------------------------------
       call test_random
 
       call fs_mvmesh()
+!      call rzero3(wx,wy,wz,ntot1)
 
       if (istep.eq.nsteps.or.lastep.eq.1) then
         call frame_end
@@ -254,7 +255,7 @@ c-----------------------------------------------------------------------
           ux   = temp
           uy   = temp
         elseif (iftestmvb) then
-          ux   = -0.05*exp(-((y-r1)/0.25)**2)
+          ux   = -0.01*exp(-((y-r1)/0.25)**2)
           uy   = -0.01*exp(-((y-r1)/0.25)**2)
           uz   = 0.1*(a1*y + a2/y)   ! just testing
 !          temp = 0.01*(a1*y + a2/y)   ! just testing
@@ -528,7 +529,7 @@ c-----------------------------------------------------------------------
       real           tm2  (lx2*ly2*lz2,lelv)
 
       integer e
-      real iegr
+      real iegr,pidr
 
       nxyz  = lx1*ly1*lz1
       ntot1 = nxyz*nelv
@@ -538,31 +539,12 @@ c-----------------------------------------------------------------------
 
         call outpost(v1mask,v2mask,v3mask,pr,v3mask,'msk')
 
-!         nfaces = 2*ndim
-!         do ie=1,nelv
-!         do iface=1,nfaces
-!            cb  = cbc(iface,ie,ifield)
-! !           bc1 = bc(1,iface,ie,ifield)
-! !           bc2 = bc(2,iface,ie,ifield)
-! !           bc3 = bc(3,iface,ie,ifield)
-! 
-!            if (cb.ne.'E  ') then
-!              write(6,*) ie,iface,cb
-!            endif
-! 
-!         enddo
-!         enddo
-
-!        call opcopy(tmp1,tmp2,tmp3,vx,vy,vz)
-!        call opdsop(tmp1,tmp2,tmp3,'MXA')    
-
-!        call outpost(vx,vy,vz,pr,t,'  ')
         ifield = 1
 !        call rmask(vx,vy,vz,nelv)
 !        call outpost(vx,vy,vz,pr,t,'  ')
 
-        if (nio.eq.0) write(6,*) 'NFIELD', nfield
-        if (nio.eq.0) write(6,*) 'IFADVC', (ifadvc(i),i=1,nfield)
+!        if (nio.eq.0) write(6,*) 'NFIELD', nfield
+!        if (nio.eq.0) write(6,*) 'IFADVC', (ifadvc(i),i=1,nfield)
 
         ifstrs = .false.
         call bcmask
@@ -599,7 +581,9 @@ c-----------------------------------------------------------------------
         call rzero(ta3,ntot1)
         do i=1,nelv
           iegr = lglel(i)+0.0
+          pidr = gllnid(lglel(i)) 
           call cfill(ta1(1,i),iegr,nxyz)
+          call cfill(ta2(1,i),pidr,nxyz)
         enddo
         call outpost(ta1,ta2,ta3,pr,ta3,'eln') 
 
@@ -633,6 +617,11 @@ c-----------------------------------------------------------------------
 !        call exitt
       endif  
 
+!      write(6,*) iflmsf(1),iflmse(1),iflmsc(1) 
+
+!      call rzero3(wx,wy,wz,ntot1)
+!      call outpost(tmp1,tmp2,tmp3,pr,tmp3,'tst')
+!      call outpost(wx,wy,wz,pr,wz,'tst')
 
       return
       end subroutine test_random

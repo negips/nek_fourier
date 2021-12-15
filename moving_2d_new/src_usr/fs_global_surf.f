@@ -219,7 +219,8 @@
      &                          nels,nxf,nyf,nzf,bb_t,
      &                          nhash,nhash,nmax,tol)
 
-      if (nio.eq.0) write(6,*) 'FS: Global Interpolation Setup Done'
+      if (nio.eq.0.and.loglevel.eq.2) 
+     $      write(6,*) 'FS: Global Interpolation Setup Done'
 
 !     initialize interpolation tool using local sem mesh
       nxf   = 2*lx1
@@ -440,11 +441,17 @@
       real xm1_min,xm1_max,ym1_min,ym1_max
       real glmin,glmax
 
+      real erx,ery,erz,err        ! errors due to smoothening
+      real ar                     ! area
+
 !     Get the surface x,y,z
       nfaces = 2*ndim
 
       ii  = 0
       ne  = 0
+      erx = 0.0
+      ery = 0.0
+      erz = 0.0
       do e=1,nelv
       do ifc=1,nfaces
         cb  = fs_cbc(ifc,e)
@@ -454,6 +461,17 @@
           do iz=kz1,kz2
           do iy=ky1,ky2
           do ix=kx1,kx2
+            ii = ii+1
+            erx = erx + 
+     $      area(ii,1,ifc,e)*(fs_gfldout(ix,iy,ne,1)-wx(ix,iy,iz,e))**2
+            ery = ery + 
+     $      area(ii,1,ifc,e)*(fs_gfldout(ix,iy,ne,2)-wy(ix,iy,iz,e))**2
+            if (ndim.eq.3)
+     $        erz = erz + 
+     $      area(ii,1,ifc,e)*(fs_gfldout(ix,iy,ne,3)-wz(ix,iy,iz,e))**2
+          
+            ar = ar +  area(ii,1,ifc,e)
+
             wx(ix,iy,iz,e) = fs_gfldout(ix,iy,ne,1)
             wy(ix,iy,iz,e) = fs_gfldout(ix,iy,ne,2)
             if (ndim.eq.3) wz(ix,iy,iz,e) = fs_gfldout(ix,iy,ne,3)
@@ -485,7 +503,8 @@
       enddo
       enddo  
 
-!      call outpost(vx,vy,vz,pr,t,'int')
+      err = sqrt((erx + ery + erz)/ar)
+      if (nio.eq.0) write(6,*) 'Smooth projection error:', err
 
       return
       end subroutine fs_restore_int

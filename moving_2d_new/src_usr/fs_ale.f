@@ -351,7 +351,7 @@ c      COMMON /SCRCG/ DUMM10(LX1,LY1,LZ1,LELT,1)
       integer nsave
       integer ies(2),ixs(2),iys(2)
       save ies,ixs,iys,nsave
-      real wallvx(2)
+      real wallvx(2),wallvy(2)
       real tol
       integer icalld
       save icalld
@@ -395,8 +395,8 @@ c      COMMON /SCRCG/ DUMM10(LX1,LY1,LZ1,LELT,1)
 !      endif
 
       do i = 1,nsave
-        wallvx(1) = ux(ixs(1),iys(1),1,ies(1))
-        wallvx(2) = ux(ixs(2),iys(2),1,ies(2))
+        wallvx(i) = ux(ixs(i),iys(i),1,ies(i))
+        wallvy(i) = 0.0
       enddo  
         
 
@@ -428,7 +428,7 @@ c      COMMON /SCRCG/ DUMM10(LX1,LY1,LZ1,LELT,1)
 
       do i=1,nsave
         ux(ixs(i),iys(i),1,ies(i)) = wallvx(i)
-        uy(ixs(i),iys(i),1,ies(i)) = 0.0
+        uy(ixs(i),iys(i),1,ies(i)) = wallvy(i)
       enddo   
 
 !      ux(ixs(2),iys(2),1,ies(2)) = wallvx(2)

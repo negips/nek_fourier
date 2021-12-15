@@ -33,7 +33,7 @@
 
       ifaxis_init = ifaxis
 
-      if (iff3d.and.mod(npert,1).eq.1) then
+      if (mod(npert,1).eq.1) then
         if (nio.eq.0) then
           write(6,'(A7,1x,I2)') 'NPERT =', npert
           write(6,*) 'Need both real and imaginary parts'
@@ -41,6 +41,16 @@
         endif  
         call exitt
       endif
+
+      if (ifcyl_f3d.and..not.ifaxis) then
+        if (nio.eq.0) then
+          write(6,*) 'IFAXIS:', IFAXIS
+          write(6,*) 'IFCYL_F3D:', IFCYL_F3D
+          write(6,*) 
+     $      'IFAXIS initialization required for Cylindrical solver'
+        endif
+        call exitt
+      endif  
 
 !     Only Homogeneous nonlinear solver implemented.
       if (npert.eq.0) k_f3d = 0.0

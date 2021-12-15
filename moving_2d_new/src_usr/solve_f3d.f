@@ -47,7 +47,7 @@
       call advab_f3d
 
 !     Just leaving it here but we don't need this.
-      call admeshv_f3d      ! subroutine not defined yet
+      if (ifmvbd) call admeshv_f3d      ! subroutine not defined yet
 
       if (iftran) call makeabf_f3d
 
@@ -521,7 +521,11 @@ c-----------------------------------------------------------------------
       integer i,nit
 
 
-      ntot1 = lx1*ly1*lz1*nelv   
+      ntot1 = lx1*ly1*lz1*nelv 
+
+      if (ifmvbd.and.ifcyl_f3d) then
+        ifaxis = .false.
+      endif  
 
       if (igeom.eq.1) then
 
@@ -553,6 +557,11 @@ c-----------------------------------------------------------------------
          enddo  
 
          call incomprn_real(igeom)
+
+!        Need to reset for reevaluation of mesh            
+         if (ifmvbd.and.ifcyl_f3d) then
+           ifaxis = .true.
+         endif  
 
       endif
 
