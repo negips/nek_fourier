@@ -25,8 +25,8 @@
 !     For interpolation onto smooth global element
 !----------------------------------------------------------------------
       integer lxfs,lyfs,lzfs
-      parameter (lxfs = 4)          ! Global no. of points along x
-      parameter (lyfs = 4)          ! Global no. of points along y
+      parameter (lxfs = 10)          ! Global no. of points along x
+      parameter (lyfs = 10)          ! Global no. of points along y
       parameter (lzfs = 1)          ! Global no. of points along y
 
       real zx_fs(lxfs),wx_fs(lxfs)  ! x GLL and weights

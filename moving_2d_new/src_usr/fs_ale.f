@@ -268,8 +268,11 @@ c
 
 !     Zero out everything except the free surface      
       call opcopy(wx,wy,wz,vx,vy,vz)
+
+!     Zero out tangential component of the mesh velocity      
       call fs_mvmeshn(wx,wy,wz)
 
+!     Project the interface velocity to a globally smooth space
       call fs_smooth_meshmv(wx,wy,wz)
 
 !      call col2(wy,v2mask,ntot1)          ! normal vel at 'SYM' = 0.0
@@ -298,9 +301,6 @@ c
 !       We don't move mesh along Z
         call rzero(wz,ntot1)
       endif  
-   
-!     prabal      
-!      call rzero3(wx,wy,wz,ntot1) 
 
       return
       end subroutine fs_mvmesh        
@@ -386,13 +386,19 @@ c      COMMON /SCRCG/ DUMM10(LX1,LY1,LZ1,LELT,1)
         icalld = icalld + 1    
       endif       ! icalld
 
-      if (nsave.eq.2) then
+!      if (nsave.eq.2) then
+!        wallvx(1) = ux(ixs(1),iys(1),1,ies(1))
+!        wallvx(2) = ux(ixs(2),iys(2),1,ies(2))
+!      else
+!        if (nio.eq.0) write(6,*) 'Did not find 2 corner points'
+!        call exitt
+!      endif
+
+      do i = 1,nsave
         wallvx(1) = ux(ixs(1),iys(1),1,ies(1))
         wallvx(2) = ux(ixs(2),iys(2),1,ies(2))
-      else
-        if (nio.eq.0) write(6,*) 'Did not find 2 corner points'
-        call exitt
-      endif  
+      enddo  
+        
 
       do 200 e=1,nelv
         do 200 ifc=1,nface
@@ -420,10 +426,14 @@ c      COMMON /SCRCG/ DUMM10(LX1,LY1,LZ1,LELT,1)
       call dsavg(ux)
       call dsavg(uy)
 
-      ux(ixs(1),iys(1),1,ies(1)) = wallvx(1) 
-      ux(ixs(2),iys(2),1,ies(2)) = wallvx(2)
-      uy(ixs(1),iys(1),1,ies(1)) = 0.0 
-      uy(ixs(2),iys(2),1,ies(2)) = 0.0
+      do i=1,nsave
+        ux(ixs(i),iys(i),1,ies(i)) = wallvx(i)
+        uy(ixs(i),iys(i),1,ies(i)) = 0.0
+      enddo   
+
+!      ux(ixs(2),iys(2),1,ies(2)) = wallvx(2)
+!      uy(ixs(1),iys(1),1,ies(1)) = 0.0 
+!      uy(ixs(2),iys(2),1,ies(2)) = 0.0
 
       return
       end subroutine fs_mvmeshn        

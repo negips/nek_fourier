@@ -21,7 +21,7 @@ variableDt = no
 targetCFL = 0.4
 
 writeControl = TimeStep
-writeInterval = 50
+writeInterval = 25
 
 userParam01 = 1.0    # Perturbation amplitude
 userParam02 = 0      # writeInterval 1D statistics 

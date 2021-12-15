@@ -605,23 +605,23 @@ c-----------------------------------------------------------------------
 
         call rzero3(ta1,ta2,ta3,ntot1)
 
-!       Broadcast location of the free surface
-!       At the moment we only need x coord for now      
-        call copy(ta2,xm1,ntot1)
-        call col2(ta2,fs_mask,ntot1)
-        call fgslib_gs_op(fs_gs_handle,ta2,1,1,0)     ! 1 ==> +
-        call col2(ta2,fs_vmult,ntot1)
+!!       Broadcast location of the free surface
+!!       At the moment we only need x coord for now      
+!        call copy(ta2,xm1,ntot1)
+!        call col2(ta2,fs_mask,ntot1)
+!        call fgslib_gs_op(fs_gs_handle,ta2,1,1,0)     ! 1 ==> +
+!        call col2(ta2,fs_vmult,ntot1)
+!
+!        ifield = 1
+!        call bcneusc_f3d(ta1,-1)
+!        call outpost(ta1,ta2,ta3,pr,ta3,'tst') 
 
-        ifield = 1
-        call bcneusc_f3d(ta1,-1)
-        call outpost(ta1,ta2,ta3,pr,ta3,'tst') 
-
-        call opcopy(wx,wy,wz,vx,vy,vz)
-        call outpost(wx,wy,wz,pr,t,'wxy')
-        call fs_mvmesh
+!        call opcopy(wx,wy,wz,vx,vy,vz)
+!        call outpost(wx,wy,wz,pr,t,'wxy')
+!        call fs_mvmesh
 !        call fs_mvmeshn(wx,wy,wz)
 !        call fs_smooth_meshmv(wx,wy,wz)
-        call outpost(wx,wy,wz,pr,t,'wxy')
+!        call outpost(wx,wy,wz,pr,t,'wxy')
 
 !        call fs_global_basis
 !        call fs_gllo_flds(wx,wy,wz)
@@ -630,7 +630,7 @@ c-----------------------------------------------------------------------
 !        call fs_get_globalpts
 !        call fs_restore_int
 
-        call exitt
+!        call exitt
       endif  
 
 

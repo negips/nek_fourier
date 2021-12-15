@@ -35,6 +35,7 @@
       call fgslib_findpts_free(intgh_fs)
       call fgslib_findpts_free(intlh_fs)
 
+      if (nio.eq.0) write(6,*) 'FS: Interface Smoothening Done'
 
       return
       end subroutine fs_smooth_meshmv
@@ -236,7 +237,8 @@
      &                          nels,nxf,nyf,nzf,bb_t,
      &                          nhash,nhash,nmax,tol)
 
-      if (nio.eq.0) write(6,*) 'FS: Local Interpolation Setup Done'
+      if (nio.eq.0.and.loglevel.eq.2) 
+     $      write(6,*) 'FS: Local Interpolation Setup Done'
 
       return
       end subroutine fs_intp_setup
@@ -316,7 +318,8 @@
       enddo  
 
 
-      if (nio.eq.0) write(6,*) 'FS: Get Global pts: Done'
+      if (nio.eq.0.and.loglevel.eq.2) 
+     $      write(6,*) 'FS: Get Global pts: Done'
 
       return
       end subroutine fs_get_globalpts
@@ -392,7 +395,7 @@
      &                           grst,ldim2,nintp,
      &                           lfld_fs(1,1,1,i))
 
-        write(6,*) 'Fldout', (fs_lfldout(j,1,i),j=1,nintp)
+!        write(6,*) 'Fldout', (fs_lfldout(j,1,i),j=1,nintp)
 
 !       This is now the globally smooth field from which we interpolate
 !       the local sem points 
@@ -404,7 +407,8 @@
       enddo  
 
 
-      if (nio.eq.0) write(6,*) 'FS: Get Local pts: Done'
+      if (nio.eq.0.and.loglevel.eq.2) 
+     $      write(6,*) 'FS: Get Local pts: Done'
 
       return
       end subroutine fs_get_localpts
@@ -435,8 +439,6 @@
       character cb*3
       real xm1_min,xm1_max,ym1_min,ym1_max
       real glmin,glmax
-
-      call opzero(vx,vy,vz)
 
 !     Get the surface x,y,z
       nfaces = 2*ndim
