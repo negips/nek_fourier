@@ -25,6 +25,7 @@
         icalld = icalld+1
       endif
 
+      call fs_gllo_xyz
       call fs_gllo_flds(wx,wy,wz)
       call fs_intp_setup
       call fs_get_localpts
@@ -70,7 +71,7 @@
       return
       end subroutine fs_global_basis
 !----------------------------------------------------------------------
-      subroutine fs_gllo_flds(wx,wy,wz)
+      subroutine fs_gllo_xyz
 
       implicit none
 
@@ -86,8 +87,8 @@
 
       include 'GFLDR'
 
-      real wx(lx1,ly1,lz1,lelv),wy(lx1,ly1,lz1,lelv)
-      real wz(lx1,ly1,lz1,lelv)
+!      real wx(lx1,ly1,lz1,lelv),wy(lx1,ly1,lz1,lelv)
+!      real wz(lx1,ly1,lz1,lelv)
 
       integer e,ifc,n,ne,nfaces
 
@@ -141,6 +142,80 @@
             xm1_fs(ix,iy,ne) = xm1(ix,iy,iz,e)
             ym1_fs(ix,iy,ne) = ym1(ix,iy,iz,e)
             if (ndim.eq.3) zm1_fs(ia,1,ne) = zm1(ix,iy,iz,e)
+!            lfld_fs(ix,iy,ne,1)= wx(ix,iy,iz,e) ! ym1_fs(ix,iy,ne)**2
+!            lfld_fs(ix,iy,ne,2)= wy(ix,iy,iz,e) ! ym1_fs(ix,iy,ne)**2
+!            if (ndim.eq.3) lfld_fs(ix,iy,ne,1)= wz(ix,iy,iz,e)
+!           ndim.eq.2 needs very special treatment
+            if (ndim.eq.2) then
+              if (kx1.eq.kx2) then
+                do ia = 1,lx1
+                  xm1_fs(ia,iy,ne)  = zgm1(ia,1)
+                  ym1_fs(ia,iy,ne)  = ym1(ix,iy,iz,e)
+!                  lfld_fs(ia,iy,ne,1) = wx(ix,iy,iz,e)
+!                  lfld_fs(ia,iy,ne,2) = wy(ix,iy,iz,e)
+                enddo
+              elseif (ky1.eq.ky2) then
+                do ia = 1,ly1
+                  xm1_fs(ix,ia,ne)  = zgm1(ia,1)
+                  ym1_fs(ix,ia,ne)  = ym1(ix,iy,iz,e)
+!                  lfld_fs(ix,ia,ne,1) = wx(ix,iy,iz,e)
+!                  lfld_fs(ix,ia,ne,2) = wy(ix,iy,iz,e)
+                enddo
+              endif     ! kx1.eq.kx2
+            endif       ! ndim.eq.2
+          enddo         ! ix
+          enddo         ! iy
+          enddo         ! iz
+        endif           ! cb.eq.INT
+      enddo             ! ifc
+      enddo             ! e
+
+      return
+      end subroutine fs_gllo_xyz
+!----------------------------------------------------------------------
+       subroutine fs_gllo_flds(wx,wy,wz)
+
+      implicit none
+
+      include 'SIZE'
+      include 'INPUT'
+      include 'GEOM'
+      include 'SOLN'
+      include 'MASS'          ! bm1, temporary
+      include 'PARALLEL'
+      include 'WZ'
+
+      include 'FS_ALE'
+
+      include 'GFLDR'
+
+      real wx(lx1,ly1,lz1,lelv),wy(lx1,ly1,lz1,lelv)
+      real wz(lx1,ly1,lz1,lelv)
+
+      integer e,ifc,n,ne,nfaces
+
+      integer kx1,kx2,ky1,ky2,kz1,kz2
+      integer ix,iy,iz,ia,ii
+
+      character cb*3
+
+      real s(3)   ! surface normals
+      real vn     ! normal velocity      
+
+!     Get the surface x,y,z
+      nfaces = 2*ndim
+      ne     = 0              ! total number of interface elements
+      ii     = 0
+      do e=1,nelv
+      do ifc=1,nfaces
+        cb  = fs_cbc(ifc,e)
+        if (cb.eq.'INT') then
+          ne = ne+1
+          call facind (kx1,kx2,ky1,ky2,kz1,kz2,nx1,ny1,nz1,ifc)
+          do iz=kz1,kz2
+          do iy=ky1,ky2
+          do ix=kx1,kx2
+!            call getSnormal(s,ix,iy,iz,ifc,e)   ! surface normals
             lfld_fs(ix,iy,ne,1)= wx(ix,iy,iz,e) ! ym1_fs(ix,iy,ne)**2
             lfld_fs(ix,iy,ne,2)= wy(ix,iy,iz,e) ! ym1_fs(ix,iy,ne)**2
             if (ndim.eq.3) lfld_fs(ix,iy,ne,1)= wz(ix,iy,iz,e)
@@ -148,15 +223,11 @@
             if (ndim.eq.2) then
               if (kx1.eq.kx2) then
                 do ia = 1,lx1
-                  xm1_fs(ia,iy,ne)  = zgm1(ia,1)
-                  ym1_fs(ia,iy,ne)  = ym1(ix,iy,iz,e)
                   lfld_fs(ia,iy,ne,1) = wx(ix,iy,iz,e)
                   lfld_fs(ia,iy,ne,2) = wy(ix,iy,iz,e)
                 enddo
               elseif (ky1.eq.ky2) then
                 do ia = 1,ly1
-                  xm1_fs(ix,ia,ne)  = zgm1(ia,1)
-                  ym1_fs(ix,ia,ne)  = ym1(ix,iy,iz,e)
                   lfld_fs(ix,ia,ne,1) = wx(ix,iy,iz,e)
                   lfld_fs(ix,ia,ne,2) = wy(ix,iy,iz,e)
                 enddo
@@ -166,12 +237,13 @@
           enddo         ! iy
           enddo         ! iz
         endif           ! cb.eq.INT
-      enddo
-      enddo  
+      enddo             ! ifc
+      enddo             ! e
 
       return
       end subroutine fs_gllo_flds
 !----------------------------------------------------------------------
+     
       subroutine fs_intp_setup
 
       implicit none

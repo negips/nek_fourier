@@ -70,8 +70,8 @@ MOTION=user
 iff3d=yes
 ifcyl_f3d = yes
 k_f3d = 0.00            # \beta
-slipl_f3d = 0.1         # Slip length
-blendl_f3d = 0.25       # Blending length between free slip and Dirichlet
+slipl_f3d = 0.05         # Slip length
+blendl_f3d = 0.2       # Blending length between free slip and Dirichlet
 
 
 [_FSALE]
