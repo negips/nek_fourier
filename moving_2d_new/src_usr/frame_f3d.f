@@ -73,7 +73,17 @@
       call rprm_rp_reg(f3d_k_id,f3d_sec_id,'K_F3D',
      $     'F3D wavenumber ',
      $     rpar_real,0,0.0,.false.,'  ')
-      
+
+!     F3D_SLIPL
+      call rprm_rp_reg(f3d_slipl_id,f3d_sec_id,'SLIPL_F3D',
+     $     'Slip Length ',
+     $     rpar_real,0,0.0,.false.,'  ')
+
+!     F3D_BLENDL
+      call rprm_rp_reg(f3d_blendl_id,f3d_sec_id,'BLENDL_F3D',
+     $     'Blending Length ',
+     $     rpar_real,0,1.0,.false.,'  ')
+
       ! set initialisation flag
 !      otd_ifinit=.false.
 
@@ -127,6 +137,12 @@
 !     k_f3d
       call rprm_rp_get(itmp,rtmp,ltmp,ctmp,f3d_k_id,rpar_real)
       k_f3d = rtmp
+!     slipl_f3d
+      call rprm_rp_get(itmp,rtmp,ltmp,ctmp,f3d_slipl_id,rpar_real)
+      slipl_f3d = rtmp
+!     blendl_f3d
+      call rprm_rp_get(itmp,rtmp,ltmp,ctmp,f3d_blendl_id,rpar_real)
+      blendl_f3d = rtmp
 
       return
       end subroutine frame_get_param_f3d        

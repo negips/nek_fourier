@@ -5,22 +5,31 @@
 !----------------------------------------------------------------------
 !----------------------------------------------------------------------
 
+      logical fs_iffs         ! Enable Free Surface ALE?
+
       integer*8 fs_gl_num(lx1*ly1*lz1*lelv)  ! final global numbers
-      integer fs_gs_handle    ! free surface gather-scatter handle
+      integer fs_gs_handle                      ! Gather-Scatter handle
 
       real fs_vmult(lx1,ly1,lz1,lelv)           ! Multiplicity
       real fs_mask(lx1,ly1,lz1,lelv)            ! Mask out everything
                                                 ! except free surface
       real fs_damp(lx1,ly1,lz1,lelv)            ! Damping function
+      real fs_ofst                              ! offset before damping
 
       character*3 fs_cbc(6,lelv)                ! mark the interface
 
       integer fs_nel                            ! No of free surface elements
 
-      common /fs_gsh/ fs_gl_num, fs_nel, fs_gs_handle
-      common /fs_rv/  fs_vmult, fs_mask, fs_damp 
+
+      common /fs_gsh/ fs_gs_handle
+
+      common /fS_iv/  fs_gl_num, fs_nel
+      common /fs_rv/  fs_vmult, fs_mask, fs_damp
+      common /fs_rs/  fs_ofst 
 
       common /fs_cv/  fs_cbc
+
+      common /fs_ls/  fs_iffs
 
 !     For interpolation onto smooth global element
 !----------------------------------------------------------------------
@@ -66,6 +75,22 @@
       common /fs_intpr/ fs_gfldout,fs_lfldout 
 
 
+!     Variables needed for the KTH Framework
+!---------------------------------------------------------------------- 
+      integer fs_id                ! Module id
+      integer fs_sec_id            ! Section id
+      integer fs_tmr_tot_id        ! total time id
+      integer fs_tmr_ini_id        ! initialisation time id
+      integer fs_ofst_id           ! offset id
+    
+      integer fs_iffs_id           ! If Free Surface id
+
+
+      common /fs_frame_id/ fs_id, fs_sec_id, fs_tmr_tot_id,
+     $                     fs_tmr_ini_id,fs_ofst_id,fs_iffs_id
+
+      character*(5) fs_name
+      parameter (fs_name='FSALE')
 
 
 

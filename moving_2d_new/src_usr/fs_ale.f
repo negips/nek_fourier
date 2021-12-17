@@ -188,17 +188,31 @@
 
       include 'FS_ALE'
 
+      real dummy
+      common /scrcg/ dummy(lx1,ly1,lz1,lelt)
+
       real x,x0,mu
       integer i,n
 
       n = lx1*ly1*lz1*nelv
 
+!     Find interface position      
+      call copy(dummy,xm1,n)
+      call col2(dummy,fs_mask,n)
+      call fgslib_gs_op(fs_gs_handle,dummy,1,1,0)     ! 1 ==> +
+      call col2(dummy,fs_vmult,n)
+
+
 !     Create damping function      
-      x0 = -1.0
       mu = 0.80
       do i=1,n
+        x0               = dummy(i,1,1,1)
         x                = xm1(i,1,1,1)
-        fs_damp(i,1,1,1) = exp(-((x-x0)/mu)**2)
+        if (abs(x-x0).lt.fs_ofst) then
+          fs_damp(i,1,1,1) = 1.0
+        else  
+          fs_damp(i,1,1,1) = exp(-((x-x0-fs_ofst)/mu)**2)
+        endif  
       enddo
 
       call col2(fs_damp,v1mask,n)

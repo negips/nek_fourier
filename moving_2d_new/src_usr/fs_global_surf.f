@@ -425,7 +425,8 @@
       include 'SOLN'
       include 'MASS'          ! bm1, temporary
       include 'PARALLEL'
-      include 'WZ'
+!      include 'WZ'
+      include 'TSTEP'
 
       include 'FS_ALE'
 
@@ -504,7 +505,7 @@
       enddo  
 
       err = sqrt((erx + ery + erz)/ar)
-      if (nio.eq.0) write(6,*) 'Smooth projection error:', err
+      if (nio.eq.0) write(6,*) istep, 'Smooth projection error:', err
 
       return
       end subroutine fs_restore_int

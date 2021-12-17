@@ -110,7 +110,7 @@ c-----------------------------------------------------------------------
 
       call test_random
 
-      call fs_mvmesh()
+      if (fs_iffs) call fs_mvmesh()
 !      call rzero3(wx,wy,wz,ntot1)
 
       if (istep.eq.nsteps.or.lastep.eq.1) then
@@ -408,6 +408,7 @@ c-----------------------------------------------------------------------
       call io_register
       call chkpt_register
       call frame_register_f3d
+      call frame_register_fs
       call tst_register
 
       return
@@ -423,6 +424,7 @@ c-----------------------------------------------------------------------
 !     initialise modules
       call chkpt_init
       call frame_get_param_f3d
+      call frame_get_param_fs
       call tst_init
 
       return

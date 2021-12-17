@@ -35,7 +35,7 @@ USR_LFLAGS="-L/usr/lib -lparpack -larpack"
 FRM="frame.o io_tools.o mntrlog.o mntrtmr.o rprm.o io_tools_block.o mntrlog_block.o mntrtmr_block.o rprm_block.o math_tools.o"
 F3D="solve_f3d.o solvep_f3d.o weak_lapl_cyl.o solver_f3d.o frame_f3d.o"
 ARN="arn_arp.o arn_arp_io.o arn_cmath.o tstepper.o conht_tools.o chkpoint.o chkptd.o"
-USR+="$FRM $F3D $ARN fs_ale.o fs_global_surf.o"
+USR+="$FRM $F3D $ARN fs_ale.o fs_global_surf.o frame_fs.o"
 #echo $USR
 #USR="frame.o mntrlog_block.o mntrlog.o mntrtmr_block.o mntrtmr.o rprm_block.o rprm.o"
 #USR+="io_tools.o io_tools_block.o" 

@@ -840,6 +840,7 @@ c----------------------------------------------------------------------
       include 'CTIMER'
       include 'NEKUSE'
 
+      include 'F3D'
       include 'FS_ALE'
 
       real s(lx1,ly1,lz1,lelt)
@@ -856,7 +857,7 @@ c----------------------------------------------------------------------
       real dummy
       common /scrcg/ dummy(lx1,ly1,lz1,lelt)
 
-      real xs,xf
+      real xs,xf,fsx
       integer n
       real tol
 
@@ -875,7 +876,7 @@ c----------------------------------------------------------------------
       call rzero(s,ntot)
 
 !     Broadcast location of the free surface
-!     At the moment we only need x coord for now      
+!     At the moment we only need x coord.
       call copy(dummy,xm1,ntot)
       call col2(dummy,fs_mask,ntot)
       call fgslib_gs_op(fs_gs_handle,dummy,1,1,0)     ! 1 ==> +
@@ -903,21 +904,30 @@ c----------------------------------------------------------------------
                   if (optlevel.le.2) call nekasgn (ix,iy,iz,ie)
 !                  call userbc  (ix,iy,iz,iface,ieg)
                   n  = 2
-                  xs = dummy(ix,iy,iz,ie)
-                  xf = xs+0.5
-                  alpha = ((x-xs)/(xf-xs))**n
-                  if (x.le.xf) then
-                    if (abs(alpha-1.0).lt.tol) then
+                  fsx = dummy(ix,iy,iz,ie)      ! free surface position
+                  xs  = fsx+slipl_f3d           ! start of blending
+                  xf  = xs+blendl_f3d           ! end of blending
+                  if (abs(x-fsx).lt.slipl_f3d) then
+!                   Free slip within the slip length                    
+                    alpha = 0.0
+                    beta  = 0.0
+                    hc    = 0.0    
+                  else
+!                   Smoothly blend from free slip to Dirichlet                    
+                    alpha = ((x-xs)/(xf-xs))**n
+                    if (x.le.xf) then
+                      if (abs(alpha-1.0).lt.tol) then
+                        alpha = 1.0-tol
+                        beta  = tol
+                      else
+                        beta  = 1.0-alpha
+                      endif
+                    else
                       alpha = 1.0-tol
                       beta  = tol
-                    else
-                      beta  = 1.0-alpha
-                    endif
-                  else
-                    alpha = 1.0-tol
-                    beta  = tol
+                    endif  
+                    hc      = alpha/beta
                   endif  
-                  hc      = alpha/beta
 !                 We have inverse bm1 since this is just added to h2
 !                 Which gets multiplied by bm1 later                  
                   s(ix,iy,iz,ie) = s(ix,iy,iz,ie) +
