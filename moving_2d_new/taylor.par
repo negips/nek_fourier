@@ -29,7 +29,7 @@ userParam03 = 2.00   # r0
 
 filtering = hpfrt
 filterWeight = 10
-filterModes  = 2
+filterModes  = 1
 
 dealiasing = yes
 
@@ -40,7 +40,7 @@ equation = incompNS
 #numberOfPerturbations=2
 #solveBaseFlow = no
 stressFormulation = yes
-axiSymmetry = yes
+axiSymmetry = no
 swirl       = no
 
 
@@ -68,7 +68,7 @@ MOTION=user
 
 [_F3D]
 iff3d=yes
-ifcyl_f3d = yes
+ifcyl_f3d = no
 k_f3d = 0.00            # \beta
 slipl_f3d = 0.05         # Slip length
 blendl_f3d = 0.2       # Blending length between free slip and Dirichlet

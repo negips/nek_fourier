@@ -52,6 +52,17 @@
         call exitt
       endif  
 
+      if (.not.ifcyl_f3d.and.ifaxis) then
+        if (nio.eq.0) then
+          write(6,*) 'IFAXIS:', IFAXIS
+          write(6,*) 'IFCYL_F3D:', IFCYL_F3D
+          write(6,*) 
+     $      'IFAXIS initialized without Cylindrical solver'
+        endif
+        call exitt
+      endif  
+
+
 !     Only Homogeneous nonlinear solver implemented.
       if (npert.eq.0) k_f3d = 0.0
 
