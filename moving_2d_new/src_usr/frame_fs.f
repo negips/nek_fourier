@@ -64,24 +64,28 @@
       call rprm_rp_reg(fs_iffs_id,fs_sec_id,'FS_IFFS',
      $     'Enable FS? ',
      $     rpar_log,0,0.0,.false.,'  ')
-     
+
+!     Register parameters
+!     FS_IFGSM
+      call rprm_rp_reg(fs_ifgsm_id,fs_sec_id,'FS_IFGSM',
+     $     'Global Smoothening of FS? ',
+     $     rpar_log,0,0.0,.false.,'  ')
+
+!     FS_IFTC
+      call rprm_rp_reg(fs_iftc_id,fs_sec_id,'FS_IFTC',
+     $     'Tangential Correction of FS? ',
+     $     rpar_log,0,0.0,.false.,'  ')
+
+!     FS_IFTC
+      call rprm_rp_reg(fs_ifgh_id,fs_sec_id,'FS_IFGH',
+     $     'Gordan Hall Correction? ',
+     $     rpar_log,0,0.0,.false.,'  ')
+
 !     FS_OFST
       call rprm_rp_reg(fs_ofst_id,fs_sec_id,'FS_OFST',
      $     'Damping Offset ',
      $     rpar_real,0,0.0,.false.,'  ')
 
-!!     FS_SLIPL
-!      call rprm_rp_reg(fs_slipl_id,fs_sec_id,'FS_SLIPL',
-!     $     'Slip Length ',
-!     $     rpar_real,0,0.0,.false.,'  ')
-!
-!!     FS_BLENDL
-!      call rprm_rp_reg(fs_blendl_id,fs_sec_id,'FS_BLENDL',
-!     $     'Blending Length ',
-!     $     rpar_real,0,1.0,.false.,'  ')
-     
-      ! set initialisation flag
-!      otd_ifinit=.false.
 
       ! timing
       ltim = dnekclock() - ltim
@@ -123,6 +127,16 @@
 !     fs_ofst
       call rprm_rp_get(itmp,rtmp,ltmp,ctmp,fs_ofst_id,rpar_real)
       fs_ofst = rtmp
+!     ifgsm
+      call rprm_rp_get(itmp,rtmp,ltmp,ctmp,fs_ifgsm_id,rpar_log)
+      fs_ifgsm = ltmp
+!     iftc
+      call rprm_rp_get(itmp,rtmp,ltmp,ctmp,fs_iftc_id,rpar_log)
+      fs_iftc = ltmp
+!     ifgh
+      call rprm_rp_get(itmp,rtmp,ltmp,ctmp,fs_ifgh_id,rpar_log)
+      fs_ifgh = ltmp
+
 !!     fs_slipl
 !      call rprm_rp_get(itmp,rtmp,ltmp,ctmp,fs_slipl_id,rpar_real)
 !      fs_slipl = rtmp

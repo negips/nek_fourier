@@ -653,10 +653,11 @@ C
       kerr = iglsum(kerr,1)
       if (kerr.gt.0) then
          ifxyo = .true.
-         ifvo  = .false.
+         ifvo  = .true.       ! prabal
          ifpo  = .false.
          ifto  = .false.
-         param(66) = 4
+!         param(66) = 4
+         call copy(vx,jacm1,ntot1)  ! prabal
          call outpost(vx,vy,vz,pr,t,'xyz')
          if (nid.eq.0) write(6,*) 'Jac error 1, setting p66=4, ifxyo=t'
          call exitt

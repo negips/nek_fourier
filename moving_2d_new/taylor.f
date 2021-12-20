@@ -255,7 +255,7 @@ c-----------------------------------------------------------------------
           ux   = temp
           uy   = temp
         elseif (iftestmvb) then
-          ux   = -0.01*exp(-((y-r1)/0.25)**2)
+          ux   = -0.1*exp(-((y-r1)/0.25)**2)
           uy   = -0.01*exp(-((y-r1)/0.25)**2)
           uz   = 0.1*(a1*y + a2/y)   ! just testing
 !          temp = 0.01*(a1*y + a2/y)   ! just testing
@@ -506,7 +506,7 @@ c-----------------------------------------------------------------------
       include 'FS_ALE'
 
       integer ntot1,ntot2
-      integer i,j
+      integer i,j,k
 
       integer igeom
       character cb*3
@@ -523,15 +523,16 @@ c-----------------------------------------------------------------------
      $ ,             ta2 (lx1*ly1*lz1,lelv)
      $ ,             ta3 (lx1*ly1*lz1,lelv)
 
-      real           dx   (lx2*ly2*lz2,lelv)
-      real           dy   (lx2*ly2*lz2,lelv)
-      real           x    (lx1*ly1*lz1,lelv)
-      real           rm2  (lx2*ly2*lz2,lelv)
-      real           sm2  (lx2*ly2*lz2,lelv)
-      real           tm2  (lx2*ly2*lz2,lelv)
-
-      integer e
+      integer e,f
       real iegr,pidr
+
+      real x,y
+
+      integer ierr
+
+      real filter_fcn(40*40)
+      real filter_op(lx1,lx1)
+      integer kut
 
       nxyz  = lx1*ly1*lz1
       ntot1 = nxyz*nelv
@@ -591,32 +592,99 @@ c-----------------------------------------------------------------------
 
         call rzero3(ta1,ta2,ta3,ntot1)
 
-!!       Broadcast location of the free surface
-!!       At the moment we only need x coord for now      
-!        call copy(ta2,xm1,ntot1)
-!        call col2(ta2,fs_mask,ntot1)
-!        call fgslib_gs_op(fs_gs_handle,ta2,1,1,0)     ! 1 ==> +
-!        call col2(ta2,fs_vmult,ntot1)
+!!       Testing Gordon hall movement            
+!!       create a mask for interior points.
+!        call rzero(tmp5,ntot1)
+!!       Put ones only on corners      
+!        do e=1,nelv
+!        do k=1,lz1,lz1
+!        do j=1,ly1,ly1
+!        do i=1,lx1,lx1
+!          tmp5(i,j,k,e) = 1.0
+!        enddo
+!        enddo
+!        enddo
+!        enddo 
 !
-!        ifield = 1
-!        call bcneusc_f3d(ta1,-1)
-!        call outpost(ta1,ta2,ta3,pr,ta3,'tst') 
-
-!        call opcopy(wx,wy,wz,vx,vy,vz)
-!        call outpost(wx,wy,wz,pr,t,'wxy')
-!        call fs_mvmesh
-!        call fs_mvmeshn(wx,wy,wz)
-!        call fs_smooth_meshmv(wx,wy,wz)
-!        call outpost(wx,wy,wz,pr,t,'wxy')
-
-!        call fs_global_basis
-!        call fs_gllo_flds(wx,wy,wz)
-!        call fs_intp_setup
-!        call fs_get_localpts
-!        call fs_get_globalpts
-!        call fs_restore_int
-
+!
+!        do e=1,nelv     
+!        do f=1,nfaces   
+!           cb = cbc(f,e,ifield)
+!           if (cb.eq.'O  ') call facev(tmp5,e,f,1.0,nx1,ny1,nz1)
+!!          fill up edges with ones 
+!!           call facev(tmp5,e,f,1.0,nx1,ny1,nz1)          
+!           if (cb.eq.'P  ') call facev(tmp5,e,f,0.0,nx1,ny1,nz1)
+!!          Keeping wall fixed            
+!           if (cb.eq.'W  ') call facev(tmp5,e,f,0.0,nx1,ny1,nz1)
+!        enddo
+!        enddo
+!
+!        do i=1,ntot1
+!          y = ym1(i,1,1,1)
+!          tmp1(i,1,1,1) = 0.1*sin(25*y)
+!          tmp2(i,1,1,1) = 0.00*cos(25*y)
+!          tmp3(i,1,1,1) = 0.
+!        enddo
+!
+!        call col2(tmp2,v3mask,ntot1)      ! zero at SYM
+!
+!        call col2(tmp1,fs_mask,ntot1)
+!        call col2(tmp2,fs_mask,ntot1)
+!
+!        call fs_int_project(tmp1,tmp2,tmp3)
+!!       Spatially damp out the mesh velocity 
+!        call col2(tmp1,fs_damp,ntot1)
+!        call col2(tmp2,fs_damp,ntot1)
+!        call rzero(tmp3,ntot1)
+!
+!        call rzero(filter_fcn,40*40)
+!        kut = 4 
+!        call create_trns_fcn(filter_fcn,kut)
+!        call build_hpf_mat(filter_op,filter_fcn,.false.)
+!
+!        call build_hpf_fld(tmp3,tmp1,filter_op,lx1,lz1)
+!        call sub2(tmp3,tmp1,ntot1)
+!        call chsign(tmp3,ntot1)
+!!        do i=1,fs_nel
+!!          e = fs_elno(i)
+!!          iface = fs_iface(i)
+!!          call facec(tmp3,tmp1,e,iface,nx1,ny1,nz1,nelv)
+!!        enddo
+!        call copy(tmp1,tmp3,ntot1)
+!        call dsavg(tmp1)
+!
+!        call build_hpf_fld(tmp3,tmp2,filter_op,lx1,lz1)
+!        call sub2(tmp3,tmp2,ntot1)
+!        call chsign(tmp3,ntot1)
+!!        do i=1,fs_nel
+!!          e = fs_elno(i)
+!!          iface = fs_iface(i)
+!!          call facec(tmp3,tmp2,e,iface,nx1,ny1,nz1,nelv)
+!!        enddo
+!        call copy(tmp2,tmp3,ntot1) 
+!        call col2(tmp2,v3mask,ntot1)      ! zero at SYM
+!        call dsavg(tmp2)
+!      
+!!!       Only keep the edge values            
+!!        call col2(tmp1,tmp5,ntot1)
+!!        call col2(tmp2,tmp5,ntot1)
+! 
+!        call outpost(tmp1,tmp2,tmp3,pr,tmp5,'ghl')
+!      
+!        call fs_gordonhall(tmp1,tmp2,tmp3)
+!        call outpost(tmp1,tmp2,tmp3,pr,jacm1,'ghl')
+!
+!        call geom_reset(1) 
+!
+!        do e=1,nelv
+!          call chkjac(jacm1(1,1,1,e),nxyz,e,xm1(1,1,1,e),
+!     $         ym1(1,1,1,e),zm1(1,1,1,e),ldim,ierr)
+!        enddo   
+!
+!        call outpost(tmp1,tmp2,tmp3,pr,jacm1,'ghl')
 !        call exitt
+
+
       endif  
 
 !      write(6,*) iflmsf(1),iflmse(1),iflmsc(1) 
@@ -645,6 +713,42 @@ c-----------------------------------------------------------------------
       return
       end subroutine writew3m2
 !---------------------------------------------------------------------- 
+      subroutine create_trns_fcn(diag,kut)
+
+c      implicit none
+
+      include 'SIZE'
+      include 'PARALLEL'
+
+      real diag(lx1*lx1)
+      integer nx,k0,kut,kk,k
+
+      real amp
+
+c     Set up transfer function
+c
+      nx = lx1
+      call ident   (diag,nx)
+c
+      kut=kut                                     ! kut=additional modes
+      k0 = nx-kut
+      do k=k0+1,nx
+        kk = k+nx*(k-1)
+        amp = 1.0 !((k-k0)*(k-k0)+0.)/(kut*kut+0.)     ! Normalized amplitude. quadratic growth
+        diag(kk) = 1.-amp
+      enddo
+
+c     Output normalized transfer function
+      k0 = lx1+1
+      if (nio.eq.0) then
+        write(6,6) 'HPF :',((1.-diag(k)), k=1,lx1*lx1,k0)
+   6    format(a8,16f9.6,6(/,8x,16f9.6))
+      endif
+
+      return
+      end
+
+c---------------------------------------------------------------------- 
 
 
 c automatically added by makenek

@@ -19,11 +19,20 @@
       character*3 fs_cbc(6,lelv)                ! mark the interface
 
       integer fs_nel                            ! No of free surface elements
+      integer fs_nsymo
+      integer fs_elno(lelv)                     ! El no of free surface
+      integer fs_iface(lelv)                    ! face number of free surface
 
+      integer fs_ie(lelt*lx1)                    ! El. No. of SYM & O
+      integer fs_ix(lelt*lx1)                    ! ix No. of SYM & O
+      integer fs_iy(lelt*lx1)                    ! iy No. of SYM & O
+      integer fs_iz(lelt*lx1)                    ! iz No. of SYM & O
 
       common /fs_gsh/ fs_gs_handle
 
-      common /fS_iv/  fs_gl_num, fs_nel
+      common /fs_is/  fs_nel, fs_nsymo
+      common /fs_iv/  fs_elno, fs_iface, fs_ie, fs_ix, fs_iy, fs_iz
+      common /fs_iv8/ fs_gl_num
       common /fs_rv/  fs_vmult, fs_mask, fs_damp
       common /fs_rs/  fs_ofst 
 
@@ -33,10 +42,17 @@
 
 !     For interpolation onto smooth global element
 !----------------------------------------------------------------------
+
+      logical fs_ifgsm        ! if global smoothening
+      logical fs_iftc         ! if tangential correction
+      logical fs_ifgh         ! if Gordan Hall Correction
+
+      common /fs_globls/ fs_ifgsm, fs_iftc, fs_ifgh 
+
       integer lxfs,lyfs,lzfs
-      parameter (lxfs = 20)          ! Global no. of points along x
-      parameter (lyfs = 20)          ! Global no. of points along y
-      parameter (lzfs = 1)          ! Global no. of points along y
+      parameter (lxfs = 50)          ! Global no. of points along x
+      parameter (lyfs = 50)          ! Global no. of points along y
+      parameter (lzfs = 1)           ! Global no. of points along z
 
       real zx_fs(lxfs),wx_fs(lxfs)  ! x GLL and weights
       real zy_fs(lyfs),wy_fs(lyfs)  ! y GLL and weights
@@ -52,6 +68,13 @@
 
       common /fs_globzw/ zx_fs,wx_fs,zy_fs,wy_fs,w2_fs
       common /fs_globxy/ xg_fs,yg_fs,fld_fs,lfld_fs
+
+!     Original mesh points. This way is not very memory optimal
+      real xm0_fs(lx1,ly1,lz1,lelv)
+      real ym0_fs(lx1,ly1,lz1,lelv)
+      real zm0_fs(lx1,ly1,lz1,lelv)
+
+      common /fs_xyz0/ xm0_fs,ym0_fs,zm0_fs
 
 
 !     2D spectral elements at the interface
@@ -84,10 +107,13 @@
       integer fs_ofst_id           ! offset id
     
       integer fs_iffs_id           ! If Free Surface id
-
+      integer fs_ifgsm_id          ! If Global Smoothening id
+      integer fs_iftc_id           ! If Tangential Correction id
+      integer fs_ifgh_id           ! If Gordan Hall Correction id
 
       common /fs_frame_id/ fs_id, fs_sec_id, fs_tmr_tot_id,
-     $                     fs_tmr_ini_id,fs_ofst_id,fs_iffs_id
+     $                     fs_tmr_ini_id, fs_ofst_id, fs_iffs_id, 
+     $                     fs_ifgsm_id, fs_iftc_id, fs_ifgh_id 
 
       character*(5) fs_name
       parameter (fs_name='FSALE')
