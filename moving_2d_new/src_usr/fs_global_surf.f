@@ -45,8 +45,7 @@
       call fgslib_findpts_free(intgh_fs)
       call fgslib_findpts_free(intlh_fs)
 
-
-      if (nio.eq.0) write(6,*) 'FS: Interface Smoothening Done'
+      call mntr_log(fs_id,fs_log,'Interface Smoothening Done')
 
       return
       end subroutine fs_smooth_meshmv
@@ -408,8 +407,7 @@
      &                          nels,nxf,nyf,nzf,bb_t,
      &                          nhash,nhash,nmax,tol)
 
-      if (nio.eq.0.and.loglevel.eq.2) 
-     $      write(6,*) 'FS: Global Interpolation Setup Done'
+      call mntr_log(fs_id,fs_log,'Global Interpolation Setup Done')
 
 !     initialize interpolation tool using local sem mesh
       nxf   = 2*lx1
@@ -427,8 +425,7 @@
      &                          nels,nxf,nyf,nzf,bb_t,
      &                          nhash,nhash,nmax,tol)
 
-      if (nio.eq.0.and.loglevel.eq.2) 
-     $      write(6,*) 'FS: Local Interpolation Setup Done'
+      call mntr_log(fs_id,fs_log,'Local Interpolation Setup Done')
 
       return
       end subroutine fs_intp_setup
@@ -509,9 +506,7 @@
      &                           fld_fs(1,1,i))
       enddo  
 
-
-      if (nio.eq.0.and.loglevel.eq.2) 
-     $      write(6,*) 'FS: Get Global pts: Done'
+      call mntr_log(fs_id,fs_log,'Get Global pts: Done')
 
       return
       end subroutine fs_get_globalpts
@@ -600,9 +595,7 @@
         endif  
       enddo  
 
-
-      if (nio.eq.0.and.loglevel.eq.2) 
-     $      write(6,*) 'FS: Get Local pts: Done'
+      call mntr_log(fs_id,fs_log,'Get Local pts: Done')
 
       return
       end subroutine fs_get_localpts
@@ -618,7 +611,6 @@
       include 'SOLN'
       include 'MASS'          ! bm1, temporary
       include 'PARALLEL'
-!      include 'WZ'
       include 'TSTEP'
 
       include 'FS_ALE'
@@ -633,10 +625,13 @@
 
       character cb*3
       real xm1_min,xm1_max,ym1_min,ym1_max
-      real glmin,glmax
+      real glmin,glmax,glsum
 
-      real erx,ery,erz,err        ! errors due to smoothening
-      real ar                     ! area
+      real erx,ery,erz,err         ! errors due to smoothening
+      real ar,arsum                ! area
+
+      character str*120
+      integer loglev
 
 !     Get the surface x,y,z
       nfaces = 2*ndim
@@ -670,27 +665,6 @@
             wx(ix,iy,iz,e) = fs_gfldout(ix,iy,ne,1)
             wy(ix,iy,iz,e) = fs_gfldout(ix,iy,ne,2)
             if (ndim.eq.3) wz(ix,iy,iz,e) = fs_gfldout(ix,iy,ne,3)
-!           In Principle we should not need this special treatment for
-!           the output fields. Since we extend the interface velocities
-!           to the interior of the domain anyway.            
-!            if (ndim.eq.2) then
-!              if (kx1.eq.kx2) then
-!                do ia = 1,lx1
-!                  xm1_fs(ia,iy,ne)  = zgm1(ia,1)
-!                  ym1_fs(ia,iy,ne)  = ym1(ix,iy,iz,e)
-!                  lfld_fs(ia,iy,ne,1) = wx(ix,iy,iz,e)
-!                  lfld_fs(ia,iy,ne,2) = wy(ix,iy,iz,e)
-!                enddo
-!              elseif (ky1.eq.ky2) then
-!                do ia = 1,ly1
-!                  xm1_fs(ix,ia,ne)  = zgm1(ia,1)
-!                  ym1_fs(ix,ia,ne)  = ym1(ix,iy,iz,e)
-!                  lfld_fs(ix,ia,ne,1) = wx(ix,iy,iz,e)
-!                  lfld_fs(ix,ia,ne,2) = wy(ix,iy,iz,e)
-!                enddo
-!              endif     ! kx1.eq.kx2
-!            endif       ! ndim.eq.2
-           
           enddo
           enddo
           enddo
@@ -698,8 +672,16 @@
       enddo
       enddo  
 
-      err = sqrt((erx + ery + erz)/ar)
-      if (nio.eq.0) write(6,*) istep, 'Smooth projection error:', err
+      err = (erx + ery + erz)
+      erx = glsum(err,1)      ! now contains total error
+      arsum = glsum(ar,1)
+      err = sqrt(erx/arsum)
+
+      write(str,'(A24,1x,E11.4E2)') 'Smooth projection error:',err
+
+!     We (almost) always want to see this error      
+      loglev = 7
+      call mntr_log(fs_id,loglev,str)
 
       return
       end subroutine fs_restore_int

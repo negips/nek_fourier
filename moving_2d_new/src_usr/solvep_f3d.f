@@ -1988,6 +1988,8 @@ c     use ifield as a guide to which boundary conditions are to be applied.
       INCLUDE 'TOPOL'
       INCLUDE 'CTIMER'
 
+      include 'F3D'
+
       real tmp1,tmp2,tmp3
       common /scruz/ tmp1(lx1,ly1,lz1,lelv)
      $             , tmp2(lx1,ly1,lz1,lelv)
@@ -2007,6 +2009,8 @@ c
       character cb*3
       character*1 cb1(3)
       equivalence (cb1,cb)
+
+      character cbb*3
 c
       logical ifonbc
 
@@ -2077,8 +2081,11 @@ c
 !           application of masks) and the tangential component is
 !           evaluated.
             if (cb.eq.'SYM') then
-                call faceiv (' dd',tmp1(1,1,1,ie),tmp2(1,1,1,ie),
+                call chcopy(cbb,cb,3)
+                cb = '  d'
+                call faceiv(cb,tmp1(1,1,1,ie),tmp2(1,1,1,ie),
      $            tmp3(1,1,1,ie),ie,iface,lx1,ly1,lz1)
+                call chcopy(cb,cbb,3)
             endif
 
             IF (CB.EQ.'ON ' .OR. CB.EQ.'on ') then   ! 5/21/01 pff
@@ -2117,11 +2124,11 @@ c
       if ( .not.ifstrs ) then
          call col2(v1,mask1,ntot)
          call col2(v2,mask2,ntot)
-         if (if3d) call col2(v3,mask3,ntot)
+         if (iff3d) call col2(v3,mask3,ntot)
          if (ifonbc) then
             call antimsk1(tmp1,mask1,ntot)
             call antimsk1(tmp2,mask2,ntot)
-            if (if3d) call antimsk1(tmp3,mask3,ntot)
+            if (iff3d) call antimsk1(tmp3,mask3,ntot)
          endif
       else
 !         call rmask (v1,v2,v3,nelv)

@@ -13,8 +13,7 @@
       logical iff3d                           ! Main logical flag to enable module
       logical ifcyl_f3d                       ! if we are doing cylindrical coordinates
 
-      common /solv_f3dl/ iff3d,
-     $                   ifcyl_f3d
+      common /solv_f3dl/ iff3d, ifcyl_f3d
 
 
       real k_f3d                                 ! Span wise wavenumber
@@ -77,11 +76,16 @@
       integer f3d_ifcyl_id          ! If cylindrical id
       integer f3d_slipl_id          ! slip length id
       integer f3d_blendl_id         ! blend length id
+      integer f3d_log_id            ! Logging id
 
+      integer log_f3d               ! Logging Level
 
       common /f3d_frame_id/ f3d_id, f3d_sec_id, f3d_tmr_tot_id,
      $                      f3d_tmr_ini_id,f3d_k_id,f3d_iff3d_id,
-     $                      f3d_ifcyl_id,f3d_slipl_id,f3d_blendl_id 
+     $                      f3d_ifcyl_id,f3d_slipl_id,f3d_blendl_id,
+     $                      f3d_log_id 
+
+      common /f3d_frame_is/ log_f3d
 
       character*(3) f3d_name
       parameter (f3d_name='F3D')

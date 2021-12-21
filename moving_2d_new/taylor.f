@@ -255,7 +255,7 @@ c-----------------------------------------------------------------------
           ux   = temp
           uy   = temp
         elseif (iftestmvb) then
-          ux   = -0.1*exp(-((y-r1)/0.25)**2)
+          ux   = -0.05*exp(-((y-r1)/0.25)**2)
           uy   = -0.01*exp(-((y-r1)/0.25)**2)
           uz   = 0.1*(a1*y + a2/y)   ! just testing
 !          temp = 0.01*(a1*y + a2/y)   ! just testing
@@ -684,7 +684,10 @@ c-----------------------------------------------------------------------
 !        call outpost(tmp1,tmp2,tmp3,pr,jacm1,'ghl')
 !        call exitt
 
+      endif
 
+      if (mod(istep,iostep).eq.0) then
+        call outpost(wx,wy,wz,pr,jacm1,'jac')
       endif  
 
 !      write(6,*) iflmsf(1),iflmse(1),iflmsc(1) 

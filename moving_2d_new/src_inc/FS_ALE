@@ -7,7 +7,7 @@
 
       logical fs_iffs         ! Enable Free Surface ALE?
 
-      integer*8 fs_gl_num(lx1*ly1*lz1*lelv)  ! final global numbers
+      integer*8 fs_gl_num(lx1*ly1*lz1*lelv)     ! final global numbers
       integer fs_gs_handle                      ! Gather-Scatter handle
 
       real fs_vmult(lx1,ly1,lz1,lelv)           ! Multiplicity
@@ -110,10 +110,16 @@
       integer fs_ifgsm_id          ! If Global Smoothening id
       integer fs_iftc_id           ! If Tangential Correction id
       integer fs_ifgh_id           ! If Gordan Hall Correction id
+      integer fs_log_id            ! Log id
+
+      integer fs_log               ! Log Level
 
       common /fs_frame_id/ fs_id, fs_sec_id, fs_tmr_tot_id,
      $                     fs_tmr_ini_id, fs_ofst_id, fs_iffs_id, 
-     $                     fs_ifgsm_id, fs_iftc_id, fs_ifgh_id 
+     $                     fs_ifgsm_id, fs_iftc_id, fs_ifgh_id,
+     $                     fs_log_id
+
+      common /fs_frame_is/ fs_log
 
       character*(5) fs_name
       parameter (fs_name='FSALE')

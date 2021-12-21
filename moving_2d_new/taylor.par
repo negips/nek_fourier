@@ -72,6 +72,7 @@ ifcyl_f3d = no
 k_f3d = 0.00            # \beta
 slipl_f3d = 0.1         # Slip length
 blendl_f3d = 0.25       # Blending length between free slip and Dirichlet
+log_f3d = 1
 
 
 [_FSALE]
@@ -79,7 +80,8 @@ fs_iffs=yes
 fs_ifgsm=yes            # Global smoothening
 fs_iftc=no              # tangential correction
 fs_gh=yes               # Gordon Hall Correction
-fs_ofst = 0.000         # damping offset
+fs_ofst = 0.100         # damping offset
+fs_log  = 1
 
 [_TSTEPPER]             # Runtime paramere section for time stepper module
 MODE                 = DIR                    # Simulation mode

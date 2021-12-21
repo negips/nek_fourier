@@ -1273,6 +1273,8 @@ C
       include 'SOLN'
       include 'VPROJ'
       include 'TSTEP'
+
+      include 'F3D'
 c      logical ifproj
  
       real o1 (lx1,ly1,lz1,1) , o2 (lx1,ly1,lz1,1) , o3 (lx1,ly1,lz1,1)

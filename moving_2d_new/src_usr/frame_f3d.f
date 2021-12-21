@@ -84,6 +84,11 @@
      $     'Blending Length ',
      $     rpar_real,0,1.0,.false.,'  ')
 
+!     LOG_F3D
+      call rprm_rp_reg(f3d_log_id,f3d_sec_id,'LOG_F3D',
+     $     'Log Level ',
+     $     rpar_int,1,0.0,.false.,'  ')
+
       ! set initialisation flag
 !      otd_ifinit=.false.
 
@@ -143,6 +148,9 @@
 !     blendl_f3d
       call rprm_rp_get(itmp,rtmp,ltmp,ctmp,f3d_blendl_id,rpar_real)
       blendl_f3d = rtmp
+!     log_f3d
+      call rprm_rp_get(itmp,rtmp,ltmp,ctmp,f3d_log_id,rpar_int)
+      log_f3d = itmp
 
       return
       end subroutine frame_get_param_f3d        

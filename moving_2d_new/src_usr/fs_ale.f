@@ -19,16 +19,16 @@
       include 'FS_ALE'
 
       real xsort(lx1*ly1*lz1*lelv)
-      real xlocal_u(lx1*nelv)
+      real xlocal_u(lx1*lelv)
       integer local_num(lx1*ly1*lz1*lelv) ! local numbering
       integer sortind(lx1*ly1*lz1*lelv)
       integer i,j,k,n,n1
 
-      integer nelxx
-      parameter (nelxx=50)
-      real gxsort1(lx1*nelxx),gxsort2(lx1*nelxx)
-      integer gind(lx1*nelxx),gind2(lx1*nelxx),gind3(lx1*nelxx)
-      integer gl_num_u(lx1*nelxx)         ! unique global numbers
+      integer lelxx
+      parameter (lelxx=500)
+      real gxsort1(lx1*lelxx),gxsort2(lx1*lelxx)
+      integer gind(lx1*lelxx),gind2(lx1*lelxx),gind3(lx1*lelxx)
+      integer gl_num_u(lx1*lelxx)         ! unique global numbers
 
       integer nunq                        ! Unique local points
       integer n2,n3
@@ -47,6 +47,8 @@
       real vlsum
       integer ifield, nxyz
       real temp0(lx1,ly1,lz1)
+
+      call mntr_log(fs_id,fs_log,'Generating Global Mapping')
 
       n = lx1*ly1*lz1*nelv
 
@@ -72,14 +74,11 @@
         local_num(j) = nunq
       enddo  
 
-!      write(6,*) 'nid,nunq', nid,nunq
-!      if (nid.eq.0) write(6,*) 'xlocal_u', (xlocal_u(i), i=1,nunq)
-
       n2 = igl_running_sum(nunq)
       n3 = iglsum(nunq,1)
 
 !     Global sorting                                          
-      call rzero(gxsort1,lx1*nelxx)
+      call rzero(gxsort1,lx1*lelxx)
       call copy(gxsort1(n2-nunq+1),xlocal_u,nunq)
 
       call gop(gxsort1,gxsort2,'+  ',n3)
@@ -101,7 +100,7 @@
 
       call nekgsync()
 
-      call i8zero(fs_gl_num,lx1*nelxx)
+      call i8zero(fs_gl_num,lx1*lelxx)
       do i=1,n3
         j = gind(i)
         gind3(j) = gind2(i)
@@ -125,7 +124,7 @@
 
       call rzero(fs_mask,n)
 
-!     Multiplicity (vmult)
+!     Multiplicity (Inverse) (vmult)
       call rzero(fs_vmult,n)
       nfaces = 2*ndim
       ifield = 1
@@ -177,7 +176,7 @@
 
       call fs_symo_save       ! save SYM/O corner points
 
-      if (nio.eq.0) write(6,*) 'FS: Mapping: Done'
+      call mntr_log(fs_id,fs_log,'Global Mapping Done.')
 
       return
       end subroutine gen_mapping_mvb
@@ -198,6 +197,9 @@
 
       real x,x0,mu
       integer i,n
+
+      call mntr_log(fs_id,fs_log,'Generating Damping Function')
+
 
       n = lx1*ly1*lz1*nelv
 
@@ -444,8 +446,6 @@ c
 
         ux(j1,j2,j3,e) = wallvx(i)
         uy(j1,j2,j3,e) = wallvy(i)
-!        ux(ixs(i),iys(i),1,ies(i)) = wallvx(i)
-!        uy(ixs(i),iys(i),1,ies(i)) = wallvy(i)
       enddo   
 
 
@@ -670,6 +670,8 @@ c
       common /scrcg/ maski(lx1,ly1,lz1,lelt)
 
 
+      call mntr_log(fs_id,fs_log,'Gordon Hall Correction')
+
       ntot1  = lx1*ly1*lz1*nelv
       nfaces = 2*ndim
       ifld   = 1
@@ -744,7 +746,6 @@ c
       real glamax
       real glmax
 
-
       n      = nx1*ny1*nz1*nelt
       nxyz   = nx1*ny1*nz1
       nfaces = 2*ndim
@@ -767,11 +768,8 @@ c
       enddo
       enddo
 
-      do kpass = 1,ndim+1   ! this doesn't work for 2d, yet.
-                            ! extra pass is just to test convergence
+      do kpass = 1,ndim+1     ! extra pass is just to test convergence
 
-c        call opcopy (xb,yb,zb,xm1,ym1,zm1) ! must use whole field,
-c        call opdssum(xb,yb,zb)             ! not just fluid domain.
          call copy(xb,xtmp,n)
          call copy(yb,ytmp,n)
          if (ndim.eq.3) call copy(zb,ztmp,n)
@@ -783,8 +781,6 @@ c        call opdssum(xb,yb,zb)             ! not just fluid domain.
          xm = 0.
          ym = 0.
          zm = 0.
-
-!         if (nid.eq.0) write(6,*) 'igeom kpass:', kpass ! prabal
 
          do e=1,nelt
             do i=1,nxyz                       ! compute averages of geometry
@@ -850,7 +846,6 @@ c        call opdssum(xb,yb,zb)             ! not just fluid domain.
       call opsub2(mvx,mvy,mvz,xm1,ym1,zm1)
 !      call opcopy(xm1,ym1,zm1,xtmp,ytmp,ztmp)
       param(59) = 1.       ! ifdef = .true.
-!      call geom_reset(1)   ! reset metrics, etc.
       
       return
       end subroutine fs_gordonhall

@@ -36,6 +36,8 @@
         return
       endif
 
+      call mntr_log(f3d_id,log_f3d,'Generate Forcing')
+
 !     Build user defined forcing for uz
       call makeuf_f3d
 
@@ -46,8 +48,7 @@
 !      call set_convect_new(vxd,vyd,vzd,vx,vy,vz)
       call advab_f3d
 
-!     Just leaving it here but we don't need this.
-      if (ifmvbd) call admeshv_f3d      ! subroutine not defined yet
+      if (ifmvbd) call admeshv_f3d
 
       if (iftran) call makeabf_f3d
 
@@ -458,12 +459,15 @@ c-----------------------------------------------------------------------
       integer ntot1,ntot2
       integer intype
 
+      call mntr_log(f3d_id,log_f3d,'Generate Residual')
+
       ntot1 = lx1*ly1*lz1*nelv
       ntot2 = lx2*ly2*lz2*nelv
 
 !     for 3d solve
 
       intype = -1
+   
       call bcneusc_f3d(w1,intype)
       call add2(h2,w1,ntot1)
 
@@ -520,7 +524,6 @@ c-----------------------------------------------------------------------
       integer ntot1
       integer i,nit
 
-
       ntot1 = lx1*ly1*lz1*nelv 
 
       if (ifmvbd.and.ifcyl_f3d) then
@@ -530,8 +533,6 @@ c-----------------------------------------------------------------------
       if (igeom.eq.1) then
 
 !        old geometry
-
-!         call makef
          call makef_f3d
 
       else

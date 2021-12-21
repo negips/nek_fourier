@@ -86,6 +86,10 @@
      $     'Damping Offset ',
      $     rpar_real,0,0.0,.false.,'  ')
 
+!     FS_LOG
+      call rprm_rp_reg(fs_log_id,fs_sec_id,'FS_LOG',
+     $     'Log Level ',
+     $     rpar_int,0,0.0,.false.,'  ')
 
       ! timing
       ltim = dnekclock() - ltim
@@ -136,6 +140,9 @@
 !     ifgh
       call rprm_rp_get(itmp,rtmp,ltmp,ctmp,fs_ifgh_id,rpar_log)
       fs_ifgh = ltmp
+!     log_fs
+      call rprm_rp_get(itmp,rtmp,ltmp,ctmp,fs_log_id,rpar_int)
+      fs_log = itmp
 
 !!     fs_slipl
 !      call rprm_rp_get(itmp,rtmp,ltmp,ctmp,fs_slipl_id,rpar_real)
