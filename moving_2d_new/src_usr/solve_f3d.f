@@ -650,6 +650,19 @@ c
       call chsign(dp,ntot2)
       call ortho (dp)
 
+!     prabal. checking NaNs
+      call copy(bdivv,dp,ntot2)
+      call col3(divv,bdivv,bm2inv,ntot2)
+      dnorm = sqrt(glsc2(divv,bdivv,ntot2)/volvm2)
+      if (isnan(dnorm)) then
+        if (nio.eq.0) write(6,*) 'NaN found'
+        call copy(pr,bm2,ntot2)
+        call outpost(vx,vy,vz,dp,t,'nan')
+
+        call exitt
+      endif
+
+
       ifprjp=.false.    ! project out previous pressure solutions?
       istart=param(95)  
       if (istep.ge.istart.and.istart.ne.0) ifprjp=.true.

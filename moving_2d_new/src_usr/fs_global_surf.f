@@ -33,7 +33,7 @@
       call fs_intp_setup
       call fs_get_localpts
       call fs_get_globalpts
-      call fs_restore_int(wx,wy,wz)
+      call fs_restore_int(wx,wy,wz,'Norm')
 
 !     Correction for tangential movement to minimize
 !     mesh deformation
@@ -78,12 +78,12 @@
 
 !     Temporary arrays
       real wk1,wk2,wk3,wk4,wk5,wk6,wk7
-      common /scrns3/ wk1(lx1,ly1,lz1,lelt),
-     $               wk2(lx1,ly1,lz1,lelt),
-     $               wk3(lx1,ly1,lz1,lelt),
-     $               wk4(lx1,ly1,lz1,lelt),
-     $               wk5(lx1,ly1,lz1,lelt),
-     $               wk6(lx1,ly1,lz1,lelt),
+      common /scrns3/ wk1(lx1,ly1,lz1,lelt),    ! Tangengial directions     
+     $               wk2(lx1,ly1,lz1,lelt),     ! Tangengial directions
+     $               wk3(lx1,ly1,lz1,lelt),     ! Tangengial directions
+     $               wk4(lx1,ly1,lz1,lelt),     ! Displacement x 
+     $               wk5(lx1,ly1,lz1,lelt),     ! Displacement y
+     $               wk6(lx1,ly1,lz1,lelt),     ! Displacement z
      $               wk7(lx1,ly1,lz1,lelt)
 
 
@@ -112,6 +112,9 @@
         endif                 
       enddo
       enddo
+      call dsavg(wk1)
+      call dsavg(wk2)
+      if (ndim.eq.3) call dsavg(wk3)
       call fs_int_project(wk1,wk2,wk3)
 
 !      call outpost(wk1,wk2,wk3,pr,wk3,'tst')
@@ -119,7 +122,7 @@
       call fs_gllo_flds(wk1,wk2,wk3)
       call fs_get_localpts
       call fs_get_globalpts
-      call fs_restore_int(wk1,wk2,wk3)    ! Tangential velocities
+      call fs_restore_int(wk1,wk2,wk3,'Tang')    ! Tangential velocities
 
 !      call outpost(wk1,wk2,wk3,pr,wk3,'tst')
 
@@ -142,7 +145,7 @@
       tol = 1.0e-14
       do i=1,n
         dy          = wk5(i,1,1,1)
-        p           = dy*wk2(i,1,1,1)
+        p           = wk2(i,1,1,1)
         if (abs(p).gt.tol) then
           s           = - p/abs(p)
         else
@@ -601,7 +604,7 @@
       end subroutine fs_get_localpts
 !----------------------------------------------------------------------
 
-      subroutine fs_restore_int(wx,wy,wz)
+      subroutine fs_restore_int(wx,wy,wz,dirc)
 
       implicit none
 
@@ -632,6 +635,8 @@
 
       character str*120
       integer loglev
+
+      character dirc*4
 
 !     Get the surface x,y,z
       nfaces = 2*ndim
@@ -677,7 +682,8 @@
       arsum = glsum(ar,1)
       err = sqrt(erx/arsum)
 
-      write(str,'(A24,1x,E11.4E2)') 'Smooth projection error:',err
+      write(str,'(A4,1x,A24,1x,E11.4E2)') dirc,
+     $      'Smooth projection error:',err
 
 !     We (almost) always want to see this error      
       loglev = 7

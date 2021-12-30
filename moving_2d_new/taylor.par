@@ -6,7 +6,7 @@
 #PnPnFormulation = yes
 minNumProcesses = 1
 
-#startFrom = taylorIC0.f00001
+startFrom = taylorIC0.f00001
 #time=0 
 #stopAt = endTime
 #endTime = 400
@@ -79,7 +79,7 @@ log_f3d = 1
 fs_iffs=yes
 fs_ifgsm=yes            # Global smoothening
 fs_iftc=no              # tangential correction
-fs_gh=yes               # Gordon Hall Correction
+fs_gh=no               # Gordon Hall Correction
 fs_ofst = 0.100         # damping offset
 fs_log  = 1
 

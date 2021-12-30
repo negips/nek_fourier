@@ -589,6 +589,15 @@ c-----------------------------------------------------------------------
 
         call rzero3(ta1,ta2,ta3,ntot1)
 
+        call opcopy(wx,wy,wz,xm1,ym1,zm1)
+        call fs_int_project(wx,wy,wz)
+        call outpost(wx,wy,wz,pr,wz,'tst')
+        call fs_smooth_meshmv(wx,wy,wz)
+        call fs_int_project(wx,wy,wz)
+        call outpost(wx,wy,wz,pr,wz,'tst')
+
+        call exitt
+
 !!       Broadcast location of the free surface
 !!       At the moment we only need x coord for now      
 !        call copy(ta2,xm1,ntot1)
