@@ -76,11 +76,21 @@
      $     'Tangential Correction of FS? ',
      $     rpar_log,0,0.0,.false.,'  ')
 
-!     FS_IFTC
+!     FS_IFGH
       call rprm_rp_reg(fs_ifgh_id,fs_sec_id,'FS_IFGH',
      $     'Gordan Hall Correction? ',
      $     rpar_log,0,0.0,.false.,'  ')
 
+!     FS_IFFIL
+      call rprm_rp_reg(fs_iffil_id,fs_sec_id,'FS_IFFIL',
+     $     'Filter Global Interpolation? ',
+     $     rpar_log,0,0.0,.false.,'  ')
+
+!     FS_IFGRID
+      call rprm_rp_reg(fs_ifgrid_id,fs_sec_id,'FS_IFGRID',
+     $     'Global Approx. of Grid? ',
+     $     rpar_log,0,0.0,.false.,'  ')
+     
 !     FS_OFST
       call rprm_rp_reg(fs_ofst_id,fs_sec_id,'FS_OFST',
      $     'Damping Offset ',
@@ -140,6 +150,13 @@
 !     ifgh
       call rprm_rp_get(itmp,rtmp,ltmp,ctmp,fs_ifgh_id,rpar_log)
       fs_ifgh = ltmp
+!     iffil
+      call rprm_rp_get(itmp,rtmp,ltmp,ctmp,fs_iffil_id,rpar_log)
+      fs_iffil = ltmp
+!     ifgrid
+      call rprm_rp_get(itmp,rtmp,ltmp,ctmp,fs_ifgrid_id,rpar_log)
+      fs_ifgrid = ltmp
+
 !     log_fs
       call rprm_rp_get(itmp,rtmp,ltmp,ctmp,fs_log_id,rpar_int)
       fs_log = itmp

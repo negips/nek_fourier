@@ -46,13 +46,19 @@
       logical fs_ifgsm        ! if global smoothening
       logical fs_iftc         ! if tangential correction
       logical fs_ifgh         ! if Gordan Hall Correction
+      logical fs_iffil        ! if filter global interpolations
+      logical fs_ifgrid       ! if global approximation is for the grid
 
-      common /fs_globls/ fs_ifgsm, fs_iftc, fs_ifgh 
+      common /fs_globls/ fs_ifgsm, fs_iftc, fs_ifgh, fs_iffil, 
+     $                   fs_ifgrid
 
-      integer lxfs,lyfs,lzfs
+!     At the moment we seem to have a max limit of 84
+!     due to Nek internals      
+      integer lxfs,lyfs,lzfs,lxym
       parameter (lxfs = 50)          ! Global no. of points along x
       parameter (lyfs = 50)          ! Global no. of points along y
       parameter (lzfs = 1)           ! Global no. of points along z
+      parameter (lxym=max(lxfs,lyfs))! Maximum of lxfs,lyfs
 
       real zx_fs(lxfs),wx_fs(lxfs)  ! x GLL and weights
       real zy_fs(lyfs),wy_fs(lyfs)  ! y GLL and weights
@@ -82,11 +88,37 @@
       real ym1_fs(lx1,ly1,lelv)
       real zm1_fs(lx1,ly1,lelv)
 
+!     These are not used at the moment.      
       real xi_fs(lx1*ly1*lelv)
       real yi_fs(lx1*ly1*lelv)
       real zi_fs(lx1*ly1*lelv)
 
       common /fs_locxy/ xm1_fs,ym1_fs,zm1_fs,xi_fs,yi_fs,zi_fs
+
+      real dx_fs(lxfs,lxfs)         ! derivative matrices
+      real dxt_fs(lyfs,lyfs)        ! derivative transpose matrices
+      real dy_fs(lxfs,lxfs)         ! derivative matrices
+      real dyt_fs(lyfs,lyfs)        ! derivative transpose matrices
+
+      real xr_fs(lxfs,lyfs)         ! dx/dr
+      real xs_fs(lxfs,lyfs)         ! dx/ds
+      real yr_fs(lxfs,lyfs)         ! dy/dr
+      real ys_fs(lxfs,lyfs)         ! dy/ds
+
+      real t1x_fs(lxfs,lyfs)      ! Tangential dir
+      real t1y_fs(lxfs,lyfs)      ! Tangential dir
+      real t2x_fs(lxfs,lyfs)      ! Tangential dir
+      real t2y_fs(lxfs,lyfs)      ! Tangential dir
+      real unx_fs(lxfs,lyfs)      ! Normal dir
+      real uny_fs(lxfs,lyfs)      ! Normal dir
+
+      real glfiltop_fs(lxym*lxym)   ! Global Filter op 
+
+
+      common /fs_derivm/ dx_fs,dxt_fs,dy_fs,dyt_fs,xr_fs,xs_fs,
+     $                   yr_fs,ys_fs,t1x_fs,t1y_fs,t2x_fs,t2y_fs,
+     $                   unx_fs,uny_fs,glfiltop_fs
+
 
       integer intgh_fs        ! Global mesh interpolation handle
       integer intlh_fs        ! SEM surface mesh interpolation handle
@@ -110,6 +142,8 @@
       integer fs_ifgsm_id          ! If Global Smoothening id
       integer fs_iftc_id           ! If Tangential Correction id
       integer fs_ifgh_id           ! If Gordan Hall Correction id
+      integer fs_iffil_id          ! If filter id
+      integer fs_ifgrid_id
       integer fs_log_id            ! Log id
 
       integer fs_log               ! Log Level
@@ -117,7 +151,7 @@
       common /fs_frame_id/ fs_id, fs_sec_id, fs_tmr_tot_id,
      $                     fs_tmr_ini_id, fs_ofst_id, fs_iffs_id, 
      $                     fs_ifgsm_id, fs_iftc_id, fs_ifgh_id,
-     $                     fs_log_id
+     $                     fs_iffil_id, fs_ifgrid_id, fs_log_id
 
       common /fs_frame_is/ fs_log
 

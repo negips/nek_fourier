@@ -529,6 +529,8 @@ c-----------------------------------------------------------------------
       integer e
       real iegr,pidr
 
+      integer iop,f
+
       nxyz  = lx1*ly1*lz1
       ntot1 = nxyz*nelv
       ntot2 = lx2*ly2*lz2*nelv
@@ -596,32 +598,36 @@ c-----------------------------------------------------------------------
         call fs_int_project(wx,wy,wz)
         call outpost(wx,wy,wz,pr,wz,'tst')
 
+!       testing        
+!        call get_global_normals(wx,wy,wz) 
+!        call fs_int_project(wx,wy,wz)
+        call opcopy(wx,wy,wz,vx,vy,vz)
+        call fs_mvmesh()
+        call outpost(wx,wy,wz,pr,wz,'tst')
+
+
+!       Extract tangents
+        iop = 1
+        do i=1,fs_nel
+           e=fs_elno(i)
+           f=fs_iface(i)
+           call  facexs (t1x(1,1,f,e),wx(1,1,1,e),f,iop)
+           call  facexs (t1y(1,1,f,e),wy(1,1,1,e),f,iop)
+        enddo
+!        call opcopy(wx,wy,wz,v1x,v1y,v1z)
+        call fs_int_project(wx,wy,wz)
+        call outpost(wx,wy,wz,pr,wz,'tst')
+
+        call opcopy(wx,wy,wz,vx,vy,vz)
+        call fs_mvmesh()
+        call fs_int_project(tmp1,tmp2,tmp3)
+        call copy(tmp3,tmp2,ntot1)
+        call localfilterfld(tmp3)
+        call dsavg(tmp3)
+        call outpost(tmp1,tmp2,tmp3,tmp4,tmp3,'tst')
+
         call exitt
 
-!!       Broadcast location of the free surface
-!!       At the moment we only need x coord for now      
-!        call copy(ta2,xm1,ntot1)
-!        call col2(ta2,fs_mask,ntot1)
-!        call fgslib_gs_op(fs_gs_handle,ta2,1,1,0)     ! 1 ==> +
-!        call col2(ta2,fs_vmult,ntot1)
-!
-!        ifield = 1
-!        call bcneusc_f3d(ta1,-1)
-!        call outpost(ta1,ta2,ta3,pr,ta3,'tst') 
-
-!        call opcopy(wx,wy,wz,vx,vy,vz)
-!        call outpost(wx,wy,wz,pr,t,'wxy')
-!        call fs_mvmesh
-!        call fs_mvmeshn(wx,wy,wz)
-!        call fs_smooth_meshmv(wx,wy,wz)
-!        call outpost(wx,wy,wz,pr,t,'wxy')
-
-!        call fs_global_basis
-!        call fs_gllo_flds(wx,wy,wz)
-!        call fs_intp_setup
-!        call fs_get_localpts
-!        call fs_get_globalpts
-!        call fs_restore_int
 
 !        call exitt
       endif  
@@ -652,4 +658,5 @@ c-----------------------------------------------------------------------
       return
       end subroutine writew3m2
 !---------------------------------------------------------------------- 
+
 

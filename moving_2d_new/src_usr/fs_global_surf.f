@@ -20,20 +20,36 @@
       save icalld
       data icalld /0/
 
-      if (.not.fs_ifgsm) return
+      integer i
 
-
+!     Generate the global basis anyway      
       if (icalld.eq.0) then
         call fs_global_basis
         icalld = icalld+1
       endif
 
-      call fs_gllo_xyz
-      call fs_gllo_flds(wx,wy,wz)
-      call fs_intp_setup
-      call fs_get_localpts
-      call fs_get_globalpts
-      call fs_restore_int(wx,wy,wz,'Norm')
+!     Zero out tangential component of mesh velocity
+      call fs_mvmeshn2(wx,wy,wz)
+
+      if (fs_ifgsm) then
+
+        call fs_gllo_xyz
+        call fs_gllo_flds(wx,wy,wz)
+        call fs_intp_setup
+        call fs_get_localpts          ! SEM -> Global
+
+!       Filtering here requires BOYD transformation to be active.
+!       Otherwise the boundary points move.
+!       Alternately, one could correct boundary points.      
+!!       Filter normal velocities
+!        if (fs_iffil) then
+!          do i=1,ndim
+!            call fs_glfilter(fld_fs(1,1,i))
+!          enddo  
+!        endif
+        call fs_get_globalpts         ! Global -> SEM
+        call fs_restore_int(wx,wy,wz,'Norm')
+      endif       ! fs_ifgsm 
 
 !     Correction for tangential movement to minimize
 !     mesh deformation
@@ -41,16 +57,334 @@
         call fs_tang_corr(wx,wy,wz)
       endif  
 
-!     Free the handles      
-      call fgslib_findpts_free(intgh_fs)
-      call fgslib_findpts_free(intlh_fs)
+!     Free the handles
+      if (fs_ifgsm) then 
+        call fgslib_findpts_free(intgh_fs)
+        call fgslib_findpts_free(intlh_fs)
 
-      call mntr_log(fs_id,fs_log,'Interface Smoothening Done')
+        call mntr_log(fs_id,fs_log,'Interface Smoothening Done')
+      endif  
 
       return
       end subroutine fs_smooth_meshmv
 !----------------------------------------------------------------------
+      subroutine fs_smoothmv(wx,wy,wz)
 
+!     Mesh motion using smooth normals/Tangentials        
+
+      implicit none
+
+      include 'SIZE'
+      include 'FS_ALE'
+
+      real wx(lx1,ly1,lz1,lelv),wy(lx1,ly1,lz1,lelv)
+      real wz(lx1,ly1,lz1,lelv)
+
+      integer icalld
+      save icalld
+      data icalld /0/
+
+      if (icalld.eq.0) then
+        call fs_global_basis
+        icalld = icalld+1
+      endif
+
+      call fs_smcoor_mv(wx,wy,wz)
+
+      call mntr_log(fs_id,fs_log,'Interface Smoothening Done')
+
+      return
+      end subroutine fs_smoothmv
+!----------------------------------------------------------------------
+      subroutine fs_smcoor_mv(wx,wy,wz)
+
+!     Here I approximate the coordinates using global polynomials and
+!     calculate the normals and tangential directions, which are
+!     globally smooth along the interface.
+
+      implicit none
+
+      include 'SIZE'
+      include 'GEOM'
+      include 'FS_ALE'
+
+!     Temporary arrays
+      real wk1,wk2,wk3,wk4,wk5,wk6,wk7
+      common /scrns3/ wk1(lx1,ly1,lz1,lelt),    ! Tangengial directions     
+     $               wk2(lx1,ly1,lz1,lelt),     ! Tangengial directions
+     $               wk3(lx1,ly1,lz1,lelt),     ! Tangengial directions
+     $               wk4(lx1,ly1,lz1,lelt),     ! Displacement x 
+     $               wk5(lx1,ly1,lz1,lelt),     ! Displacement y
+     $               wk6(lx1,ly1,lz1,lelt),     ! Displacement z
+     $               wk7(lx1,ly1,lz1,lelt)
+
+      integer ix,iy,ntot
+      integer i,e,j1,j2,j3
+
+      real wx(lx1,ly1,lz1,lelv),wy(lx1,ly1,lz1,lelv)
+      real wz(lx1,ly1,lz1,lelv)
+      
+      real wallvx(lx1*lelt),wallvy(lx1*lelt)
+
+      real xs,ys,ss
+      real xr,yr,rr
+
+      real s,p,r,tol
+
+!     Save corner point velocities      
+      do i = 1,fs_nsymo
+        e  = fs_ie(i)
+        j1 = fs_ix(i)
+        j2 = fs_iy(i)
+        j3 = fs_iz(i)
+        wallvx(i) = wx(j1,j2,j3,e)
+        wallvy(i) = 0.0
+      enddo  
+
+      call opcopy(wk1,wk2,wk3,xm1,ym1,zm1)
+
+      call fs_gllo_xyz
+      call fs_gllo_flds(wk1,wk2,wk3)
+      call fs_intp_setup
+      call fs_get_localpts          ! SEM -> Global
+
+!     We could filter coordinates
+!     Or we could filter normals/tangentials      
+      if (fs_iffil) then
+        do i=1,ndim
+          call fs_glfilter(fld_fs(1,1,i))
+        enddo  
+      endif
+
+      call mxm (dx_fs,lxfs,fld_fs(1,1,1),lxfs,xr_fs,lyfs)   ! dx/dr
+      call mxm (dx_fs,lxfs,fld_fs(1,1,2),lxfs,yr_fs,lyfs)   ! dy/dr
+
+      call mxm (fld_fs(1,1,1),lxfs,dyt_fs,lyfs,xs_fs,lyfs)  ! dx/ds
+      call mxm (fld_fs(1,1,2),lxfs,dyt_fs,lyfs,ys_fs,lyfs)  ! dy/ds
+
+      do 100 iy=1,lyfs
+      do 100 ix=1,lxfs
+         xs  = xs_fs(ix,iy)
+         ys  = ys_fs(ix,iy)
+         xr  = xr_fs(ix,iy)
+         yr  = yr_fs(ix,iy)
+
+         ss  = sqrt( xs**2 + ys**2 )
+         rr  = sqrt( xr**2 + yr**2 )
+
+         t1x_fs(ix,iy)  =  xs / ss
+         t1y_fs(ix,iy)  =  ys / ss
+         unx_fs(ix,iy)  =  t1y_fs(ix,iy)
+         uny_fs(ix,iy)  = -t1x_fs(ix,iy)
+
+         if (ndim.eq.3) then
+           t2x_fs(ix,iy)  =  xr / rr
+           t2y_fs(ix,iy)  =  yr / rr
+!          Calculate normals for 3D
+         endif
+
+  100 continue
+
+
+      call copy(fld_fs(1,1,1),unx_fs,lxfs*lyfs)
+      call copy(fld_fs(1,1,2),uny_fs,lxfs*lyfs)
+!!     Remove high wavenumbers      
+!      if (fs_iffil) then
+!        do i=1,ndim
+!          call fs_glfilter(fld_fs(1,1,i))
+!        enddo  
+!      endif
+
+      call fs_get_globalpts         ! Global -> SEM
+      call fs_restore_int(wk1,wk2,wk3,'XYZN')
+      ntot = lx1*ly1*lz1*nelv
+      call unitvec(wk1,wk2,wk3,ntot)
+      if (ndim.eq.2) then
+        call vdot2(wk4,wk1,wk2,wx,wy,ntot)      ! dot product with normal dir
+        call opcopy(wx,wy,wz,wk1,wk2,wk3)       ! copy normals 
+        call col2(wx,wk4,ntot)                  ! normal velocities 
+        call col2(wy,wk4,ntot)                  ! normal velocities
+      else
+        call vdot3(wk4,wk1,wk2,wk3,wx,wy,wz,ntot) 
+
+      endif
+
+!     Tangential correction
+      if (fs_iftc) then
+        call copy(fld_fs(1,1,1),t1x_fs,lxfs*lyfs)
+        call copy(fld_fs(1,1,2),t1y_fs,lxfs*lyfs)
+!!       Remove high wavenumbers      
+!        if (fs_iffil) then
+!          do i=1,ndim
+!            call fs_glfilter(fld_fs(1,1,i))
+!          enddo  
+!        endif
+
+        call fs_get_globalpts         ! Global -> SEM
+        call fs_restore_int(wk1,wk2,wk3,'XYZT')
+        call unitvec(wk1,wk2,wk3,ntot)
+
+        tol = 1.0e-14
+        do i=1,ntot
+          p  = wy(i,1,1,1)    ! current velocity along y
+          s  = wk2(i,1,1,1)   ! tangential velocity along y
+          if (abs(s).gt.tol) then
+            r  = p/s
+          else
+            r  = 0.0
+          endif  
+          wx(i,1,1,1) = wx(i,1,1,1) - r*wk1(i,1,1,1)
+          wy(i,1,1,1) = wy(i,1,1,1) - r*wk2(i,1,1,1)
+          if (ndim.eq.3) wz(i,1,1,1) = wz(i,1,1,1) 
+     $                                - r*wk3(i,1,1,1)
+        enddo
+      endif       ! fs_iftc 
+
+!     Restore corner point velocities      
+      do i=1,fs_nsymo
+        e  = fs_ie(i)
+        j1 = fs_ix(i)
+        j2 = fs_iy(i)
+        j3 = fs_iz(i)
+
+        wx(j1,j2,j3,e) = wallvx(i)
+        wy(j1,j2,j3,e) = wallvy(i)
+      enddo   
+
+!     Free the handles      
+      call fgslib_findpts_free(intgh_fs)
+      call fgslib_findpts_free(intlh_fs)
+
+
+      return
+      end subroutine fs_smcoor_mv
+
+!---------------------------------------------------------------------- 
+
+      subroutine fs_mvmeshn2(ux,uy,uz)
+!     Only in 2D for now
+!     Project velocities on to Normal directions
+
+      implicit none
+
+      include 'SIZE'
+      include 'GEOM'
+      include 'INPUT'
+      include 'MASS'
+
+      include 'FS_ALE'
+      include 'TEST'
+
+      real ux(lx1,ly1,lz1,lelv)
+      real uy(lx1,ly1,lz1,lelv)
+      real uz(lx1,ly1,lz1,lelv)
+
+      integer i,n,nface
+      integer js1,js2,jf1,jf2,jskip1,jskip2,ifc,e
+      integer j1,j2,j3,nxyz
+      integer ifld
+
+      integer iop
+      real norx,nory,norz
+
+      real rnor,rtn1
+
+      character cb*3
+
+!     Temporary arrays
+      real wk1,wk2,wk3,wk4,wk5,wk6,wk7
+      common /scrns/ wk1(lx1,ly1,lz1,lelt),    ! Normal directions     
+     $               wk2(lx1,ly1,lz1,lelt),     ! Normal directions
+     $               wk3(lx1,ly1,lz1,lelt),     ! Normal directions
+     $               wk4(lx1,ly1,lz1,lelt),     ! Tangential directions 
+     $               wk5(lx1,ly1,lz1,lelt),     ! Tangential directions
+     $               wk6(lx1,ly1,lz1,lelt),     ! Tangential directions
+     $               wk7(lx1,ly1,lz1,lelt)
+
+      integer nsave
+      integer ies(2),ixs(2),iys(2)
+      save ies,ixs,iys,nsave
+      real wallvx(lx1*lelt),wallvy(lx1*lelt)
+      real tol
+      integer icalld
+      save icalld
+      data icalld /0/
+
+      ifld  = 1
+      nxyz  = lx1*ly1*lz1
+      n     = nxyz*nelv
+      nface = 2*ndim
+
+      do i = 1,fs_nsymo
+        e  = fs_ie(i)
+        j1 = fs_ix(i)
+        j2 = fs_iy(i)
+        j3 = fs_iz(i)
+        wallvx(i) = ux(j1,j2,j3,e)
+        wallvy(i) = 0.0
+      enddo  
+
+      call rzero3(wk1,wk2,wk3,n)
+
+      nface = 2*ndim
+      iop   = 1 
+      do i=1,fs_nel
+        e   = fs_elno(i)
+        ifc = fs_iface(i)
+        
+!       Get Normal directions      
+        call facexv(unx(1,1,ifc,e),uny(1,1,ifc,e),unz(1,1,ifc,e),
+     $              wk1(1,1,1,e),wk2(1,1,1,e),wk3(1,1,1,e),ifc,iop)
+      enddo
+      call dsavg(wk1)
+      call dsavg(wk2)
+      if (ndim.eq.3) call dsavg(wk3)
+!     Renormalize after dssum
+      call unitvec(wk1,wk2,wk3,n)
+      call fs_int_project(wk1,wk2,wk3)
+
+      do 200 i=1,fs_nel
+        e   = fs_elno(i)
+        ifc = fs_iface(i)
+        call facind2 (js1,jf1,jskip1,js2,jf2,jskip2,ifc)
+        do 220 j2=js2,jf2,jskip2
+        do 220 j1=js1,jf1,jskip1
+!         normal component
+          norx  =  wk1(j1,j2,1,e)
+          nory  =  wk2(j1,j2,1,e)
+          norz  =  0.0
+          if (ndim.eq.3) norz  =  wk3(j1,j2,1,e)
+
+          rnor = ux(j1,j2,1,e)*norx + uy(j1,j2,1,e)*nory
+     $           + uz(j1,j2,1,e)*norz             
+
+!         remove tangential component
+          ux(j1,j2,1,e) = rnor*norx
+          uy(j1,j2,1,e) = rnor*nory
+          if (ndim.eq.3) uz(j1,j2,1,e) = rnor*norz
+
+  220   continue                 
+  200 continue
+
+      call dsavg(ux)
+      call dsavg(uy)
+      if (ndim.eq.3) call dsavg(uz)
+
+      do i=1,fs_nsymo
+        e  = fs_ie(i)
+        j1 = fs_ix(i)
+        j2 = fs_iy(i)
+        j3 = fs_iz(i)
+
+        ux(j1,j2,j3,e) = wallvx(i)
+        uy(j1,j2,j3,e) = wallvy(i)
+      enddo   
+
+
+      return
+      end subroutine fs_mvmeshn2 
+!---------------------------------------------------------------------- 
+  
       subroutine fs_tang_corr(wx,wy,wz)
 
       implicit none
@@ -58,6 +392,7 @@
       include 'SIZE'
       include 'FS_ALE'
       include 'GEOM'
+      include 'MASS'
 
       include 'TEST'
       include 'SOLN'
@@ -67,11 +402,11 @@
      
       integer i,n
       integer e,j1,j2,j3
-      real p,s          ! sign
+      real p,s,r        ! 
       real mu           ! exponential decay
       real dy, tol
 
-      integer ifc,nface
+      integer ifc,nface,iop
       integer js1,js2,jf1,jf2,jskip1,jskip2
 
       character cb*3
@@ -87,49 +422,69 @@
      $               wk7(lx1,ly1,lz1,lelt)
 
 
-!      call fs_gllo_xyz
-!      call fs_intp_setup
 
       n = lx1*ly1*lz1*nelv
 
-      call opzero(wk1,wk2,wk3)
+      call rzero3(wk1,wk2,wk3,n)
       nface = 2*ndim
-      do e=1,nelv
-      do ifc=1,nface
-        cb  = fs_cbc(ifc,e)
-!       Change these conditions for actual case            
-        if (cb.eq.'INT') then
-          call facind2 (js1,jf1,jskip1,js2,jf2,jskip2,ifc)
-          i = 0
-          do j2=js2,jf2,jskip2
-          do j1=js1,jf1,jskip1
-            i = i + 1 
-            wk1(j1,j2,1,e) = t1x(i,1,ifc,e)
-            wk2(j1,j2,1,e) = t1y(i,1,ifc,e)
-            if (ndim.eq.3) wk3(j1,j2,1,e) = t1z(i,1,ifc,e)
-          enddo ! j2
-          enddo ! j1
-        endif                 
-      enddo
+      iop   = 1 
+      do i=1,fs_nel
+        e   = fs_elno(i)
+        ifc = fs_iface(i)
+        call facexv(t1x(1,1,ifc,e),t1y(1,1,ifc,e),t1z(1,1,ifc,e),
+     $              wk1(1,1,1,e),wk2(1,1,1,e),wk3(1,1,1,e),ifc,iop)
+
       enddo
       call dsavg(wk1)
       call dsavg(wk2)
       if (ndim.eq.3) call dsavg(wk3)
+!     Renormalize after dssum
+      call unitvec(wk1,wk2,wk3,n)
       call fs_int_project(wk1,wk2,wk3)
 
-!      call outpost(wk1,wk2,wk3,pr,wk3,'tst')
+      if (fs_ifgsm) then
+        call fs_gllo_flds(wk1,wk2,wk3)
+        call fs_get_localpts          ! SEM -> Global
+!       Remove high wavenumbers      
+        if (fs_iffil) then
+          do i=1,ndim
+            call fs_glfilter(fld_fs(1,1,i))
+          enddo  
+        endif
+        call fs_get_globalpts         ! Global -> SEM
+        call fs_restore_int(wk1,wk2,wk3,'Tang')    ! Tangential velocities
+        call unitvec(wk1,wk2,wk3,n)
+      endif       ! fs_ifgsm  
 
-      call fs_gllo_flds(wk1,wk2,wk3)
-      call fs_get_localpts
-      call fs_get_globalpts
-      call fs_restore_int(wk1,wk2,wk3,'Tang')    ! Tangential velocities
-
-!      call outpost(wk1,wk2,wk3,pr,wk3,'tst')
-
-      call opcopy(wk4,wk5,wk6,xm1,ym1,zm1)
-      call opsub2(wk4,wk5,wk6,xm0_fs,ym0_fs,zm0_fs) ! dx,dy,dz
-
+!      call opcopy(wk4,wk5,wk6,xm1,ym1,zm1)
+!      call opsub2(wk4,wk5,wk6,xm0_fs,ym0_fs,zm0_fs) ! dx,dy,dz
      
+      tol = 1.0e-14
+      do i=1,n
+        p  = wy(i,1,1,1)    ! current velocity along y
+        s  = wk2(i,1,1,1)   ! tangential velocity along y
+        if (abs(s).gt.tol) then
+          r  = p/s
+        else
+          r  = 0.0
+        endif  
+        wk7(i,1,1,1) = r    
+      enddo
+      
+!      call localfilterfld(wk7)
+!      call dsavg(wk7) 
+
+      call col2(wk1,wk7,n)
+      call col2(wk2,wk7,n)
+      if (ndim.eq.3) call col2(wk3,wk7,n)
+      
+!      call localfilterfld(wk1)
+!      call localfilterfld(wk2)
+!      if (ndim.eq.3) call localfilterfld(wk3)
+      call dsavg(wk1)
+      call dsavg(wk2)
+      if (ndim.eq.3) call dsavg(wk3)
+
 !     No correction for SYM/O points
       do i=1,fs_nsymo
         e  = fs_ie(i)
@@ -141,28 +496,9 @@
         wk3(j1,j2,j3,e) = 0.
       enddo  
 
-      mu = 0.1
-      tol = 1.0e-14
-      do i=1,n
-        dy          = wk5(i,1,1,1)
-        p           = wk2(i,1,1,1)
-        if (abs(p).gt.tol) then
-          s           = - p/abs(p)
-        else
-          s           = 0.0
-        endif  
-        wx(i,1,1,1) = wx(i,1,1,1) + s*mu*dy*wk1(i,1,1,1)
-        wy(i,1,1,1) = wy(i,1,1,1) + s*mu*dy*wk2(i,1,1,1)
-        if (ndim.eq.3) wz(i,1,1,1) = wz(i,1,1,1) + s*mu*dy*wk3(i,1,1,1)
-      enddo  
+      call fs_int_project(wk1,wk2,wk3)
 
-!      call outpost(wx,wy,wz,pr,wz,'tst')
-!     Add v2x,v2y...             
-
-!!     Free the handles      
-!      call fgslib_findpts_free(intgh_fs)
-!      call fgslib_findpts_free(intlh_fs)
-
+      call opsub2(wx,wy,wz,wk1,wk2,wk3)
 
       return
       end subroutine fs_tang_corr
@@ -175,6 +511,8 @@
       include 'FS_ALE'
 
       integer ix,iy,iz
+
+      real xs2,ys2,xs4,ys4
 
       call rzero(zx_fs,lxfs)
       call rzero(zy_fs,lxfs)
@@ -193,6 +531,10 @@
       else
         call copy(w2_fs,wx_fs,lxfs)
       endif
+
+!     Derivative matrices      
+      call dgll (dx_fs,dxt_fs,zx_fs,lxfs,lxfs)
+      call dgll (dy_fs,dyt_fs,zy_fs,lyfs,lyfs)
 
       return
       end subroutine fs_global_basis
@@ -289,6 +631,7 @@
       enddo             ! ifc
       enddo             ! e
 
+
       return
       end subroutine fs_gllo_xyz
 !----------------------------------------------------------------------
@@ -334,7 +677,7 @@
           do iz=kz1,kz2
           do iy=ky1,ky2
           do ix=kx1,kx2
-!            call getSnormal(s,ix,iy,iz,ifc,e)   ! surface normals
+!           call getSnormal(s,ix,iy,iz,ifc,e)   ! surface normals
             lfld_fs(ix,iy,ne,1)= wx(ix,iy,iz,e) ! ym1_fs(ix,iy,ne)**2
             lfld_fs(ix,iy,ne,2)= wy(ix,iy,iz,e) ! ym1_fs(ix,iy,ne)**2
             if (ndim.eq.3) lfld_fs(ix,iy,ne,1)= wz(ix,iy,iz,e)
@@ -509,7 +852,7 @@
      &                           fld_fs(1,1,i))
       enddo  
 
-      call mntr_log(fs_id,fs_log,'Get Global pts: Done')
+      call mntr_log(fs_id,fs_log,'Global -> SEM: Done')
 
       return
       end subroutine fs_get_globalpts
@@ -598,7 +941,7 @@
         endif  
       enddo  
 
-      call mntr_log(fs_id,fs_log,'Get Local pts: Done')
+      call mntr_log(fs_id,fs_log,'SEM -> Global: Done')
 
       return
       end subroutine fs_get_localpts
@@ -686,12 +1029,236 @@
      $      'Smooth projection error:',err
 
 !     We (almost) always want to see this error      
-      loglev = 7
+      loglev = fs_log
       call mntr_log(fs_id,loglev,str)
 
       return
       end subroutine fs_restore_int
 !----------------------------------------------------------------------
 
+      subroutine fs_glfilter(fld)
 
+      implicit none
+
+      include 'SIZE'
+!      include 'SOLN'
+!      include 'INPUT'         ! param(110),(111)
+      include 'TSTEP'         ! ifield
+      include 'MASS'          ! BM1
+      include 'FS_ALE'
+
+      real fld(1)       ! Field to filter
+
+      integer lm2
+      parameter (lm2=lxym*lxym)
+      real filterfcn(lm2)
+      real wght
+      integer kut
+
+      integer icalld
+      save icalld
+      data icalld /0/
+
+      kut = int(4*lxfs/8)+0
+
+      if (icalld.eq.0) then
+!       Create the filter transfer function
+        wght = 1.00
+        call fs_trns_fcn(filterfcn,kut,wght)
+
+!       Build the matrix to apply the filter function
+!       to an input field
+        call fs_filtermat(glfiltop_fs,filterfcn)
+
+!       Only initialize once    
+        icalld=icalld+1 
+      endif
+
+!     Apply the filter
+      call fs_filterfld(fld,glfiltop_fs,lxfs)
+
+      return
+      end subroutine fs_glfilter
+!---------------------------------------------------------------------- 
+      subroutine fs_trns_fcn(diag,kut,wght)
+
+      implicit none
+
+      include 'SIZE'
+      include 'FS_ALE'
+
+      real diag(lxym*lxym)
+      integer nx,k0,kut,kk,k
+
+      real amp,wght
+
+      nx = lxym
+      call ident   (diag,nx)
+
+      k0 = nx-kut
+      do k=k0+1,nx
+        kk = k+nx*(k-1)
+        amp = wght*((k-k0)*(k-k0)+0.)/(kut*kut+0.)     ! Normalized amplitude. quadratic growth
+        diag(kk) = 1.-amp
+      enddo
+
+c     Output normalized transfer function
+!      k0 = lxym+1
+!      if (nio.eq.0) then
+!        write(6,6) 'HPF :',((1.-diag(k)), k=1,lx1*lx1,k0)
+!   6    format(a8,16f9.6,6(/,8x,16f9.6))
+!      endif
+
+      return
+      end subroutine fs_trns_fcn
+
+!---------------------------------------------------------------------- 
+
+      subroutine fs_filtermat(op_mat,f_filter)
+
+c     Builds the operator for high pass filtering
+c     Transformation matrix from nodal to modal space.
+c     Applies f_filter to the the legendre coefficients
+c     Transforms back to nodal space
+c     Operation: V * f_filter * V^(-1)
+c     Where V is the transformation matrix from modal to nodal space
+
+      implicit none
+
+      include 'SIZE'
+      include 'FS_ALE'
+
+      integer lm2
+      parameter (lm2=lxym*lxym)
+
+      real f_filter(lm2)
+      real op_mat(lxym,lxym)
+
+      real ref_xmap(lm2)
+      real wk_xmap(lm2)
+
+      real wk1(lm2),wk2(lm2)
+      real indr(lxym),ipiv(lxym),indc(lxym)
+
+      real rmult(lxym)
+      integer ierr
+
+      call fs_speccoeff_init(ref_xmap)
+      
+      call copy(wk_xmap,ref_xmap,lm2)
+      call copy(wk1,wk_xmap,lm2)
+
+      call gaujordf  (wk1,lxym,lxym,indr,indc,ipiv,ierr,rmult)  ! xmap inverse
+
+      call mxm  (f_filter,lxym,wk1,lxym,wk2,lxym)        !          -1
+      call mxm  (wk_xmap,lxym,wk2,lxym,op_mat,lxym)      !     V D V
+
+      return
+      end
+
+!---------------------------------------------------------------------- 
+     
+      subroutine fs_speccoeff_init(ref_xmap)
+c     Initialise spectral coefficients
+c     For legendre transform
+
+      implicit none
+
+      include 'SIZE'
+      include 'WZ'
+      include 'FS_ALE'
+
+      integer lm2
+      parameter (lm2=lxym*lxym)
+
+c     local variables
+      integer i, j, k, n, nx, kj
+c     Legendre polynomial
+      real plegx(lxym)
+      real z
+      real ref_xmap(lm2)
+      real pht(lm2)
+
+c     Change of basis
+      logical ifboyd
+
+!     We don't want to change boundary values      
+      ifboyd = .false.
+
+      nx = lxym
+      kj = 0
+      n  = nx-1
+      do j=1,nx
+        z = zx_fs(j)
+        call legendre_poly(plegx,z,n)
+        kj = kj+1
+        pht(kj) = plegx(1)
+        kj = kj+1
+        pht(kj) = plegx(2)
+
+        if (ifboyd) then        ! change basis to preserve element boundary values
+          do k=3,nx
+             kj = kj+1
+             pht(kj) = plegx(k)-plegx(k-2)
+          enddo
+        else                    ! legendre basis    
+          do k=3,nx
+             kj = kj+1
+             pht(kj) = plegx(k)
+          enddo         
+        endif
+      enddo
+
+      call transpose (ref_xmap,nx,pht,nx)
+
+      return
+      end subroutine fs_speccoeff_init
+!---------------------------------------------------------------------- 
+      subroutine fs_filterfld(v,f,nx)
+
+c     Appies the operator f to field u
+c     using tensor operations
+c     v = f*u
+
+      implicit none
+
+      include 'SIZE'
+      include 'FS_ALE'
+
+      integer nxyz 
+      parameter (nxyz=lxfs*lyfs*lzfs)
+
+      real w1(nxyz),w2(nxyz)              ! work arrays
+      real v(nxyz)                        ! output fld
+      real u(nxyz)                        ! input fld
+
+      integer nx
+
+      real f(nx,nx),ft(nx,nx)             ! operator f and its transpose
+
+      integer e,i,j,k
+      integer nel
+
+!      call copy(v,u,nxyz)
+
+      call transpose(ft,nx,f,nx)
+
+!     Filter
+      call copy(w1,v,nxyz)
+      call mxm(f ,nx,w1,nx,w2,nx)
+      call mxm(w2,nx,ft,nx,w1,nx)         ! w1 is low pass filtered 
+
+!      call sub3(w2,u,w1,nxyz)
+!      call copy(v,w2,nxyz)
+      call copy(v,w1,nxyz) 
+
+      return
+      end subroutine fs_filterfld
+
+!---------------------------------------------------------------------- 
+
+
+
+
+!---------------------------------------------------------------------- 
 

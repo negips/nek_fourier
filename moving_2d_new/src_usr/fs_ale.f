@@ -292,11 +292,16 @@ c
 !     Zero out everything except the free surface      
       call opcopy(wx,wy,wz,vx,vy,vz)
 
-!     Zero out tangential component of the mesh velocity      
-      call fs_mvmeshn(wx,wy,wz)
-
-!     Project the interface velocity to a globally smooth space
-      call fs_smooth_meshmv(wx,wy,wz)
+      if (fs_ifgrid) then
+!       Directly get smooth normals/tangentials by global
+!       approximation of the interface.      
+        call fs_smoothmv(wx,wy,wz)
+      else
+!       Move mesh in the normal direction.
+!       With possible tangential correction.
+!       And projection to smooth field
+        call fs_smooth_meshmv(wx,wy,wz)
+      endif  
 
       call fs_int_project(wx,wy,wz)
 
@@ -352,7 +357,7 @@ c
       integer nsave
       integer ies(2),ixs(2),iys(2)
       save ies,ixs,iys,nsave
-      real wallvx(2),wallvy(2)
+      real wallvx(lx1*lelt),wallvy(lx1*lelt)
       real tol
       integer icalld
       save icalld
@@ -361,38 +366,6 @@ c
       ifld  = 1
       nxyz  = lx1*ly1*lz1
       nface = 2*ndim
-
-!      tol   = 1.0e-14
-!      if (icalld.eq.0) then
-!        nsave = 0
-!        fs_nsymo = 0
-!        call rzero(dummy1,nxyz*nelv)
-!        do 100 e=1,nelv
-!          do 100 ifc=1,nface
-!            cb  = cbc(ifc,e,ifld)
-!!           Change these conditions for actual case            
-!            if (cb.eq.'SYM'.or.cb.eq.'O  ') then
-!              call facind2 (js1,jf1,jskip1,js2,jf2,jskip2,ifc)
-!              do 120 j2=js2,jf2,jskip2
-!              do 120 j1=js1,jf1,jskip1
-!                dummy1(j1,j2,1,e) = dummy1(j1,j2,1,e)+1.0
-!                if (abs(dummy1(j1,j2,1,e)-2.0).lt.tol) then
-!                  nsave = nsave + 1
-!                  ies(nsave)    = e
-!                  ixs(nsave)    = j1
-!                  iys(nsave)    = j2
-!
-!                  fs_ie(nsave)  = e
-!                  fs_ix(nsave)  = j1
-!                  fs_iy(nsave)  = j2
-!                  fs_iz(nsave)  = 1
-!                  fs_nsymo      = nsave
-!                endif
-!  120         continue
-!            endif                 
-!  100     continue
-!        icalld = icalld + 1    
-!      endif       ! icalld
 
       do i = 1,fs_nsymo
         e  = fs_ie(i)
@@ -405,35 +378,25 @@ c
         
 
       do 200 e=1,nelv
-        do 200 ifc=1,nface
-          cb  = fs_cbc(ifc,e)
-          if (cb.eq.'INT') then
-            call facind2 (js1,jf1,jskip1,js2,jf2,jskip2,ifc)
-            i = 0
-            do 220 j2=js2,jf2,jskip2
-            do 220 j1=js1,jf1,jskip1
-               i = i + 1
-!!              normal component         
-!               rnor = ( ux(j1,j2,1,e)*vnx(j1,j2,1,e) +
-!     $                  uy(j1,j2,1,e)*vny(j1,j2,1,e) )
-!!              tangential compnent            
-!               rtn1 = ( ux(j1,j2,1,e)*v1x(j1,j2,1,e) +
-!     $                  uy(j1,j2,1,e)*v1y(j1,j2,1,e) )
-!!              remove tangential component
-!               ux(j1,j2,1,e) = rnor*vnx(j1,j2,1,e)
-!               uy(j1,j2,1,e) = rnor*vny(j1,j2,1,e)
-
-!              normal component         
-               rnor = ( ux(j1,j2,1,e)*unx(i,1,ifc,e) +
-     $                  uy(j1,j2,1,e)*uny(i,1,ifc,e) )
-!              remove tangential component
-               ux(j1,j2,1,e) = rnor*unx(i,1,ifc,e)
-               uy(j1,j2,1,e) = rnor*uny(i,1,ifc,e)
+      do 200 ifc=1,nface
+        cb  = fs_cbc(ifc,e)
+        if (cb.eq.'INT') then
+          call facind2 (js1,jf1,jskip1,js2,jf2,jskip2,ifc)
+          i = 0
+          do 220 j2=js2,jf2,jskip2
+          do 220 j1=js1,jf1,jskip1
+             i = i + 1
+!            normal component         
+             rnor = ( ux(j1,j2,1,e)*unx(i,1,ifc,e) +
+     $                uy(j1,j2,1,e)*uny(i,1,ifc,e) )
+!            remove tangential component
+             ux(j1,j2,1,e) = rnor*unx(i,1,ifc,e)
+             uy(j1,j2,1,e) = rnor*uny(i,1,ifc,e)
 
 
-  220        continue
-          endif                 
-  200   continue
+  220      continue
+        endif                 
+  200 continue
 
       call dsavg(ux)
       call dsavg(uy)
@@ -837,8 +800,8 @@ c
          ym = glmax(ym,1)
          if (ndim.eq.3) zm = glmax(zm,1)
 
-         if (nio.eq.0) write(6,1) xm,ym,zm,xx,yy,zz,kpass
-    1    format(1p6e12.4,' xyz repair',i2)
+!         if (nio.eq.0) write(6,1) xm,ym,zm,xx,yy,zz,kpass
+!    1    format(1p6e12.4,' xyz repair',i2)
 
       enddo
 
