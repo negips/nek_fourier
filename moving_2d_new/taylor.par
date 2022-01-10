@@ -6,26 +6,30 @@
 #PnPnFormulation = yes
 minNumProcesses = 1
 
-startFrom = taylorIC0.f00005
+#startFrom = taylorIC0.f00001
 #time=0 
 #stopAt = endTime
 #endTime = 400
 
 stopAt   = numsteps
-numSteps = 20000 
+numSteps = 40000 
 
-dt = 0.01
+dt = 0.02
 timeStepper = bdf3
 extrapolation = standard
 variableDt = no
-targetCFL = 0.4
+targetCFL = 5.0
 
 writeControl = TimeStep
-writeInterval = 10
+writeInterval = 100
 
-userParam01 = 1.0    # Perturbation amplitude
-userParam02 = 0      # writeInterval 1D statistics 
+userParam01 = 0.01    # Perturbation amplitude
+userParam02 = 0.0      # local filter weight 
 userParam03 = 2.00   # r0
+
+userParam04 = 1.00   # Number of local filter modes
+userParam05 = 0.00   # local filter weight
+
 
 filtering = hpfrt
 filterWeight = 10
@@ -40,7 +44,7 @@ equation = incompNS
 #numberOfPerturbations=2
 #solveBaseFlow = no
 stressFormulation = yes
-axiSymmetry = no
+axiSymmetry = yes
 swirl       = no
 
 
@@ -67,36 +71,36 @@ MOTION=user
 
 
 [_F3D]
-iff3d=yes
-ifcyl_f3d = no
-k_f3d = 0.00            # \beta
-slipl_f3d = 0.1         # Slip length
-blendl_f3d = 0.25       # Blending length between free slip and Dirichlet
-log_f3d = 1
+iff3d             = yes        # if 3d fourier?
+ifcyl_f3d         = yes         # If cylindrical coordinates
+k_f3d             = 0.00       # \beta
+slipl_f3d         = 0.05       # Slip length
+blendl_f3d        = 0.15       # Blending length between free slip and Dirichlet
+log_f3d           = 1
 
 
 [_FSALE]
-fs_iffs=yes
-fs_ifgsm=yes            # Global smoothening
-fs_iftc=yes             # tangential correction
-fs_ifgh=yes             # Gordon Hall Correction
-fs_iffil=no            # filter global interpolation
-fs_ifgrid=no            # approximate grid
-fs_ofst = 0.100         # damping offset
-fs_log  = 1
+fs_iffs           = yes          # If fs-ale motion?
+fs_ifgsm          = yes          # Global smoothening
+fs_iftc           = no           # tangential correction
+fs_ifgh           = yes          # Gordon Hall Correction
+fs_iffil          = no           # filter global interpolation
+fs_ifgrid         = no           # Approximate grid?
+fs_ofst           = 0.00         # damping offset
+fs_log            = 4
 
-[_TSTEPPER]             # Runtime paramere section for time stepper module
-MODE                 = DIR                    # Simulation mode
-STEPS                = 250                   # Length of stepper phase
-MAXCYC               = 2000                    # Max number of stepper cycles
-TOL                  = 1.00000000E-06         # Convergence threshold
-IFTST                = no                     # If enable?
+[_TSTEPPER]             # Runtime parameter section for time stepper module
+MODE              = DIR                    # Simulation mode
+STEPS             = 250                   # Length of stepper phase
+MAXCYC            = 2000                    # Max number of stepper cycles
+TOL               = 1.00000000E-06         # Convergence threshold
+IFTST             = no                     # If enable?
 #
-[_ARN_ARP]              # Runtime paramere section for Arnoldi ARPACK module
-NKRL                 = 30                    # Krylov space size
-NEGV                 = 10                     # Number of eigenvalues
-IFPR                 = yes                    # If pressure in arnoldi vector
-IFCOMPLEX            = yes                    # Use complex arithmetic (znaupd)
+[_ARN_ARP]              # Runtime parameter section for Arnoldi ARPACK module
+NKRL              = 30                    # Krylov space size
+NEGV              = 10                     # Number of eigenvalues
+IFPR              = yes                    # If pressure in arnoldi vector
+IFCOMPLEX         = yes                    # Use complex arithmetic (znaupd)
 
 
 

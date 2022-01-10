@@ -55,7 +55,10 @@
 !     mesh deformation
       if (fs_iftc) then
         call fs_tang_corr(wx,wy,wz)
-      endif  
+      endif
+
+!     make sure fluid does not come off the wall      
+      call fs_fixcorners(wx,wy,wz) 
 
 !     Free the handles
       if (fs_ifgsm) then 
@@ -129,7 +132,9 @@
       real xs,ys,ss
       real xr,yr,rr
 
-      real s,p,r,tol
+      real s,p,r,mu,dy,tol
+
+      integer tangcorr
 
 !     Save corner point velocities      
       do i = 1,fs_nsymo
@@ -210,34 +215,55 @@
       endif
 
 !     Tangential correction
+      tangcorr = 1            ! which tangential correction
       if (fs_iftc) then
-        call copy(fld_fs(1,1,1),t1x_fs,lxfs*lyfs)
-        call copy(fld_fs(1,1,2),t1y_fs,lxfs*lyfs)
-!!       Remove high wavenumbers      
-!        if (fs_iffil) then
-!          do i=1,ndim
-!            call fs_glfilter(fld_fs(1,1,i))
-!          enddo  
-!        endif
+          call copy(fld_fs(1,1,1),t1x_fs,lxfs*lyfs)
+          call copy(fld_fs(1,1,2),t1y_fs,lxfs*lyfs)
+!!         Remove high wavenumbers      
+!          if (fs_iffil) then
+!            do i=1,ndim
+!              call fs_glfilter(fld_fs(1,1,i))
+!            enddo  
+!          endif
 
-        call fs_get_globalpts         ! Global -> SEM
-        call fs_restore_int(wk1,wk2,wk3,'XYZT')
-        call unitvec(wk1,wk2,wk3,ntot)
+          call fs_get_globalpts         ! Global -> SEM
+          call fs_restore_int(wk1,wk2,wk3,'XYZT')
+          call unitvec(wk1,wk2,wk3,ntot)
 
-        tol = 1.0e-14
-        do i=1,ntot
-          p  = wy(i,1,1,1)    ! current velocity along y
-          s  = wk2(i,1,1,1)   ! tangential velocity along y
-          if (abs(s).gt.tol) then
-            r  = p/s
-          else
-            r  = 0.0
-          endif  
-          wx(i,1,1,1) = wx(i,1,1,1) - r*wk1(i,1,1,1)
-          wy(i,1,1,1) = wy(i,1,1,1) - r*wk2(i,1,1,1)
-          if (ndim.eq.3) wz(i,1,1,1) = wz(i,1,1,1) 
-     $                                - r*wk3(i,1,1,1)
-        enddo
+        if (tangcorr.eq.1) then
+          tol = 1.0e-14
+          do i=1,ntot
+            p  = wy(i,1,1,1)    ! current velocity along y
+            s  = wk2(i,1,1,1)   ! tangential velocity along y
+            if (abs(s).gt.tol) then
+              r  = p/s
+            else
+              r  = 0.0
+            endif  
+            wx(i,1,1,1) = wx(i,1,1,1) - r*wk1(i,1,1,1)
+            wy(i,1,1,1) = wy(i,1,1,1) - r*wk2(i,1,1,1)
+            if (ndim.eq.3) wz(i,1,1,1) = wz(i,1,1,1) 
+     $                                  - r*wk3(i,1,1,1)
+          enddo
+        elseif (tangcorr.eq.2) then
+!         Local point displacements      
+          call opcopy(wk4,wk5,wk6,xm1,ym1,zm1)
+          call opsub2(wk4,wk5,wk6,xm0_fs,ym0_fs,zm0_fs) ! dx,dy,dz
+     
+          tol = 1.0e-14
+          mu  = 0.1
+          do i=1,ntot
+            dy = wk5(i,1,1,1)   ! displacement along y
+            p  = wk2(i,1,1,1)   ! tangential velocity along y
+            if (abs(p).gt.tol) then
+              s  = -p/abs(p)
+            else
+              s  = 0.0
+            endif 
+            wk7(i,1,1,1) = s*mu*dy
+          enddo
+        endif
+
       endif       ! fs_iftc 
 
 !     Restore corner point velocities      
@@ -260,6 +286,95 @@
       end subroutine fs_smcoor_mv
 
 !---------------------------------------------------------------------- 
+      subroutine fs_mvmeshn(ux,uy,uz)
+!     Only in 2D for now
+!     Project velocities on to Normal directions
+
+      implicit none
+
+      include 'SIZE'
+      include 'GEOM'
+      include 'INPUT'
+      include 'MASS'
+
+      include 'FS_ALE'
+
+      real ux(lx1,ly1,lz1,lelv)
+      real uy(lx1,ly1,lz1,lelv)
+      real uz(lx1,ly1,lz1,lelv)
+
+      integer i,n,nface
+      integer js1,js2,jf1,jf2,jskip1,jskip2,ifc,e
+      integer j1,j2,j3,nxyz
+      integer ifld
+
+      real rnor,rtn1
+
+      character cb*3
+
+      real dummy1,dummy2,dummy3
+      common /scrsf/ dummy1(lx1,ly1,lz1,lelt),
+     $               dummy2(lx1,ly1,lz1,lelt),
+     $               dummy3(lx1,ly1,lz1,lelt)
+
+      real wallvx(lx1*lelt),wallvy(lx1*lelt)
+      real tol
+      integer icalld
+      save icalld
+      data icalld /0/
+
+      ifld  = 1
+      nxyz  = lx1*ly1*lz1
+      nface = 2*ndim
+
+      do i = 1,fs_nsymo
+        e  = fs_ie(i)
+        j1 = fs_ix(i)
+        j2 = fs_iy(i)
+        j3 = fs_iz(i)
+        wallvx(i) = ux(j1,j2,j3,e)
+        wallvy(i) = 0.0
+      enddo  
+        
+
+      do 200 e=1,nelv
+      do 200 ifc=1,nface
+        cb  = fs_cbc(ifc,e)
+        if (cb.eq.'INT') then
+          call facind2 (js1,jf1,jskip1,js2,jf2,jskip2,ifc)
+          i = 0
+          do 220 j2=js2,jf2,jskip2
+          do 220 j1=js1,jf1,jskip1
+             i = i + 1
+!            normal component         
+             rnor = ( ux(j1,j2,1,e)*unx(i,1,ifc,e) +
+     $                uy(j1,j2,1,e)*uny(i,1,ifc,e) )
+!            remove tangential component
+             ux(j1,j2,1,e) = rnor*unx(i,1,ifc,e)
+             uy(j1,j2,1,e) = rnor*uny(i,1,ifc,e)
+
+
+  220      continue
+        endif                 
+  200 continue
+
+      call dsavg(ux)
+      call dsavg(uy)
+
+      do i=1,fs_nsymo
+        e  = fs_ie(i)
+        j1 = fs_ix(i)
+        j2 = fs_iy(i)
+        j3 = fs_iz(i)
+
+        ux(j1,j2,j3,e) = wallvx(i)
+        uy(j1,j2,j3,e) = wallvy(i)
+      enddo   
+
+
+      return
+      end subroutine fs_mvmeshn        
+!---------------------------------------------------------------------- 
 
       subroutine fs_mvmeshn2(ux,uy,uz)
 !     Only in 2D for now
@@ -273,7 +388,6 @@
       include 'MASS'
 
       include 'FS_ALE'
-      include 'TEST'
 
       real ux(lx1,ly1,lz1,lelv)
       real uy(lx1,ly1,lz1,lelv)
@@ -301,9 +415,6 @@
      $               wk6(lx1,ly1,lz1,lelt),     ! Tangential directions
      $               wk7(lx1,ly1,lz1,lelt)
 
-      integer nsave
-      integer ies(2),ixs(2),iys(2)
-      save ies,ixs,iys,nsave
       real wallvx(lx1*lelt),wallvy(lx1*lelt)
       real tol
       integer icalld
@@ -336,12 +447,12 @@
         call facexv(unx(1,1,ifc,e),uny(1,1,ifc,e),unz(1,1,ifc,e),
      $              wk1(1,1,1,e),wk2(1,1,1,e),wk3(1,1,1,e),ifc,iop)
       enddo
-      call dsavg(wk1)
-      call dsavg(wk2)
-      if (ndim.eq.3) call dsavg(wk3)
+!      call dsavg(wk1)
+!      call dsavg(wk2)
+!      if (ndim.eq.3) call dsavg(wk3)
 !     Renormalize after dssum
-      call unitvec(wk1,wk2,wk3,n)
-      call fs_int_project(wk1,wk2,wk3)
+!      call unitvec(wk1,wk2,wk3,n)
+!      call fs_int_project(wk1,wk2,wk3)
 
       do 200 i=1,fs_nel
         e   = fs_elno(i)
@@ -356,7 +467,7 @@
           if (ndim.eq.3) norz  =  wk3(j1,j2,1,e)
 
           rnor = ux(j1,j2,1,e)*norx + uy(j1,j2,1,e)*nory
-     $           + uz(j1,j2,1,e)*norz             
+          if (ndim.eq.3) rnor = rnor + uz(j1,j2,1,e)*norz 
 
 !         remove tangential component
           ux(j1,j2,1,e) = rnor*norx
@@ -369,6 +480,7 @@
       call dsavg(ux)
       call dsavg(uy)
       if (ndim.eq.3) call dsavg(uz)
+
 
       do i=1,fs_nsymo
         e  = fs_ie(i)
@@ -384,8 +496,119 @@
       return
       end subroutine fs_mvmeshn2 
 !---------------------------------------------------------------------- 
-  
       subroutine fs_tang_corr(wx,wy,wz)
+
+      implicit none
+
+      include 'SIZE'
+      include 'FS_ALE'
+      include 'GEOM'
+      include 'MASS'
+
+      include 'TEST'
+      include 'SOLN'
+
+      real wx(lx1,ly1,lz1,lelv),wy(lx1,ly1,lz1,lelv)
+      real wz(lx1,ly1,lz1,lelv)
+     
+      integer i,n
+      integer e,j1,j2,j3
+      real p,s,r        ! 
+      real mu           ! exponential decay
+      real dy, tol
+
+      integer ifc,nface,iop
+      integer js1,js2,jf1,jf2,jskip1,jskip2
+
+      character cb*3
+
+!     Temporary arrays
+      real wk1,wk2,wk3,wk4,wk5,wk6,wk7
+      common /scrns3/ wk1(lx1,ly1,lz1,lelt),    ! Tangengial directions     
+     $               wk2(lx1,ly1,lz1,lelt),     ! Tangengial directions
+     $               wk3(lx1,ly1,lz1,lelt),     ! Tangengial directions
+     $               wk4(lx1,ly1,lz1,lelt),     ! Displacement x 
+     $               wk5(lx1,ly1,lz1,lelt),     ! Displacement y
+     $               wk6(lx1,ly1,lz1,lelt),     ! Displacement z
+     $               wk7(lx1,ly1,lz1,lelt)
+
+
+      n = lx1*ly1*lz1*nelv
+
+      call rzero3(wk1,wk2,wk3,n)
+      nface = 2*ndim
+      iop   = 1 
+      do i=1,fs_nel
+        e   = fs_elno(i)
+        ifc = fs_iface(i)
+        call facexv(t1x(1,1,ifc,e),t1y(1,1,ifc,e),t1z(1,1,ifc,e),
+     $              wk1(1,1,1,e),wk2(1,1,1,e),wk3(1,1,1,e),ifc,iop)
+
+      enddo
+!      call dsavg(wk1)
+!      call dsavg(wk2)
+!      if (ndim.eq.3) call dsavg(wk3)
+!!     Renormalize after dssum
+!      call unitvec(wk1,wk2,wk3,n)
+!      call fs_int_project(wk1,wk2,wk3)
+
+      if (fs_ifgsm) then
+        call fs_gllo_flds(wk1,wk2,wk3)
+        call fs_get_localpts          ! SEM -> Global
+!       Remove high wavenumbers      
+        if (fs_iffil) then
+          do i=1,ndim
+            call fs_glfilter(fld_fs(1,1,i))
+          enddo  
+        endif
+        call fs_get_globalpts         ! Global -> SEM
+        call fs_restore_int(wk1,wk2,wk3,'Tang')    ! Tangential velocities
+        call unitvec(wk1,wk2,wk3,n)
+      endif       ! fs_ifgsm  
+
+!      call opcopy(wk4,wk5,wk6,xm1,ym1,zm1)
+!      call opsub2(wk4,wk5,wk6,xm0_fs,ym0_fs,zm0_fs) ! dx,dy,dz
+     
+      tol = 1.0e-14
+      do i=1,n
+        p  = wy(i,1,1,1)    ! current velocity along y
+        s  = wk2(i,1,1,1)   ! tangential velocity along y
+        if (abs(s).gt.tol) then
+          r  = p/s
+        else
+          r  = 0.0
+        endif  
+        wk7(i,1,1,1) = r    
+      enddo
+      call col2(wk1,wk7,n)
+      call col2(wk2,wk7,n)
+      if (ndim.eq.3) call col2(wk3,wk7,n)
+      
+!      call localfilterfld(wk1)
+!      call localfilterfld(wk2)
+!      if (ndim.eq.3) call localfilterfld(wk3)
+      call dsavg(wk1)
+      call dsavg(wk2)
+      if (ndim.eq.3) call dsavg(wk3)
+
+!     No correction for SYM/O points
+      do i=1,fs_nsymo
+        e  = fs_ie(i)
+        j1 = fs_ix(i)
+        j2 = fs_iy(i)
+        j3 = fs_iz(i)
+        wk1(j1,j2,j3,e) = 0.
+        wk2(j1,j2,j3,e) = 0.
+        wk3(j1,j2,j3,e) = 0.
+      enddo  
+
+!      call fs_int_project(wk1,wk2,wk3)
+      call opsub2(wx,wy,wz,wk1,wk2,wk3)
+
+      return
+      end subroutine fs_tang_corr
+!----------------------------------------------------------------------
+      subroutine fs_tang_corr4(wx,wy,wz)
 
       implicit none
 
@@ -442,20 +665,6 @@
       call unitvec(wk1,wk2,wk3,n)
       call fs_int_project(wk1,wk2,wk3)
 
-      if (fs_ifgsm) then
-        call fs_gllo_flds(wk1,wk2,wk3)
-        call fs_get_localpts          ! SEM -> Global
-!       Remove high wavenumbers      
-        if (fs_iffil) then
-          do i=1,ndim
-            call fs_glfilter(fld_fs(1,1,i))
-          enddo  
-        endif
-        call fs_get_globalpts         ! Global -> SEM
-        call fs_restore_int(wk1,wk2,wk3,'Tang')    ! Tangential velocities
-        call unitvec(wk1,wk2,wk3,n)
-      endif       ! fs_ifgsm  
-
 !      call opcopy(wk4,wk5,wk6,xm1,ym1,zm1)
 !      call opsub2(wk4,wk5,wk6,xm0_fs,ym0_fs,zm0_fs) ! dx,dy,dz
      
@@ -470,38 +679,295 @@
         endif  
         wk7(i,1,1,1) = r    
       enddo
-      
+      call fs_int_project(wk7,wk7,wk7) 
 !      call localfilterfld(wk7)
 !      call dsavg(wk7) 
 
       call col2(wk1,wk7,n)
       call col2(wk2,wk7,n)
       if (ndim.eq.3) call col2(wk3,wk7,n)
-      
-!      call localfilterfld(wk1)
-!      call localfilterfld(wk2)
-!      if (ndim.eq.3) call localfilterfld(wk3)
+
+!!     No correction for SYM/O points
+!      do i=1,fs_nsymo
+!        e  = fs_ie(i)
+!        j1 = fs_ix(i)
+!        j2 = fs_iy(i)
+!        j3 = fs_iz(i)
+!        wk1(j1,j2,j3,e) = 0.
+!        wk2(j1,j2,j3,e) = 0.
+!        wk3(j1,j2,j3,e) = 0.
+!      enddo  
+
+      if (fs_ifgsm) then
+        call fs_gllo_flds(wk1,wk2,wk3)
+        call fs_get_localpts          ! SEM -> Global
+!       Remove high wavenumbers      
+        if (fs_iffil) then
+          do i=1,ndim
+            call fs_glfilter(fld_fs(1,1,i))
+          enddo  
+        endif
+        call fs_get_globalpts         ! Global -> SEM
+        call fs_restore_int(wk1,wk2,wk3,'Tang')    ! Tangential velocities
+        call unitvec(wk1,wk2,wk3,n)
+      endif       ! fs_ifgsm  
+
       call dsavg(wk1)
       call dsavg(wk2)
       if (ndim.eq.3) call dsavg(wk3)
 
-!     No correction for SYM/O points
-      do i=1,fs_nsymo
-        e  = fs_ie(i)
-        j1 = fs_ix(i)
-        j2 = fs_iy(i)
-        j3 = fs_iz(i)
-        wk1(j1,j2,j3,e) = 0.
-        wk2(j1,j2,j3,e) = 0.
-        wk3(j1,j2,j3,e) = 0.
-      enddo  
+!!     No correction for SYM/O points
+!      do i=1,fs_nsymo
+!        e  = fs_ie(i)
+!        j1 = fs_ix(i)
+!        j2 = fs_iy(i)
+!        j3 = fs_iz(i)
+!        wk1(j1,j2,j3,e) = 0.
+!        wk2(j1,j2,j3,e) = 0.
+!        wk3(j1,j2,j3,e) = 0.
+!      enddo  
 
       call fs_int_project(wk1,wk2,wk3)
 
       call opsub2(wx,wy,wz,wk1,wk2,wk3)
 
       return
-      end subroutine fs_tang_corr
+      end subroutine fs_tang_corr4
+!----------------------------------------------------------------------
+      subroutine fs_tang_corr2(wx,wy,wz)
+
+      implicit none
+
+      include 'SIZE'
+      include 'FS_ALE'
+      include 'GEOM'
+      include 'MASS'
+
+      include 'TEST'
+      include 'SOLN'
+
+      real wx(lx1,ly1,lz1,lelv),wy(lx1,ly1,lz1,lelv)
+      real wz(lx1,ly1,lz1,lelv)
+     
+      integer i,n
+      integer e,j1,j2,j3
+      real p,s,r        ! 
+      real mu           ! exponential decay
+      real dy, tol
+
+      integer ifc,nface,iop
+      integer js1,js2,jf1,jf2,jskip1,jskip2
+
+      character cb*3
+
+!     Temporary arrays
+      real wk1,wk2,wk3,wk4,wk5,wk6,wk7
+      common /scrns3/ wk1(lx1,ly1,lz1,lelt),    ! Tangengial directions     
+     $               wk2(lx1,ly1,lz1,lelt),     ! Tangengial directions
+     $               wk3(lx1,ly1,lz1,lelt),     ! Tangengial directions
+     $               wk4(lx1,ly1,lz1,lelt),     ! Displacement x 
+     $               wk5(lx1,ly1,lz1,lelt),     ! Displacement y
+     $               wk6(lx1,ly1,lz1,lelt),     ! Displacement z
+     $               wk7(lx1,ly1,lz1,lelt)
+
+
+
+      n = lx1*ly1*lz1*nelv
+
+      call rzero3(wk1,wk2,wk3,n)
+      nface = 2*ndim
+      iop   = 1 
+      do i=1,fs_nel
+        e   = fs_elno(i)
+        ifc = fs_iface(i)
+        call facexv(t1x(1,1,ifc,e),t1y(1,1,ifc,e),t1z(1,1,ifc,e),
+     $              wk1(1,1,1,e),wk2(1,1,1,e),wk3(1,1,1,e),ifc,iop)
+
+      enddo
+!      call dsavg(wk1)
+!      call dsavg(wk2)
+!      if (ndim.eq.3) call dsavg(wk3)
+!!     Renormalize after dssum
+!      call unitvec(wk1,wk2,wk3,n)
+!      call fs_int_project(wk1,wk2,wk3)
+
+!     If global smoothening      
+      if (fs_ifgsm) then
+        call fs_gllo_flds(wk1,wk2,wk3)
+        call fs_get_localpts          ! SEM -> Global
+!       Remove high wavenumbers      
+        if (fs_iffil) then
+          do i=1,ndim
+            call fs_glfilter(fld_fs(1,1,i))
+          enddo  
+        endif
+        call fs_get_globalpts         ! Global -> SEM
+        call fs_restore_int(wk1,wk2,wk3,'Tang')    ! Tangential velocities
+        call unitvec(wk1,wk2,wk3,n)
+      endif       ! fs_ifgsm
+!     wk1,wk2,wk3 should now be smooth.      
+
+!!     No corrections for SYM/O points
+!      do i=1,fs_nsymo
+!        e  = fs_ie(i)
+!        j1 = fs_ix(i)
+!        j2 = fs_iy(i)
+!        j3 = fs_iz(i)
+!        wk1(j1,j2,j3,e) = 0.
+!        wk2(j1,j2,j3,e) = 0.
+!        wk3(j1,j2,j3,e) = 0.
+!      enddo  
+
+
+!     Local point displacements      
+      call opcopy(wk4,wk5,wk6,xm1,ym1,zm1)
+      call opsub2(wk4,wk5,wk6,xm0_fs,ym0_fs,zm0_fs) ! dx,dy,dz
+     
+      tol = 1.0e-14
+      mu  = 0.1
+      do i=1,n
+        dy = wk5(i,1,1,1)   ! displacement along y
+        p  = wk2(i,1,1,1)   ! tangential velocity along y
+        if (abs(p).gt.tol) then
+          s  = -p/abs(p)
+        else
+          s  = 0.0
+        endif 
+        wk7(i,1,1,1) = s*mu*dy
+      enddo
+
+      call fs_int_project(wk7,wk7,wk7)
+!      call localfilterfld(wk7)
+      call dsavg(wk7) 
+
+      call addcol3(wx,wk1,wk7,n)
+      call addcol3(wy,wk2,wk7,n)
+      if (ndim.eq.3) call addcol3(wz,wk3,wk7,n)
+
+      return
+      end subroutine fs_tang_corr2
+!----------------------------------------------------------------------
+
+      subroutine fs_tang_corr3(wx,wy,wz)
+
+      implicit none
+
+      include 'SIZE'
+      include 'FS_ALE'
+      include 'GEOM'
+      include 'MASS'
+
+      include 'TEST'
+      include 'SOLN'
+
+      real wx(lx1,ly1,lz1,lelv),wy(lx1,ly1,lz1,lelv)
+      real wz(lx1,ly1,lz1,lelv)
+     
+      integer i,n
+      integer e,j1,j2,j3
+      real p,s,r        ! 
+      real mu           ! exponential decay
+      real dy, tol
+
+      integer ifc,nface,iop
+      integer js1,js2,jf1,jf2,jskip1,jskip2
+
+      character cb*3
+
+!     Temporary arrays
+      real wk1,wk2,wk3,wk4,wk5,wk6,wk7
+      common /scrns3/ wk1(lx1,ly1,lz1,lelt),    ! Tangengial directions     
+     $               wk2(lx1,ly1,lz1,lelt),     ! Tangengial directions
+     $               wk3(lx1,ly1,lz1,lelt),     ! Tangengial directions
+     $               wk4(lx1,ly1,lz1,lelt),     ! Displacement x 
+     $               wk5(lx1,ly1,lz1,lelt),     ! Displacement y
+     $               wk6(lx1,ly1,lz1,lelt),     ! Displacement z
+     $               wk7(lx1,ly1,lz1,lelt)
+
+
+
+      n = lx1*ly1*lz1*nelv
+
+      call rzero3(wk1,wk2,wk3,n)
+      nface = 2*ndim
+      iop   = 1 
+      do i=1,fs_nel
+        e   = fs_elno(i)
+        ifc = fs_iface(i)
+        call facexv(t1x(1,1,ifc,e),t1y(1,1,ifc,e),t1z(1,1,ifc,e),
+     $              wk1(1,1,1,e),wk2(1,1,1,e),wk3(1,1,1,e),ifc,iop)
+
+      enddo
+      call dsavg(wk1)
+      call dsavg(wk2)
+      if (ndim.eq.3) call dsavg(wk3)
+!     Renormalize after dssum
+      call unitvec(wk1,wk2,wk3,n)
+      call fs_int_project(wk1,wk2,wk3)
+
+!     Local point displacements      
+      call opcopy(wk4,wk5,wk6,xm1,ym1,zm1)
+      call opsub2(wk4,wk5,wk6,xm0_fs,ym0_fs,zm0_fs) ! dx,dy,dz
+     
+      tol = 1.0e-14
+      mu  = 0.1
+      do i=1,n
+        dy = wk5(i,1,1,1)   ! displacement along y
+        p  = wk2(i,1,1,1)   ! tangential velocity along y
+        if (abs(p).gt.tol) then
+          s  = -p/abs(p)
+        else
+          s  = 0.0
+        endif 
+        wk7(i,1,1,1) = s*mu*dy
+      enddo
+      call fs_int_project(wk7,wk7,wk7)
+
+      call col2(wk1,wk7,n)
+      call col2(wk2,wk7,n)
+      if (ndim.eq.3) call col2(wk3,wk7,n)
+
+!!     No (normal) corrections for SYM/O points
+!      do i=1,fs_nsymo
+!        e  = fs_ie(i)
+!        j1 = fs_ix(i)
+!        j2 = fs_iy(i)
+!        j3 = fs_iz(i)
+!        wk1(j1,j2,j3,e) = 0.
+!        wk2(j1,j2,j3,e) = 0.
+!        wk3(j1,j2,j3,e) = 0.
+!      enddo  
+
+!     If global smoothening      
+      if (fs_ifgsm) then
+        call fs_gllo_flds(wk1,wk2,wk3)
+        call fs_get_localpts          ! SEM -> Global
+!       Remove high wavenumbers      
+        if (fs_iffil) then
+          do i=1,ndim
+            call fs_glfilter(fld_fs(1,1,i))
+          enddo  
+        endif
+        call fs_get_globalpts         ! Global -> SEM
+        call fs_restore_int(wk1,wk2,wk3,'Tang')    ! Tangential velocities
+        call unitvec(wk1,wk2,wk3,n)
+      endif       ! fs_ifgsm  
+
+!!     No corrections for SYM/O points
+!      do i=1,fs_nsymo
+!        e  = fs_ie(i)
+!        j1 = fs_ix(i)
+!        j2 = fs_iy(i)
+!        j3 = fs_iz(i)
+!        wk1(j1,j2,j3,e) = 0.
+!        wk2(j1,j2,j3,e) = 0.
+!        wk3(j1,j2,j3,e) = 0.
+!      enddo  
+
+      call opadd2(wx,wy,wz,wk1,wk2,wk3)
+
+      return
+      end subroutine fs_tang_corr3
 !----------------------------------------------------------------------
       subroutine fs_global_basis
 
@@ -1059,7 +1525,7 @@
       save icalld
       data icalld /0/
 
-      kut = int(4*lxfs/8)+0
+      kut = int(lxfs/4)+0
 
       if (icalld.eq.0) then
 !       Create the filter transfer function
@@ -1256,9 +1722,33 @@ c     v = f*u
       end subroutine fs_filterfld
 
 !---------------------------------------------------------------------- 
+      subroutine fs_fixcorners(wx,wy,wz)
+
+      implicit none
+
+      include 'SIZE'
+      include 'FS_ALE'
+
+      integer i,e,j1,j2,j3
+      real wx(lx1,ly1,lz1,lelv),wy(lx1,ly1,lz1,lelv)
+      real wz(lx1,ly1,lz1,lelv)
+
+!     Save corner point velocities      
+      do i = 1,fs_nsymo
+        e  = fs_ie(i)
+        j1 = fs_ix(i)
+        j2 = fs_iy(i)
+        j3 = fs_iz(i)
+!        wallvx(i) = wx(j1,j2,j3,e)
+!        wallvy(i) = 0.0
+        wy(j1,j2,j3,e) = 0.0
+      enddo  
 
 
-
-
+      return
+      end subroutine fs_fixcorners        
 !---------------------------------------------------------------------- 
+
+
+
 

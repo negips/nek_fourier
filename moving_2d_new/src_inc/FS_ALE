@@ -55,8 +55,8 @@
 !     At the moment we seem to have a max limit of 84
 !     due to Nek internals      
       integer lxfs,lyfs,lzfs,lxym
-      parameter (lxfs = 50)          ! Global no. of points along x
-      parameter (lyfs = 50)          ! Global no. of points along y
+      parameter (lxfs = 30)          ! Global no. of points along x
+      parameter (lyfs = 30)          ! Global no. of points along y
       parameter (lzfs = 1)           ! Global no. of points along z
       parameter (lxym=max(lxfs,lyfs))! Maximum of lxfs,lyfs
 

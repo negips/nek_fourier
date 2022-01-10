@@ -322,98 +322,98 @@ c
       end subroutine fs_mvmesh        
 
 !-----------------------------------------------------------------------
-
-      subroutine fs_mvmeshn(ux,uy,uz)
-!     Only in 2D for now
-!     Project velocities on to Normal directions
-
-      implicit none
-
-      include 'SIZE'
-      include 'GEOM'
-      include 'INPUT'
-      include 'MASS'
-
-      include 'FS_ALE'
-
-      real ux(lx1,ly1,lz1,lelv)
-      real uy(lx1,ly1,lz1,lelv)
-      real uz(lx1,ly1,lz1,lelv)
-
-      integer i,n,nface
-      integer js1,js2,jf1,jf2,jskip1,jskip2,ifc,e
-      integer j1,j2,j3,nxyz
-      integer ifld
-
-      real rnor,rtn1
-
-      character cb*3
-
-      real dummy1,dummy2,dummy3
-      common /scrsf/ dummy1(lx1,ly1,lz1,lelt),
-     $               dummy2(lx1,ly1,lz1,lelt),
-     $               dummy3(lx1,ly1,lz1,lelt)
-
-      integer nsave
-      integer ies(2),ixs(2),iys(2)
-      save ies,ixs,iys,nsave
-      real wallvx(lx1*lelt),wallvy(lx1*lelt)
-      real tol
-      integer icalld
-      save icalld
-      data icalld /0/
-
-      ifld  = 1
-      nxyz  = lx1*ly1*lz1
-      nface = 2*ndim
-
-      do i = 1,fs_nsymo
-        e  = fs_ie(i)
-        j1 = fs_ix(i)
-        j2 = fs_iy(i)
-        j3 = fs_iz(i)
-        wallvx(i) = ux(j1,j2,j3,e)
-        wallvy(i) = 0.0
-      enddo  
-        
-
-      do 200 e=1,nelv
-      do 200 ifc=1,nface
-        cb  = fs_cbc(ifc,e)
-        if (cb.eq.'INT') then
-          call facind2 (js1,jf1,jskip1,js2,jf2,jskip2,ifc)
-          i = 0
-          do 220 j2=js2,jf2,jskip2
-          do 220 j1=js1,jf1,jskip1
-             i = i + 1
-!            normal component         
-             rnor = ( ux(j1,j2,1,e)*unx(i,1,ifc,e) +
-     $                uy(j1,j2,1,e)*uny(i,1,ifc,e) )
-!            remove tangential component
-             ux(j1,j2,1,e) = rnor*unx(i,1,ifc,e)
-             uy(j1,j2,1,e) = rnor*uny(i,1,ifc,e)
-
-
-  220      continue
-        endif                 
-  200 continue
-
-      call dsavg(ux)
-      call dsavg(uy)
-
-      do i=1,fs_nsymo
-        e  = fs_ie(i)
-        j1 = fs_ix(i)
-        j2 = fs_iy(i)
-        j3 = fs_iz(i)
-
-        ux(j1,j2,j3,e) = wallvx(i)
-        uy(j1,j2,j3,e) = wallvy(i)
-      enddo   
-
-
-      return
-      end subroutine fs_mvmeshn        
+!
+!      subroutine fs_mvmeshn(ux,uy,uz)
+!!     Only in 2D for now
+!!     Project velocities on to Normal directions
+!
+!      implicit none
+!
+!      include 'SIZE'
+!      include 'GEOM'
+!      include 'INPUT'
+!      include 'MASS'
+!
+!      include 'FS_ALE'
+!
+!      real ux(lx1,ly1,lz1,lelv)
+!      real uy(lx1,ly1,lz1,lelv)
+!      real uz(lx1,ly1,lz1,lelv)
+!
+!      integer i,n,nface
+!      integer js1,js2,jf1,jf2,jskip1,jskip2,ifc,e
+!      integer j1,j2,j3,nxyz
+!      integer ifld
+!
+!      real rnor,rtn1
+!
+!      character cb*3
+!
+!      real dummy1,dummy2,dummy3
+!      common /scrsf/ dummy1(lx1,ly1,lz1,lelt),
+!     $               dummy2(lx1,ly1,lz1,lelt),
+!     $               dummy3(lx1,ly1,lz1,lelt)
+!
+!      integer nsave
+!      integer ies(2),ixs(2),iys(2)
+!      save ies,ixs,iys,nsave
+!      real wallvx(lx1*lelt),wallvy(lx1*lelt)
+!      real tol
+!      integer icalld
+!      save icalld
+!      data icalld /0/
+!
+!      ifld  = 1
+!      nxyz  = lx1*ly1*lz1
+!      nface = 2*ndim
+!
+!      do i = 1,fs_nsymo
+!        e  = fs_ie(i)
+!        j1 = fs_ix(i)
+!        j2 = fs_iy(i)
+!        j3 = fs_iz(i)
+!        wallvx(i) = ux(j1,j2,j3,e)
+!        wallvy(i) = 0.0
+!      enddo  
+!        
+!
+!      do 200 e=1,nelv
+!      do 200 ifc=1,nface
+!        cb  = fs_cbc(ifc,e)
+!        if (cb.eq.'INT') then
+!          call facind2 (js1,jf1,jskip1,js2,jf2,jskip2,ifc)
+!          i = 0
+!          do 220 j2=js2,jf2,jskip2
+!          do 220 j1=js1,jf1,jskip1
+!             i = i + 1
+!!            normal component         
+!             rnor = ( ux(j1,j2,1,e)*unx(i,1,ifc,e) +
+!     $                uy(j1,j2,1,e)*uny(i,1,ifc,e) )
+!!            remove tangential component
+!             ux(j1,j2,1,e) = rnor*unx(i,1,ifc,e)
+!             uy(j1,j2,1,e) = rnor*uny(i,1,ifc,e)
+!
+!
+!  220      continue
+!        endif                 
+!  200 continue
+!
+!      call dsavg(ux)
+!      call dsavg(uy)
+!
+!      do i=1,fs_nsymo
+!        e  = fs_ie(i)
+!        j1 = fs_ix(i)
+!        j2 = fs_iy(i)
+!        j3 = fs_iz(i)
+!
+!        ux(j1,j2,j3,e) = wallvx(i)
+!        uy(j1,j2,j3,e) = wallvy(i)
+!      enddo   
+!
+!
+!      return
+!      end subroutine fs_mvmeshn        
 !---------------------------------------------------------------------- 
 
       subroutine fs_projt(ux,uy,uz,tdir)
