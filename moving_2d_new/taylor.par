@@ -6,7 +6,7 @@
 #PnPnFormulation = yes
 minNumProcesses = 1
 
-#startFrom = taylorIC0.f00001
+startFrom = taylorIC0.f00003
 #time=0 
 #stopAt = endTime
 #endTime = 400

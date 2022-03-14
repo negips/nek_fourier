@@ -24,8 +24,8 @@
       re2   = "channelp.re2"
       map   = "channelp.ma2"
 #      fld   = "inttaylor0.f00001"
-      fld1   = "ghltaylor0.f00001"
-      fld2   = "ghltaylor0.f00002"
+      fld1   = "tsttaylor0.f00001"
+      fld2   = "tsttaylor0.f00002"
 
 #      hdr,version,nelgt,ldimr,nelgv,xc,yc,ncurve,curveieg,curveiside,curveparam,curvetype,cbl,bl = JNek_IO.read_re2(re2,nid0)
 

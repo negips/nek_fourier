@@ -529,7 +529,7 @@ c-----------------------------------------------------------------------
       real           sm2  (lx2*ly2*lz2,lelv)
       real           tm2  (lx2*ly2*lz2,lelv)
 
-      integer e
+      integer e,ifc,iop
       real iegr,pidr
 
       nxyz  = lx1*ly1*lz1
@@ -590,7 +590,31 @@ c-----------------------------------------------------------------------
         enddo
         call outpost(ta1,ta2,ta3,pr,ta3,'eln') 
 
+!       tangents/normals        
         call rzero3(ta1,ta2,ta3,ntot1)
+        do i=1,fs_nel
+          e   = fs_elno(i)
+          ifc = fs_iface(i)
+          
+!         Get Normal directions      
+          call facexv(unx(1,1,ifc,e),uny(1,1,ifc,e),unz(1,1,ifc,e),
+     $                ta1(1,e),ta2(1,e),ta3(1,e),ifc,iop)
+        enddo
+!        call fs_int_project(ta1,ta2,ta3)
+        call outpost(ta1,ta2,ta3,pr,ta3,'tst')
+
+        call rzero3(ta1,ta2,ta3,ntot1)
+        do i=1,fs_nel
+          e   = fs_elno(i)
+          ifc = fs_iface(i)
+          
+!         Get Normal directions      
+          call facexv(t1x(1,1,ifc,e),t1y(1,1,ifc,e),t1z(1,1,ifc,e),
+     $                ta1(1,e),ta2(1,e),ta3(1,e),ifc,iop)
+        enddo
+!        call fs_int_project(ta1,ta2,ta3)
+        call outpost(ta1,ta2,ta3,pr,ta3,'tst')
+
 
 !!       Broadcast location of the free surface
 !!       At the moment we only need x coord for now      
@@ -617,7 +641,7 @@ c-----------------------------------------------------------------------
 !        call fs_get_globalpts
 !        call fs_restore_int
 
-!        call exitt
+        call exitt
       endif  
 
 !      write(6,*) iflmsf(1),iflmse(1),iflmsc(1) 

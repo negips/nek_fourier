@@ -1,0 +1,718 @@
+c- constants -----------------------------------------------------------
+
+! #define tSTATSTART uparam(1) /* start time for averaging */
+! #define tSTATFREQ  uparam(2) /* output frequency for statistics */
+
+c data extraction along wall normal direction
+! #define INTP_NMAX 200 /* number of sample points */
+! #define XCINT 1.0     /* x coordinate of 1D line*/
+! #define ZCINT 1.0     /* z coordinate of 1D line */
+
+c mesh dimensions
+! #define BETAM 2.4     /* wall normal stretching parameter */
+! #define PI (4.*atan(1.))
+! #define XLEN (2.*PI)
+! #define ZLEN PI
+! #define NUMBER_ELEMENTS_X 16
+! #define NUMBER_ELEMENTS_Y 12
+! #define NUMBER_ELEMENTS_Z 8
+
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e
+
+      utrans = 1.
+      udiff  = param(2)
+
+      if (ifield .eq. 2) then
+         e = gllel(ieg)
+         udiff = param(8)
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,ieg)
+
+      implicit none        
+  
+      include 'SIZE'
+      include 'NEKUSE'
+
+      integer ix,iy,iz,ieg
+
+      if (ndim.eq.2) then
+        ffx = 0.01
+        ffy = 0.0
+        ffz = 0.0
+      else
+        ffx = 0.0
+        ffy = 0.01
+        ffz = 0.0
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      qvol =  0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+
+      implicit none
+
+      include 'SIZE'
+      include 'GEOM'
+      include 'SOLN'
+      include 'MVGEOM'
+      include 'INPUT'
+      include 'TSTEP'
+!      include 'TOTAL'
+      include 'MASS'
+
+      include 'F3D'
+      include 'FS_ALE'
+
+      include 'TEST'
+
+      integer ntot1,ntot2
+      integer i,j
+
+      integer igeom
+      character cb*3
+      integer ie,iface,nfaces
+
+
+      if (istep.eq.0) then
+        call frame_start
+            
+!        call gen_mapping_mvb
+       
+      endif  
+
+      call frame_monitor
+
+      ifto = .true.
+
+      ntot1 = lx1*ly1*lz1*nelv
+      ntot2 = lx2*ly2*lz2*lelv
+
+
+      if (istep.eq.0) then
+!        call outpost(tmp1,tmp2,tmp3,pr,tmp3,'ini')
+!        call copy(vz,t,ntot1)
+       
+!        call initp_f3d
+!        ifheat = .false.
+
+      endif
+
+      if (istep.gt.0) then
+        call copy(t,vz,ntot1)
+      endif  
+
+      call test_random
+
+      if (fs_iffs) call fs_mvmesh()
+!      call rzero3(wx,wy,wz,ntot1)
+
+      if (istep.eq.nsteps.or.lastep.eq.1) then
+        call frame_end
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,ieg)
+
+      implicit none
+
+      include 'SIZE'
+      include 'NEKUSE'
+      include 'GEOM'
+
+      integer ix,iy,iz,iside,ieg
+      real pi
+
+      integer jp
+      common /ppointr/ jp
+
+      real rmid
+
+      real glmin,glmax
+      integer n
+
+      real rad1,rad2,omega1,omega2
+      real a1,a2
+      common /cylindrical/ rad1,rad2,omega1,omega2,a1,a2
+
+
+      if (jp.eq.0) then
+        ux   = 0.0
+        uy   = 0.0
+        uz   = 0.0
+
+        rmid = (rad1+rad2)/2
+        if (ndim.eq.3) then
+          if (z.lt.(rmid)) ux = 1.0
+        else
+          if (y.lt.(rmid)) uz = 1.0
+        endif       
+!        temp = 0.0
+!        temp = a1*y + a2/y
+      else
+        ux   = 0.0
+        uy   = 0.0
+        uz   = 0.0
+        temp = 0.0
+      endif  
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+
+      implicit none
+
+      include 'SIZE'
+      include 'INPUT'         ! if3d
+      include 'PARALLEL'
+      include 'NEKUSE'
+      include 'GEOM'
+
+      include 'F3D'
+
+      integer ix,iy,iz,ieg
+      real pi
+
+      integer jp
+      common /ppointr/ jp
+
+      real fcoeff(3)
+      real xl(3)
+      real mth_ran_dst
+
+      logical ifcouette
+      logical ifpoiseuille
+      logical iftaylor
+      logical iftestmvb
+
+      integer isave
+      save isave
+      data isave /0/
+
+      real glmin,glmax
+      integer n
+
+      real rad1,rad2,omega1,omega2
+      real a1,a2
+      common /cylindrical/ rad1,rad2,omega1,omega2,a1,a2
+
+      real rmid
+
+      ifcouette         = .false.
+      ifpoiseuille      = .false.
+      iftaylor          = .false.
+      iftestmvb         = .false.
+
+      pi = 4.0*atan(1.0)
+
+
+      if (jp.eq.0) then
+
+        if (ifpoiseuille) then
+          ux = 1.0 - y**2
+          uy = 0.
+          uz = 0.0 + 0.0
+        elseif (ifcouette) then
+          ux = 0.0 + 1.0*y
+          uy = 0.
+          uz = 0.0 + 0.0
+        elseif (iftaylor) then
+!          ux = 0.0 + 0.0
+!          uy = 0.
+!          uz = a1*y + a2/y
+!         Testing  
+          temp = 0.01*(a2*y + a1/y)   ! just testing
+          ux   = temp
+          uy   = temp
+        elseif (iftestmvb) then
+          rmid = (rad1+rad2)/2.0
+          ux   = -uparam(1)*exp(-((y-rmid)/0.25)**2)
+          uy   = -0.1*uparam(1)*exp(-((y-rmid)/0.25)**2)
+          uz   = 0.1*(a1*y + a2/y)   ! just testing
+!          temp = 0.01*(a1*y + a2/y)   ! just testing
+        elseif (if3d) then
+          ux   = -uparam(1)*exp(-((y-rmid)/0.25)**2)
+          uy   = -0.1*uparam(1)*exp(-((y-rmid)/0.25)**2)
+          uz   = 0.1*(a1*y + a2/y)   ! just testing
+        endif  
+      else
+
+!       perturbation; white noise
+        xl(1) = X
+        xl(2) = Y
+        if (IF3D.or.iff3d) xl(3) = Y+X
+        
+        if (jp.eq.1) then
+          fcoeff(1)=  3.0e4
+          fcoeff(2)= -1.5e3
+          fcoeff(3)=  0.5e5
+        else
+          fcoeff(1)=  9.0e4
+          fcoeff(2)=  1.5e3
+          fcoeff(3)= -2.5e5
+        endif          
+        ux=UPARAM(1)*mth_ran_dst(ix,iy,iz,ieg,xl,fcoeff)
+        if (jp.eq.1) then
+          fcoeff(1)=  2.3e4
+          fcoeff(2)=  2.3e3
+          fcoeff(3)= -2.0e5
+        else
+          fcoeff(1)=  1.3e4
+          fcoeff(2)= -5.8e3
+          fcoeff(3)= -1.9e5
+        endif
+        uy=UPARAM(1)*mth_ran_dst(ix,iy,iz,ieg,xl,fcoeff)
+        if (IF3D.or.iff3d) then
+           if (jp.eq.1) then           
+             fcoeff(1)= 2.e4
+             fcoeff(2)= 1.e3
+             fcoeff(3)= 1.e5
+           else
+             fcoeff(1)= -1.9e4
+             fcoeff(2)= -8.0e3
+             fcoeff(3)=  3.2e5
+           endif 
+           uz=UPARAM(1)*mth_ran_dst(ix,iy,iz,ieg,xl,fcoeff)
+        else
+           uz = 0.0
+        endif
+
+      endif
+
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat   ! This routine to modify element vertices
+
+      implicit none  
+  
+      include 'SIZE'      ! _before_ mesh is generated, which 
+      include 'INPUT'
+      include 'GEOM'
+      include 'TSTEP'
+!      include 'TOTAL'     ! guarantees GLL mapping of mesh.
+
+      integer n,i,j
+      real r0
+
+!      ifaxis = .true.   ! just for initialization
+      param(42)=1       ! 0: GMRES (nonsymmetric), 1: PCG w/o weights
+      param(43)=1       ! 0: Additive multilevel (param 42=0), 1: Original 2 level
+      param(44)=1       ! 0: E based Schwartz, 1: A based Schwartz
+
+      n = nelv * 2**ldim
+!      xmin = glmin(xc,n)
+!      xmax = glmax(xc,n)
+!      ymin = glmin(yc,n)
+!      ymax = glmax(yc,n)
+!      zmin = glmin(zc,n)
+!      zmax = glmax(zc,n)
+!
+!      xscale = XLEN/(xmax-xmin)
+!      yscale = 1./(ymax-ymin)
+!      zscale = ZLEN/(zmax-zmin)
+
+      pi = 4.*atan(1.0)
+
+      if (abs(uparam(3)).gt.1.0e-6) then
+        r0   = abs(uparam(3))
+      endif
+
+      if (nio.eq.0) write(6,*) 'R0:', r0
+
+      do j=1,nelv
+      do i=1,2**ldim
+        if (if3d) then
+          zc(i,j) = zc(i,j) + r0
+        else
+          yc(i,j) = yc(i,j) + r0
+        endif  
+      enddo
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2   ! This routine to modify mesh coordinates
+
+
+      include 'SIZE'
+      include 'TOTAL'
+
+
+!      call outpost(vx,vy,vz,pr,t,'   ')
+
+!      do iel=1,nelt
+!      do ifc=1,2*ndim
+!         if (cbc(ifc,iel,1) .eq. 'W  ') boundaryID(ifc,iel) = 1 
+!         cbc(ifc,iel,2) = cbc(ifc,iel,1) 
+!         if (cbc(ifc,iel,1) .eq. 'W  ') cbc(ifc,iel,2) = 't  '
+!      enddo
+!      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+
+      implicit none        
+
+      include 'SIZE'
+      include 'SOLN'    ! tmult
+      include 'INPUT'
+      include 'GEOM'
+
+      integer n
+      real rad1,rad2,omega1,omega2
+      real a1,a2
+      common /cylindrical/ rad1,rad2,omega1,omega2,a1,a2
+
+      real glmin,glmax
+
+
+!      call gen_mapping_mvb
+
+      n = lx1*ly1*lz1*nelv
+      if (if3d) then
+        rad1 = glmin(zm1,n)
+        rad2 = glmax(zm1,n)
+      else
+        rad1 = glmin(ym1,n)
+        rad2 = glmax(ym1,n)
+      endif        
+      omega1 = 1.0/rad1
+      omega2 = 0.0
+      a1 = (omega2*(rad2**2) - omega1*rad1*rad1)/(rad2**2 - rad1**2)
+      a2 = (omega1 - omega2)*(rad1**2)*(rad2**2)/(rad2**2 - rad1**2)
+
+      if (nio.eq.0) write(6,*) 'Cylindrical Params:', rad1,rad2,a1,a2
+
+      return
+      end
+c-----------------------------------------------------------------------
+!=======================================================================
+!> @brief Register user specified modules
+      subroutine frame_usr_register
+      implicit none
+
+      include 'SIZE'
+      include 'FRAMELP'
+
+!     register modules
+      call io_register
+      call chkpt_register
+      call frame_register_f3d
+      call frame_register_fs
+      call tst_register
+
+      return
+      end subroutine
+!======================================================================
+!> @brief Initialise user specified modules
+      subroutine frame_usr_init
+      implicit none
+
+      include 'SIZE'
+      include 'FRAMELP'
+
+!     initialise modules
+      call chkpt_init
+      call frame_get_param_f3d
+      call frame_get_param_fs
+      call tst_init
+
+      return
+      end subroutine
+!======================================================================
+!> @brief Finalise user specified modules
+      subroutine frame_usr_end
+      implicit none
+
+      include 'SIZE'
+      include 'FRAMELP'
+
+      
+      return
+      end subroutine
+
+!-----------------------------------------------------------------------
+
+      subroutine check_vbasea
+
+      implicit none
+
+      include 'SIZE'
+      include 'ARN_ARPD'
+      include 'TSTEPPERD'
+      include 'F3D'
+      include 'TSTEP'
+      include 'SOLN'
+      include 'INPUT'
+
+      integer i,j
+
+      do j=1,2
+        i = 1
+        call copy(vxp(1,2),vbasea(i,j),tst_nv)
+        i = i + tst_nv
+        call copy(vyp(1,2),vbasea(i,j),tst_nv)
+        i = i + tst_nv
+        if (if3d.or.iff3d) then
+          call copy(vzp(1,2),vbasea(i,j),tst_nv)
+          i = i + tst_nv
+        endif
+        if (arna_ifpr) then
+          call copy(prp(1,2),vbasea(i,j),tst_np)
+          i = i + tst_np
+        endif  
+
+        ifto = .true.
+        call outpost(vxp(1,2),vyp(1,2),vzp(1,2),prp(1,2),
+     $               vzp(1,2),'vba')
+      enddo 
+
+      call exitt
+
+      return
+      endsubroutine check_vbasea
+!---------------------------------------------------------------------- 
+
+      subroutine test_random
+
+      implicit none
+
+      include 'SIZE'
+      include 'GEOM'
+      include 'SOLN'
+      include 'INPUT'
+      include 'TSTEP'
+      include 'MASS'
+
+      include 'F3D'
+
+      include 'TEST'
+      include 'IXYZ'
+      include 'DXYZ'
+      include 'WZ'
+      include 'PARALLEL'
+      include 'MVGEOM'
+
+      include 'FS_ALE'
+
+      integer ntot1,ntot2
+      integer i,j
+
+      integer igeom
+      character cb*3
+      integer ie,iface,nfaces
+
+      integer nface,nedge,ncrnr
+      integer ntotf,ntots,ntotc
+
+      integer nxyz
+      integer nyz1,nxy2,nxyz1,nxyz2,n1,n2
+
+      real ta1,ta2,ta3
+      common /scrsf/ ta1 (lx1*ly1*lz1,lelv)
+     $ ,             ta2 (lx1*ly1*lz1,lelv)
+     $ ,             ta3 (lx1*ly1*lz1,lelv)
+
+      real           dx   (lx2*ly2*lz2,lelv)
+      real           dy   (lx2*ly2*lz2,lelv)
+      real           x    (lx1*ly1*lz1,lelv)
+      real           rm2  (lx2*ly2*lz2,lelv)
+      real           sm2  (lx2*ly2*lz2,lelv)
+      real           tm2  (lx2*ly2*lz2,lelv)
+
+      integer e
+      real iegr,pidr
+      integer key(lx1*ly1*lz1*lelv)
+      integer ind(lx1*ly1*lz1*lelv)
+      integer ind2(lx1*ly1*lz1*lelv)
+      integer ninseg(lx1*ly1*lz1*lelv)
+      logical ifseg(lx1*ly1*lz1*lelv)
+      integer nkey
+
+      integer iseg,nseg
+      real tol
+
+
+      nxyz  = lx1*ly1*lz1
+      ntot1 = nxyz*nelv
+      ntot2 = lx2*ly2*lz2*nelv
+
+      if (istep.eq.0) then
+
+
+!        call fs_map
+!
+!        call outpost(v1mask,v2mask,v3mask,pr,v3mask,'msk')
+
+        ifield = 1
+
+        if (fs_iffs) then
+          call gen_mapping_mvb
+          call fs_gen_damping
+        endif  
+
+        do i=1,ntot1
+          ta3(i,1)=fs_gl_num(i) + 0.0
+        enddo  
+
+        call col2(vx,v1mask,ntot1)
+        call col2(vy,v2mask,ntot1)
+        call col2(vz,v3mask,ntot1)
+        call outpost(vx,vy,vz,pr,vz,'   ')
+
+        call rzero(ta1,ntot1)
+        call rzero(ta2,ntot1)
+!        call rzero(ta3,ntot1)
+        do i=1,nelv
+          iegr = lglel(i)+0.0
+          pidr = gllnid(lglel(i)) 
+          call cfill(ta1(1,i),iegr,nxyz)
+          call cfill(ta2(1,i),pidr,nxyz)
+        enddo
+        call outpost(ta1,ta2,ta3,pr,ta3,'eln') 
+
+        call exitt
+
+        call rzero3(ta1,ta2,ta3,ntot1)
+
+!       Segments (initialization)        
+        do i=1,ntot1
+          ifseg(i) = .false.
+        enddo  
+
+        ifseg(1)  = .true.
+        ninseg(1) = ntot1
+        nseg      = 1
+
+        call copy(ta1,xm1,ntot1)
+        call copy(ta2,zm1,ntot1)
+        do i=1,ntot1
+          ind(i) = i
+        enddo  
+
+!        call tuple_sort(ta1(i),1,ninseg(iseg),1,nkey,ind,ta3)
+!        call swap_ip(ta2(i),ind,ninseg(iseg))
+
+        do j=1,2
+          nkey = 1
+          i    = 1
+          do iseg = 1,nseg
+            if (j.eq.1) then
+              call tuple_sort(ta1(i,1),1,ninseg(iseg),1,nkey,ind2,ta3)
+              call iswap_ip(ind(i),ind2,ninseg(iseg))
+              call swap_ip(ta2(i,1),ind2,ninseg(iseg))
+            elseif (j.eq.2) then
+              call tuple_sort(ta2(i,1),1,ninseg(iseg),1,nkey,ind2,ta3)
+              call iswap_ip(ind(i),ind2,ninseg(iseg))
+              call swap_ip(ta1(i,1),ind2,ninseg(iseg))
+            endif
+            i = i + ninseg(iseg) 
+          enddo
+
+          tol = 1.0e-12
+          do i=2,ntot1
+            if (j.eq.1) then
+              if ((abs(ta1(i,1)-ta1(i-1,1)).gt.tol)) then
+                ifseg(i) = .true.
+              endif  
+            elseif (j.eq.2) then
+              if ((abs(ta2(i,1)-ta2(i-1,1)).gt.tol)) then
+                ifseg(i) = .true.
+              endif    
+            endif
+          enddo
+
+!         Count up number of different segments
+          nseg = 0
+          do i=1,ntot1
+             if (ifseg(i)) then
+                nseg = nseg+1
+                ninseg(nseg) = 1
+             else
+                ninseg(nseg) = ninseg(nseg) + 1
+             endif
+          enddo
+        enddo     ! j
+      
+        do i=1,ntot1
+          j        = ind(i)
+          ta3(j,1) = ta1(i,1)
+        enddo  
+
+        write(6,*) nseg
+        call outpost(ta1,ta2,ta3,pr,ta3,'tst') 
+
+        call exitt
+      endif  
+
+
+      return
+      end subroutine test_random
+!---------------------------------------------------------------------- 
+
+      subroutine writew3m2
+
+      implicit none
+
+      include 'SIZE'
+      include 'WZ'
+
+      integer i,j
+
+       do j=1,ly2
+         write(6,'(A4,1x,6(F7.5,1x))') 'w3m2', (w3m2(i,j,1), i=1,lx2)
+       enddo  
+
+      return
+      end subroutine writew3m2
+!---------------------------------------------------------------------- 
+
+
+c automatically added by makenek
+      subroutine usrdat0() 
+
+      return
+      end
+
+c automatically added by makenek
+      subroutine usrsetvert(glo_num,nel,nx,ny,nz) ! to modify glo_num
+      integer*8 glo_num(1)
+
+      return
+      end
+
+c automatically added by makenek
+      subroutine userqtl
+
+      call userqtl_scig
+
+      return
+      end
