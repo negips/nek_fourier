@@ -12,16 +12,16 @@ minNumProcesses = 1
 #endTime = 400
 
 stopAt   = numsteps
-numSteps = 40000 
+numSteps = 1
 
-dt = 0.02
+dt = 0.005
 timeStepper = bdf3
 extrapolation = standard
 variableDt = no
 targetCFL = 5.0
 
 writeControl = TimeStep
-writeInterval = 100
+writeInterval = 1
 
 userParam01 = 0.01    # Perturbation amplitude
 userParam02 = 0.0      # local filter weight 
@@ -44,7 +44,7 @@ equation = incompNS
 #numberOfPerturbations=2
 #solveBaseFlow = no
 stressFormulation = yes
-axiSymmetry = yes
+axiSymmetry = no
 swirl       = no
 
 
@@ -64,14 +64,22 @@ residualProj = no
 #rhoCp = 1.
 #conductivity = -1000.00
 #residualTol = 1e-10 
-#
 
 [MESH]
-MOTION=user
+MOTION            = elasticity
+viscosity         = 0.45
+#residualProj      = no
+residualTol       = 1.0-6
+
+
+[_CHKPOINT]             # Runtime paramere section for checkpoint module
+READCHKPT            = no                     # Restat from checkpoint
+CHKPFNUMBER          = 1                      # Restart file number
+CHKPINTERVAL         = 100                    # Checkpiont saving frequency (number of time steps)
 
 
 [_F3D]
-iff3d             = yes        # if 3d fourier?
+iff3d             = no         # if 3d fourier?
 ifcyl_f3d         = yes         # If cylindrical coordinates
 k_f3d             = 0.00       # \beta
 slipl_f3d         = 0.05       # Slip length
@@ -80,7 +88,7 @@ log_f3d           = 1
 
 
 [_FSALE]
-fs_iffs           = yes          # If fs-ale motion?
+fs_iffs           = no           # If fs-ale motion?
 fs_ifgsm          = yes          # Global smoothening
 fs_iftc           = no           # tangential correction
 fs_ifgh           = yes          # Gordon Hall Correction

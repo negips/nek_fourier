@@ -106,7 +106,7 @@ c     call copy (dpc,binv,n)
       call opadd2       (p1,p2,p3,pp1,pp2,pp3)
       rpp1 = op_glsc2_wt(p1,p2,p3,r1,r2,r3,rmult)
 
-      maxit=200
+      maxit=1000
       do 1000 iter=1,maxit
          call axhmsf  (ap1,ap2,ap3,p1,p2,p3,h1,h2,matmod)
 !         call axhmsf_cyl_real(ap1,ap2,ap3,p1,p2,p3,h1,h2) 

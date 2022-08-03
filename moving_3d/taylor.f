@@ -50,8 +50,8 @@ c-----------------------------------------------------------------------
         ffy = 0.0
         ffz = 0.0
       else
-        ffx = 0.0
-        ffy = 0.01
+        ffx = 0.01
+        ffy = 0.0
         ffz = 0.0
       endif
 
@@ -95,9 +95,11 @@ c-----------------------------------------------------------------------
 
 
       if (istep.eq.0) then
+
         call frame_start
             
-!        call gen_mapping_mvb
+        call gen_mapping_mvb
+        call fs_gen_damping
        
       endif  
 
@@ -126,6 +128,8 @@ c-----------------------------------------------------------------------
 
       if (fs_iffs) call fs_mvmesh()
 !      call rzero3(wx,wy,wz,ntot1)
+
+      call outpost(wx,wy,wz,pr,t,'msh')
 
       if (istep.eq.nsteps.or.lastep.eq.1) then
         call frame_end
@@ -165,9 +169,9 @@ c-----------------------------------------------------------------------
 
         rmid = (rad1+rad2)/2
         if (ndim.eq.3) then
-          if (z.lt.(rmid)) ux = 1.0
+          if (z.lt.(rmid)) ux = 0.0
         else
-          if (y.lt.(rmid)) uz = 1.0
+          if (y.lt.(rmid)) uz = 0.0
         endif       
 !        temp = 0.0
 !        temp = a1*y + a2/y
@@ -219,7 +223,7 @@ c-----------------------------------------------------------------------
       real a1,a2
       common /cylindrical/ rad1,rad2,omega1,omega2,a1,a2
 
-      real rmid
+      real rmid,y0,z0
 
       ifcouette         = .false.
       ifpoiseuille      = .false.
@@ -254,9 +258,13 @@ c-----------------------------------------------------------------------
           uz   = 0.1*(a1*y + a2/y)   ! just testing
 !          temp = 0.01*(a1*y + a2/y)   ! just testing
         elseif (if3d) then
-          ux   = -uparam(1)*exp(-((y-rmid)/0.25)**2)
-          uy   = -0.1*uparam(1)*exp(-((y-rmid)/0.25)**2)
-          uz   = 0.1*(a1*y + a2/y)   ! just testing
+          y0   = 1.0
+          z0   = 4.0
+          ux   = uparam(1)*exp(-((y-y0)/0.25)**2)*
+     $                  exp(-((z-z0)/0.25)**2)
+          uy   = -0.0*uparam(1)*exp(-((y-y0)/0.25)**2)*
+     $                  exp(-((z-z0)/0.25)**2)
+          uz   = 0.0*(a1*y + a2/y)   ! just testing
         endif  
       else
 
@@ -314,10 +322,14 @@ c-----------------------------------------------------------------------
       include 'INPUT'
       include 'GEOM'
       include 'TSTEP'
+      include 'PARALLEL'
 !      include 'TOTAL'     ! guarantees GLL mapping of mesh.
 
       integer n,i,j
       real r0
+
+      integer iel,ifc
+      character cbm*3,cbf*3
 
 !      ifaxis = .true.   ! just for initialization
       param(42)=1       ! 0: GMRES (nonsymmetric), 1: PCG w/o weights
@@ -354,25 +366,37 @@ c-----------------------------------------------------------------------
       enddo
       enddo
 
+      do iel=1,nelt
+      do ifc=1,2*ndim
+         cbm = cbc(ifc,iel,0)        ! mesh boundary condition
+         cbf = cbc(ifc,iel,1)        ! fluid boundary condition
+         if (cbf.ne.'E  ') write(6,*) iel,ifc,cbm,' ',cbf
+      enddo
+      enddo
+
       return
       end
 c-----------------------------------------------------------------------
       subroutine usrdat2   ! This routine to modify mesh coordinates
 
+      implicit none
 
       include 'SIZE'
-      include 'TOTAL'
+      include 'INPUT'      ! cbc
+      include 'PARALLEL'
+!      include 'TOTAL'
 
-
-!      call outpost(vx,vy,vz,pr,t,'   ')
+      integer iel,ifc
+      character cbm*3,cbf*3
 
 !      do iel=1,nelt
 !      do ifc=1,2*ndim
-!         if (cbc(ifc,iel,1) .eq. 'W  ') boundaryID(ifc,iel) = 1 
-!         cbc(ifc,iel,2) = cbc(ifc,iel,1) 
-!         if (cbc(ifc,iel,1) .eq. 'W  ') cbc(ifc,iel,2) = 't  '
+!         cbm = cbc(ifc,iel,0)        ! mesh boundary condition
+!         cbf = cbc(ifc,iel,1)        ! fluid boundary condition
+!         if (cbf.ne.'E  ') write(6,*) iel,ifc,cbm,' ',cbf
 !      enddo
 !      enddo
+!      call exitt
 
       return
       end
@@ -567,26 +591,22 @@ c-----------------------------------------------------------------------
 
       if (istep.eq.0) then
 
-
-!        call fs_map
-!
-!        call outpost(v1mask,v2mask,v3mask,pr,v3mask,'msk')
-
         ifield = 1
 
-        if (fs_iffs) then
-          call gen_mapping_mvb
-          call fs_gen_damping
-        endif  
+!        if (fs_iffs) then
+!          call gen_mapping_mvb
+!          call fs_gen_damping
+!        endif  
 
         do i=1,ntot1
           ta3(i,1)=fs_gl_num(i) + 0.0
-        enddo  
+        enddo
 
-        call col2(vx,v1mask,ntot1)
-        call col2(vy,v2mask,ntot1)
-        call col2(vz,v3mask,ntot1)
-        call outpost(vx,vy,vz,pr,vz,'   ')
+!        call col2(ta3,fs_mask,ntot1)
+        call fs_int_project(ta1,ta2,ta3)
+        call col2(ta3,fs_damp,ntot1)
+
+        call outpost(v1mask,v2mask,v3mask,pr,pmask,'msk')
 
         call rzero(ta1,ntot1)
         call rzero(ta2,ntot1)
@@ -599,78 +619,8 @@ c-----------------------------------------------------------------------
         enddo
         call outpost(ta1,ta2,ta3,pr,ta3,'eln') 
 
-        call exitt
-
         call rzero3(ta1,ta2,ta3,ntot1)
 
-!       Segments (initialization)        
-        do i=1,ntot1
-          ifseg(i) = .false.
-        enddo  
-
-        ifseg(1)  = .true.
-        ninseg(1) = ntot1
-        nseg      = 1
-
-        call copy(ta1,xm1,ntot1)
-        call copy(ta2,zm1,ntot1)
-        do i=1,ntot1
-          ind(i) = i
-        enddo  
-
-!        call tuple_sort(ta1(i),1,ninseg(iseg),1,nkey,ind,ta3)
-!        call swap_ip(ta2(i),ind,ninseg(iseg))
-
-        do j=1,2
-          nkey = 1
-          i    = 1
-          do iseg = 1,nseg
-            if (j.eq.1) then
-              call tuple_sort(ta1(i,1),1,ninseg(iseg),1,nkey,ind2,ta3)
-              call iswap_ip(ind(i),ind2,ninseg(iseg))
-              call swap_ip(ta2(i,1),ind2,ninseg(iseg))
-            elseif (j.eq.2) then
-              call tuple_sort(ta2(i,1),1,ninseg(iseg),1,nkey,ind2,ta3)
-              call iswap_ip(ind(i),ind2,ninseg(iseg))
-              call swap_ip(ta1(i,1),ind2,ninseg(iseg))
-            endif
-            i = i + ninseg(iseg) 
-          enddo
-
-          tol = 1.0e-12
-          do i=2,ntot1
-            if (j.eq.1) then
-              if ((abs(ta1(i,1)-ta1(i-1,1)).gt.tol)) then
-                ifseg(i) = .true.
-              endif  
-            elseif (j.eq.2) then
-              if ((abs(ta2(i,1)-ta2(i-1,1)).gt.tol)) then
-                ifseg(i) = .true.
-              endif    
-            endif
-          enddo
-
-!         Count up number of different segments
-          nseg = 0
-          do i=1,ntot1
-             if (ifseg(i)) then
-                nseg = nseg+1
-                ninseg(nseg) = 1
-             else
-                ninseg(nseg) = ninseg(nseg) + 1
-             endif
-          enddo
-        enddo     ! j
-      
-        do i=1,ntot1
-          j        = ind(i)
-          ta3(j,1) = ta1(i,1)
-        enddo  
-
-        write(6,*) nseg
-        call outpost(ta1,ta2,ta3,pr,ta3,'tst') 
-
-        call exitt
       endif  
 
 
@@ -694,6 +644,29 @@ c-----------------------------------------------------------------------
       return
       end subroutine writew3m2
 !---------------------------------------------------------------------- 
+      subroutine outpostcbc   ! This routine to modify mesh coordinates
+
+      implicit none
+
+      include 'SIZE'
+      include 'INPUT'      ! cbc
+      include 'PARALLEL'
+!      include 'TOTAL'
+
+      integer iel,ifc
+      character cbm*3,cbf*3
+
+      do iel=1,nelt
+      do ifc=1,2*ndim
+         cbm = cbc(ifc,iel,0)        ! mesh boundary condition
+         cbf = cbc(ifc,iel,1)        ! fluid boundary condition
+         if (cbf.ne.'E  ') write(6,*) iel,ifc,cbm,' ',cbf
+      enddo
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
 
 
 c automatically added by makenek

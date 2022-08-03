@@ -12,6 +12,7 @@
 
       include 'SIZE'
       include 'FS_ALE'
+!      include 'SOLN'
 
       real wx(lx1,ly1,lz1,lelv),wy(lx1,ly1,lz1,lelv)
       real wz(lx1,ly1,lz1,lelv)
@@ -31,9 +32,11 @@
 !     Zero out tangential component of mesh velocity
       call fs_mvmeshn2(wx,wy,wz)
 
+
       if (fs_ifgsm) then
 
         call fs_gllo_xyz
+
         call fs_gllo_flds(wx,wy,wz)
         call fs_intp_setup
         call fs_get_localpts          ! SEM -> Global
@@ -1027,10 +1030,10 @@
       integer e,ifc,n,ne,nfaces
 
       integer kx1,kx2,ky1,ky2,kz1,kz2
-      integer ix,iy,iz,ia,ii
+      integer ix,iy,iz,ia,ii,jj
 
       character cb*3
-      real xm1_min,xm1_max,ym1_min,ym1_max
+      real xm1_min,xm1_max,ym1_min,ym1_max,zm1_min,zm1_max
       real glmin,glmax
 
       real s(3)   ! surface normals
@@ -1040,14 +1043,16 @@
       xm1_max = glmax(xm1,lx1*ly1*lz1*nelv)
       ym1_min = glmin(ym1,lx1*ly1*lz1*nelv)
       ym1_max = glmax(ym1,lx1*ly1*lz1*nelv)
- 
+      zm1_min = glmin(zm1,lx1*ly1*lz1*nelv)
+      zm1_max = glmax(zm1,lx1*ly1*lz1*nelv)
+
       call rzero(xg_fs,lxfs*lyfs*2)
       call rzero(yg_fs,lxfs*lyfs*2)
       call rzero(zg_fs,lxfs*lyfs*2)
 
       do iy=1,lyfs
         do ix=1,lxfs
-          xg_fs(ix,iy,1)=(zx_fs(ix)+1.0)*(xm1_max-xm1_min)/2.0 + xm1_min
+          xg_fs(ix,iy,1)=(zx_fs(ix)+1.0)*(zm1_max-zm1_min)/2.0 + zm1_min
           yg_fs(ix,iy,1)=(zy_fs(iy)+1.0)*(ym1_max-ym1_min)/2.0 + ym1_min
           if (ndim.eq.2) xg_fs(ix,iy,1) = zx_fs(ix)
         enddo
@@ -1058,45 +1063,59 @@
       ne     = 0              ! total number of interface elements
       ii     = 0
       do e=1,nelv
-      do ifc=1,nfaces
-        cb  = fs_cbc(ifc,e)
-        if (cb.eq.'INT') then
-          ne = ne+1
-          call facind (kx1,kx2,ky1,ky2,kz1,kz2,nx1,ny1,nz1,ifc)
-          do iz=kz1,kz2
-          do iy=ky1,ky2
-          do ix=kx1,kx2
-!            call getSnormal(s,ix,iy,iz,ifc,e)   ! surface normals
-            ii = ii + 1
-            xi_fs(ii) = xm1(ix,iy,iz,e)
-            yi_fs(ii) = ym1(ix,iy,iz,e)
-            if (ndim.eq.3) zi_fs(ii) = zm1(ix,iy,iz,e)
-            if (ndim.eq.2) xi_fs(ii) = zgm1(ix,1)
+        jj     = 0
+        do ifc=1,nfaces
+          cb  = fs_cbc(ifc,e)
+          if (cb.eq.'INT') then
+            ne = ne+1
+            call facind (kx1,kx2,ky1,ky2,kz1,kz2,nx1,ny1,nz1,ifc)
+            do iz=kz1,kz2
+            do iy=ky1,ky2
+            do ix=kx1,kx2
+!              call getSnormal(s,ix,iy,iz,ifc,e)   ! surface normals
+              ii = ii + 1
+              xi_fs(ii) = xm1(ix,iy,iz,e)
+              yi_fs(ii) = ym1(ix,iy,iz,e)
+              if (ndim.eq.3) zi_fs(ii) = zm1(ix,iy,iz,e)
+              if (ndim.eq.2) xi_fs(ii) = zgm1(ix,1)
 
-            xm1_fs(ix,iy,ne) = xm1(ix,iy,iz,e)
-            ym1_fs(ix,iy,ne) = ym1(ix,iy,iz,e)
-            if (ndim.eq.3) zm1_fs(ia,1,ne) = zm1(ix,iy,iz,e)
-!           ndim.eq.2 needs very special treatment
-            if (ndim.eq.2) then
-              if (kx1.eq.kx2) then
-                do ia = 1,lx1
-                  xm1_fs(ia,iy,ne)  = zgm1(ia,1)
-                  ym1_fs(ia,iy,ne)  = ym1(ix,iy,iz,e)
-                enddo
-              elseif (ky1.eq.ky2) then
-                do ia = 1,ly1
-                  xm1_fs(ix,ia,ne)  = zgm1(ia,1)
-                  ym1_fs(ix,ia,ne)  = ym1(ix,iy,iz,e)
-                enddo
-              endif     ! kx1.eq.kx2
-            endif       ! ndim.eq.2
-          enddo         ! ix
-          enddo         ! iy
-          enddo         ! iz
-        endif           ! cb.eq.INT
-      enddo             ! ifc
-      enddo             ! e
+              jj = jj + 1
+              xm1_fs(jj,1,ne) = xm1(ix,iy,iz,e)
+              ym1_fs(jj,1,ne) = ym1(ix,iy,iz,e)
+              if (ndim.eq.3) xm1_fs(jj,1,ne) = zm1(ix,iy,iz,e)
+!             ndim.eq.2 needs very special treatment
+              if (ndim.eq.2) then
+                if (kx1.eq.kx2) then
+                  do ia = 1,lx1
+                    xm1_fs(ia,iy,ne)  = zgm1(ia,1)
+                    ym1_fs(ia,iy,ne)  = ym1(ix,iy,iz,e)
+                  enddo
+                elseif (ky1.eq.ky2) then
+                  do ia = 1,ly1
+                    xm1_fs(ix,ia,ne)  = zgm1(ia,1)
+                    ym1_fs(ix,ia,ne)  = ym1(ix,iy,iz,e)
+                  enddo
+                endif     ! kx1.eq.kx2
+              endif       ! ndim.eq.2
+            enddo         ! ix
+            enddo         ! iy
+            enddo         ! iz
+          endif           ! cb.eq.INT
+        enddo             ! ifc
+      enddo               ! e
 
+      
+!!     debugging
+!      call nekgsync()
+!      if (nid.eq.0) then
+!        do e=1,fs_nel
+!          do iy=1,ly1
+!            write(6,*) e, (ym1_fs(ix,iy,e),ix=1,lx1)
+!          enddo
+!        enddo
+!      endif
+!      call nekgsync()
+!      call sleep(1)
 
       return
       end subroutine fs_gllo_xyz
@@ -1133,20 +1152,21 @@
 !     Get the surface x,y,z
       nfaces = 2*ndim
       ne     = 0              ! total number of interface elements
-      ii     = 0
       do e=1,nelv
       do ifc=1,nfaces
         cb  = fs_cbc(ifc,e)
         if (cb.eq.'INT') then
           ne = ne+1
+          ii     = 0
           call facind (kx1,kx2,ky1,ky2,kz1,kz2,nx1,ny1,nz1,ifc)
           do iz=kz1,kz2
           do iy=ky1,ky2
           do ix=kx1,kx2
+            ii = ii+1
 !           call getSnormal(s,ix,iy,iz,ifc,e)   ! surface normals
-            lfld_fs(ix,iy,ne,1)= wx(ix,iy,iz,e) ! ym1_fs(ix,iy,ne)**2
-            lfld_fs(ix,iy,ne,2)= wy(ix,iy,iz,e) ! ym1_fs(ix,iy,ne)**2
-            if (ndim.eq.3) lfld_fs(ix,iy,ne,1)= wz(ix,iy,iz,e)
+            lfld_fs(ii,1,ne,1)= wx(ix,iy,iz,e) ! ym1_fs(ix,iy,ne)**2
+            lfld_fs(ii,1,ne,2)= wy(ix,iy,iz,e) ! ym1_fs(ix,iy,ne)**2
+            if (ndim.eq.3) lfld_fs(ii,1,ne,3)= wz(ix,iy,iz,e)
 !           ndim.eq.2 needs very special treatment
             if (ndim.eq.2) then
               if (kx1.eq.kx2) then
@@ -1167,6 +1187,19 @@
         endif           ! cb.eq.INT
       enddo             ! ifc
       enddo             ! e
+
+!!     debugging
+!      call nekgsync()
+!      if (nid.eq.0) then
+!        do e=1,fs_nel
+!          do iy=1,ly1
+!            write(6,*) e, (lfld_fs(ix,iy,e,1),ix=1,lx1)
+!          enddo
+!        enddo
+!      endif
+!      call nekgsync()
+!      call sleep(1)
+
 
       return
       end subroutine fs_gllo_flds
@@ -1476,9 +1509,9 @@
           
             ar = ar +  area(ii,1,ifc,e)
 
-            wx(ix,iy,iz,e) = fs_gfldout(ix,iy,ne,1)
-            wy(ix,iy,iz,e) = fs_gfldout(ix,iy,ne,2)
-            if (ndim.eq.3) wz(ix,iy,iz,e) = fs_gfldout(ix,iy,ne,3)
+            wx(ix,iy,iz,e) = fs_gfldout(ii,1,ne,1)
+            wy(ix,iy,iz,e) = fs_gfldout(ii,1,ne,2)
+            if (ndim.eq.3) wz(ix,iy,iz,e) = fs_gfldout(ii,1,ne,3)
           enddo
           enddo
           enddo

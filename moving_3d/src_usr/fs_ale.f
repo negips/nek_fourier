@@ -18,25 +18,7 @@
 
       include 'FS_ALE'
 
-      real x1sort(lx1*ly1*lz1*lelv)
-      real x2sort(lx1*ly1*lz1*lelv)
-      real xlocal_u(lx1*lelv)
-      integer local_num(lx1*ly1*lz1*lelv) ! local numbering
-      integer sortind(lx1*ly1*lz1*lelv)
       integer i,j,k,n,n1
-
-      integer lelxx
-      parameter (lelxx=500)
-      real gxsort1(lx1*lz1*lelxx),gxsort2(lx1*lz1*lelxx)
-      integer gind(lx1*lz1*lelxx),gind2(lx1*lz1*lelxx)
-      integer gind3(lx1*lz1*lelxx)
-      integer gl_num_u(lx1*lz1*lelxx)         ! unique global numbers
-
-      integer nunq                        ! Unique local points
-      integer n2,n3
-      integer glnos
-     
-      real xlast,tol
 
       integer igl_running_sum       ! function
       integer iglsum
@@ -49,15 +31,18 @@
       real vlsum
       integer ifield, nxyz
       real temp0(lx1,ly1,lz1)
+      character str*132
 
-      call mntr_log(fs_id,fs_log,'Generating Global Mapping')
+      integer gl_fs_nel
+
+      call mntr_log(fs_id,fs_log,'Generating Global Mapping.')
 
       n = lx1*ly1*lz1*nelv
 
 !     Keep original mesh location      
       call copy3(xm0_fs,ym0_fs,zm0_fs,xm1,ym1,zm1,n)
 
-!     Create mapping and GS handle      
+!     Create mapping and GS handle
       call fs_map
 
       call rzero(fs_mask,n)
@@ -72,15 +57,15 @@
       nz     = lz1
       fs_nel = 0
       do ie=1,nelv
-        call copy(temp0,xm1(1,1,1,ie),nxyz)
-        call col2(temp0,bm1(1,1,1,ie),nxyz)
-        xmean = vlsum(temp0,nxyz)
-        vol   = vlsum(bm1(1,1,1,ie),nxyz)
-        xmean = xmean/vol
-        call copy(temp0,ym1(1,1,1,ie),nxyz)
-        call col2(temp0,bm1(1,1,1,ie),nxyz)
-        ymean = vlsum(temp0,nxyz)
-        ymean = ymean/vol
+!        call copy(temp0,xm1(1,1,1,ie),nxyz)
+!        call col2(temp0,bm1(1,1,1,ie),nxyz)
+!        xmean = vlsum(temp0,nxyz)
+!        vol   = vlsum(bm1(1,1,1,ie),nxyz)
+!        xmean = xmean/vol
+!        call copy(temp0,ym1(1,1,1,ie),nxyz)
+!        call col2(temp0,bm1(1,1,1,ie),nxyz)
+!        ymean = vlsum(temp0,nxyz)
+!        ymean = ymean/vol
         do iface=1,nfaces
           cb  = cbc(iface,ie,ifield)
           ieg = lglel(ie)
@@ -106,6 +91,11 @@
           endif                     
         enddo
       enddo      
+
+      gl_fs_nel = iglsum(fs_nel,1)
+      call blank(str,132)
+      write(str,'(A23,1x,I5)') 'No. Interface Elements:', gl_fs_nel
+      call mntr_log(fs_id,fs_log,str)
 
       call fgslib_gs_op(fs_gs_handle,fs_vmult,1,1,0)  ! 1 ==> +
       call invcol1(fs_vmult,n)
@@ -194,8 +184,6 @@
       integer irecv
       integer ivlmin,ivlmax
 
-      call mntr_log(fs_id,fs_log,'Generating Global Mapping')
-
       ntot1 = lx1*ly1*lz1*nelv
 
       jloop = 1
@@ -216,7 +204,7 @@
       nseg      = 1
       tol       = 1.0e-14
 
-      call copy(ta1,xm1,ntot1)
+      call copy(ta1,ym1,ntot1)
       call copy(ta2,zm1,ntot1)
       do i=1,ntot1
         ind(i) = i
@@ -771,7 +759,7 @@
 !     Local sort again with numbered points.
 !-------------------------------------------------- 
 
-      call copy(ta1,xm1,ntot1)
+      call copy(ta1,ym1,ntot1)
       call copy(ta2,zm1,ntot1)
       call ifill(glnum_wk,-1,ntot1)
       j = 0
@@ -1027,17 +1015,17 @@
       n = lx1*ly1*lz1*nelv
 
 !     Find interface position      
-      call copy(dummy,ym1,n)
+      call copy(dummy,xm1,n)
       call col2(dummy,fs_mask,n)
       call fgslib_gs_op(fs_gs_handle,dummy,1,1,0)     ! 1 ==> +
       call col2(dummy,fs_vmult,n)
 
 
 !     Create damping function      
-      mu = 0.80
+      mu = 0.70
       do i=1,n
         x0               = dummy(i,1,1,1)
-        x                = ym1(i,1,1,1)
+        x                = xm1(i,1,1,1)
         if (abs(x-x0).lt.fs_ofst) then
           fs_damp(i,1,1,1) = 1.0
         else  
@@ -1138,6 +1126,7 @@ c
 !       We don't move mesh along Z
         call rzero(wz,ntot1)
       endif
+
 
 !     Use Gordon Hall for mesh motion
       if (fs_ifgh) call fs_gh_correction(wx,wy,wz) 

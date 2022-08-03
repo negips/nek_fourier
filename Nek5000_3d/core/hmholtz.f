@@ -679,6 +679,9 @@ c     overrule input tolerance
       if (tin.lt.0) tol=abs(tin)
       niter = min(maxit,maxcg)
 
+!     prabal
+      niter = 1000      
+
       if (.not.ifsolv) then
          call setfast(h1,h2,imsh)
          ifsolv = .true.

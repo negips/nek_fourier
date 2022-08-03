@@ -163,6 +163,8 @@
       call rprm_rp_get(itmp,rtmp,ltmp,ctmp,chpt_fnum_id,rpar_int)
       arna_fnum = itmp
 
+      if (.not.tst_iftst) return
+
       ! check simulation parameters
 #ifdef ARPACK_DIRECT
       ! standard eigenvalue problem A*x = lambda*x
